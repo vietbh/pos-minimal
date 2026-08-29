@@ -1,0 +1,12 @@
+services:
+    App\Application\Security\ActorContext:
+        public: true
+        arguments:
+            $userId: 1
+            $sessionId: null
+            $requestId: 'test-checkout-golden-path'
+
+    App\Application\Order\Command\Checkout\CheckoutHandlerEntryPoint:
+        autowire: true
+        autoconfigure: true
+        public: true

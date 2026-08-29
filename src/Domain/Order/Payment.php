@@ -111,18 +111,16 @@ class Payment
     {
         return $this->order;
     }
-
     public function assignOrder(Order $order): void
     {
         if (isset($this->order) && $this->order !== $order) {
             throw new \DomainException(
-                'Payment cannot be moved to another order.',
+                'Order item cannot be moved to another order.',
             );
         }
 
         $this->order = $order;
     }
-
     public function getUser(): User
     {
         return $this->user;

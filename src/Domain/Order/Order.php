@@ -231,9 +231,7 @@ class Order
             );
         }
 
-        if ($item->getOrder() !== $this) {
-            $item->assignOrder($this);
-        }
+        $item->assignOrder($this);
 
         if (!$this->items->contains($item)) {
             $this->items->add($item);
@@ -296,13 +294,11 @@ class Order
     {
         if (!$this->isDraft()) {
             throw new \DomainException(
-                'Payment can only be added while order is draft.',
+                'Payments can only be changed while order is draft.',
             );
         }
 
-        if ($payment->getOrder() !== $this) {
-            $payment->assignOrder($this);
-        }
+        $payment->assignOrder($this);
 
         if (!$this->payments->contains($payment)) {
             $this->payments->add($payment);

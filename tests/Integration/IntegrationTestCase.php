@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Integration;
+
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+
+abstract class IntegrationTestCase extends KernelTestCase
+{
+    protected EntityManagerInterface $entityManager;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        self::bootKernel();
+
+        $this->entityManager = self::getContainer()
+            ->get(EntityManagerInterface::class);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->entityManager->clear();
+
+        parent::tearDown();
+    }
+}
