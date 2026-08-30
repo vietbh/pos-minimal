@@ -35,3 +35,7 @@ services:
 
     App\Application\Product\Image\ImageProcessorInterface:
         alias: App\Infrastructure\Image\ImageMagickProcessor
+
+    App\Command\CleanupOrphanFilesCommand:
+        arguments:
+            $storageRoot: '%kernel.project_dir%/%env(PRODUCT_IMAGE_STORAGE_ROOT)%'

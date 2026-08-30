@@ -31,8 +31,7 @@ final class ImageMagickProcessorTest extends TestCase
     {
         $finder = new ExecutableFinder();
         $binary = $finder->find('convert');
-
-        if ($binary === null) {
+        if ($binary === false) {
             self::markTestSkipped('ImageMagick is not installed.');
         }
 

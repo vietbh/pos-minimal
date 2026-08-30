@@ -1,0 +1,23 @@
+# Replace /var/www/mobile-pos and /usr/bin/php with the real production paths.
+# Keep cron commands CLI-only; do not expose a public /cron/run endpoint.
+
+# Bounded Messenger worker every 2 minutes.
+*/2 * * * * cd /var/www/mobile-pos && flock -n /tmp/mobile-pos-worker.lock /usr/bin/php bin/console messenger:consume async --env=prod --limit=100 --time-limit=90 --memory-limit=128M >> var/log/worker.log 2>&1
+
+# Expire inactive sessions hourly.
+0 * * * * cd /var/www/mobile-pos && /usr/bin/php bin/console app:session:cleanup --env=prod >> var/log/cron.log 2>&1
+
+# Clean terminal idempotency records daily.
+20 3 * * * cd /var/www/mobile-pos && /usr/bin/php bin/console app:idempotency:cleanup --env=prod >> var/log/cron.log 2>&1
+
+# Re-dispatch stale image jobs every 10 minutes.
+*/10 * * * * cd /var/www/mobile-pos && /usr/bin/php bin/console app:product-images:requeue --env=prod >> var/log/cron.log 2>&1
+
+# Remove only old, unreferenced storage files daily.
+40 3 * * * cd /var/www/mobile-pos && /usr/bin/php bin/console app:product-images:cleanup --env=prod >> var/log/cron.log 2>&1
+
+# Daily database backup.
+10 2 * * * cd /var/www/mobile-pos && /bin/bash scripts/backup-db.sh >> var/log/backup.log 2>&1
+
+# Daily product-image backup.
+30 2 * * * cd /var/www/mobile-pos && /bin/bash scripts/backup-files.sh >> var/log/backup.log 2>&1

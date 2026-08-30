@@ -19,6 +19,9 @@
 /assets/vendor/
 ###< symfony/asset-mapper ###
 
+# Production/runtime backups
+/var/backups/
+
 # Local environment
 .env
 .env.local
@@ -27,5 +30,5 @@
 # IDE
 .idea/
 
-# Local phase artifacts
+# Local artifacts
 *.zip
