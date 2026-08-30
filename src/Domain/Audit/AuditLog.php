@@ -10,25 +10,22 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(
-    name: 'audit_logs',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_audit_user_created',
-            columns: ['user_id', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_audit_entity',
-            columns: ['entity_type', 'entity_id'],
-        ),
-        new ORM\Index(
-            name: 'idx_audit_action_created',
-            columns: ['action', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_audit_created',
-            columns: ['created_at'],
-        ),
-    ],
+    name: 'audit_logs')]
+#[ORM\Index(
+    name: 'idx_audit_user_created',
+    columns: ['user_id', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_audit_entity',
+    columns: ['entity_type', 'entity_id'],
+)]
+#[ORM\Index(
+    name: 'idx_audit_action_created',
+    columns: ['action', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_audit_created',
+    columns: ['created_at'],
 )]
 class AuditLog
 {

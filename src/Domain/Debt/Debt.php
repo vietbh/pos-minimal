@@ -14,26 +14,22 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(
-    name: 'debts',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_debt_customer_status',
-            columns: ['customer_id', 'status'],
-        ),
-        new ORM\Index(
-            name: 'idx_debt_order',
-            columns: ['order_id'],
-        ),
-        new ORM\Index(
-            name: 'idx_debt_status_created',
-            columns: ['status', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_debt_created',
-            columns: ['created_at'],
-        ),
-    ],
+#[ORM\Table(name: 'debts')]
+#[ORM\Index(
+    name: 'idx_debt_customer_status',
+    columns: ['customer_id', 'status'],
+)]
+#[ORM\Index(
+    name: 'idx_debt_order',
+    columns: ['order_id'],
+)]
+#[ORM\Index(
+    name: 'idx_debt_status_created',
+    columns: ['status', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_debt_created',
+    columns: ['created_at'],
 )]
 class Debt
 {

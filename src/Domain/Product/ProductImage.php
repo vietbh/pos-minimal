@@ -9,21 +9,18 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(
-    name: 'product_images',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_product_image_product_sort',
-            columns: ['product_id', 'sort_order'],
-        ),
-        new ORM\Index(
-            name: 'idx_product_image_product_primary',
-            columns: ['product_id', 'is_primary'],
-        ),
-        new ORM\Index(
-            name: 'idx_product_image_status',
-            columns: ['status'],
-        ),
-    ],
+    name: 'product_images')]
+#[ORM\Index(
+    name: 'idx_product_image_product_sort',
+    columns: ['product_id', 'sort_order'],
+)]
+#[ORM\Index(
+    name: 'idx_product_image_product_primary',
+    columns: ['product_id', 'is_primary'],
+)]
+#[ORM\Index(
+    name: 'idx_product_image_status',
+    columns: ['status'],
 )]
 class ProductImage
 {

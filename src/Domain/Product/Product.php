@@ -12,21 +12,18 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(
-    name: 'products',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_product_name',
-            columns: ['name'],
-        ),
-        new ORM\Index(
-            name: 'idx_product_active_name',
-            columns: ['is_active', 'name'],
-        ),
-        new ORM\Index(
-            name: 'idx_product_stock',
-            columns: ['stock_quantity'],
-        ),
-    ],
+    name: 'products')]
+#[ORM\Index(
+    name: 'idx_product_name',
+    columns: ['name'],
+)]
+#[ORM\Index(
+    name: 'idx_product_active_name',
+    columns: ['is_active', 'name'],
+)]
+#[ORM\Index(
+    name: 'idx_product_stock',
+    columns: ['stock_quantity'],
 )]
 class Product
 {

@@ -14,26 +14,22 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(
-    name: 'orders',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_order_customer_created',
-            columns: ['customer_id', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_order_user_created',
-            columns: ['user_id', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_order_status_created',
-            columns: ['status', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_order_created',
-            columns: ['created_at'],
-        ),
-    ],
+#[ORM\Table(name: 'orders')]
+#[ ORM\Index(
+    name: 'idx_order_customer_created',
+    columns: ['customer_id', 'created_at'],
+)]
+#[ ORM\Index(
+    name: 'idx_order_user_created',
+    columns: ['user_id', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_order_status_created',
+    columns: ['status', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_order_created',
+    columns: ['created_at'],
 )]
 class Order
 {

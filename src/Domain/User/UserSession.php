@@ -8,18 +8,14 @@ use App\Domain\User\Enum\SessionStatus;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(
-    name: 'user_sessions',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_user_session_user_status',
-            columns: ['user_id', 'status']
-        ),
-        new ORM\Index(
-            name: 'idx_user_session_status_activity',
-            columns: ['status', 'last_activity_at']
-        ),
-    ],
+#[ORM\Table(name: 'user_sessions')]
+#[ORM\Index(
+    name: 'idx_user_session_status_activity',
+    columns: ['status', 'last_activity_at']
+)]
+#[ORM\Index(
+    name: 'idx_user_session_user_status',
+    columns: ['user_id', 'status']
 )]
 class UserSession
 {

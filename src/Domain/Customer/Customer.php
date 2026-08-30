@@ -8,17 +8,14 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(
-    name: 'customers',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_customer_name',
-            columns: ['name'],
-        ),
-        new ORM\Index(
-            name: 'idx_customer_phone',
-            columns: ['phone'],
-        ),
-    ],
+    name: 'customers')]
+#[ORM\Index(
+    name: 'idx_customer_name',
+    columns: ['name'],
+)]
+#[ORM\Index(
+    name: 'idx_customer_phone',
+    columns: ['phone'],
 )]
 class Customer
 {

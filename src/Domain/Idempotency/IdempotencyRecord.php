@@ -9,18 +9,14 @@ use App\Domain\User\User;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(
-    name: 'idempotency_records',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_idempotency_user_created',
-            columns: ['user_id', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_idempotency_status_created',
-            columns: ['status', 'created_at'],
-        ),
-    ],
+#[ORM\Table(name: 'idempotency_records')]
+#[ORM\Index(
+    name: 'idx_idempotency_user_created',
+    columns: ['user_id', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_idempotency_status_created',
+    columns: ['status', 'created_at'],
 )]
 #[ORM\UniqueConstraint(
     name: 'uq_idempotency_user_key',

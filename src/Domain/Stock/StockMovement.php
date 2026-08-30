@@ -13,25 +13,22 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(
-    name: 'stock_movements',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_stock_movement_product_created',
-            columns: ['product_id', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_stock_movement_order',
-            columns: ['order_id'],
-        ),
-        new ORM\Index(
-            name: 'idx_stock_movement_user_created',
-            columns: ['user_id', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_stock_movement_type_created',
-            columns: ['type', 'created_at'],
-        ),
-    ],
+    name: 'stock_movements')]
+#[ORM\Index(
+    name: 'idx_stock_movement_product_created',
+    columns: ['product_id', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_stock_movement_order',
+    columns: ['order_id'],
+)]
+#[ORM\Index(
+    name: 'idx_stock_movement_user_created',
+    columns: ['user_id', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_stock_movement_type_created',
+    columns: ['type', 'created_at'],
 )]
 class StockMovement
 {

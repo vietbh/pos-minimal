@@ -10,22 +10,19 @@ use App\Domain\User\User;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(
-    name: 'payments',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_payment_order_created',
-            columns: ['order_id', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_payment_user_created',
-            columns: ['user_id', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_payment_method_created',
-            columns: ['method', 'created_at'],
-        ),
-    ],
+
+#[ORM\Table(name: 'payments')]
+#[ORM\Index(
+    name: 'idx_payment_order_created',
+    columns: ['order_id', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_payment_user_created',
+    columns: ['user_id', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_payment_method_created',
+    columns: ['method', 'created_at'],
 )]
 class Payment
 {

@@ -63,37 +63,128 @@ final readonly class CheckoutHandler
 
         $actorContext = $this->actorContextProvider->get();
 
-        return $this->transactionManager->run(
-            function (
-                TransactionContextInterface $transaction,
-            ) use ($input, $actorContext): CheckoutResult {
-                $decision = $this->idempotency->start(
+        $requestFingerprint = $this->buildRequestFingerprint($input);
+
+        /*
+         * Transaction #1
+         *
+         * Reserve the idempotency key and commit PROCESSING
+         * before entering the business transaction.
+         */
+        $decision = $this->transactionManager->run(
+            function () use (
+                $actorContext,
+                $input,
+                $requestFingerprint,
+            ): IdempotencyDecision {
+                return $this->idempotency->start(
                     userId: $actorContext->userId,
                     operation: self::OPERATION,
                     idempotencyKey: $input->idempotencyKey,
-                    requestFingerprint: $this->buildRequestFingerprint($input),
+                    requestFingerprint: $requestFingerprint,
                 );
+            },
+        );
 
-                return match ($decision->type) {
-                    IdempotencyDecisionType::REPLAY
-                    => $this->replay($decision),
+        return match ($decision->type) {
+            IdempotencyDecisionType::REPLAY
+            => $this->replay($decision),
 
-                    IdempotencyDecisionType::IN_PROGRESS
-                    => throw new \DomainException(
-                        'Checkout with this idempotency key is already in progress.',
-                    ),
+            IdempotencyDecisionType::IN_PROGRESS
+            => throw new \DomainException(
+                'Checkout with this idempotency key is already in progress.',
+            ),
 
-                    IdempotencyDecisionType::EXECUTE
-                    => $this->execute(
+            IdempotencyDecisionType::EXECUTE
+            => $this->executeWithIdempotencyOutcome(
+                $input,
+                $decision,
+                $actorContext,
+            ),
+        };
+    }
+
+    private function executeWithIdempotencyOutcome(
+        CheckoutInput $input,
+        IdempotencyDecision $decision,
+        ActorContext $actorContext,
+    ): CheckoutResult {
+        try {
+            /*
+             * Transaction #2
+             *
+             * ALL business mutations live inside this transaction.
+             *
+             * If anything fails, this transaction is rolled back.
+             */
+            $result = $this->transactionManager->run(
+                function (
+                    TransactionContextInterface $transaction,
+                ) use (
+                    $input,
+                    $decision,
+                    $actorContext,
+                ): CheckoutResult {
+                    return $this->execute(
                         $input,
                         $decision,
                         $transaction,
                         $actorContext,
-                    ),
-                };
+                    );
+                },
+            );
+        } catch (\Throwable $exception) {
+            /*
+             * Transaction #2 has already rolled back.
+             *
+             * Transaction #3
+             *
+             * Persist PROCESSING -> FAILED independently from
+             * the failed business transaction.
+             */
+            $this->transactionManager->run(
+                function () use (
+                    $decision,
+                    $exception,
+                ): void {
+                    $this->idempotency->fail(
+                        decision: $decision,
+                        responseStatus: $this->resolveFailureStatus(
+                            $exception,
+                        ),
+                        responseBody: [
+                            'error' => $exception->getMessage(),
+                        ],
+                    );
+                },
+            );
+
+            throw $exception;
+        }
+
+        /*
+         * Transaction #3
+         *
+         * Business transaction has already committed.
+         *
+         * Persist PROCESSING -> COMPLETED independently.
+         */
+        $this->transactionManager->run(
+            function () use (
+                $decision,
+                $result,
+            ): void {
+                $this->idempotency->complete(
+                    decision: $decision,
+                    responseStatus: self::RESPONSE_STATUS_OK,
+                    responseBody: $this->serializeResult($result),
+                );
             },
         );
+
+        return $result;
     }
+
     private function execute(
         CheckoutInput $input,
         IdempotencyDecision $decision,
@@ -175,7 +266,7 @@ final readonly class CheckoutHandler
         /*
          * The Order ID is generated by Doctrine.
          *
-         * Flush while the transaction is still open so that the
+         * Flush while the transaction is still open so the
          * application can safely construct the result and audit
          * record using the database identity.
          */
@@ -261,7 +352,15 @@ final readonly class CheckoutHandler
             ),
         );
 
-        $result = new CheckoutResult(
+        /*
+         * IMPORTANT:
+         *
+         * Do NOT call idempotency->complete() here.
+         *
+         * Completion is persisted only after Transaction #2
+         * successfully commits.
+         */
+        return new CheckoutResult(
             orderId: $orderId,
             orderNumber: $order
                 ->getOrderNumber()
@@ -271,14 +370,6 @@ final readonly class CheckoutHandler
             debtAmount: $order->getDebtAmount(),
             status: $order->getStatus(),
         );
-
-        $this->idempotency->complete(
-            decision: $decision,
-            responseStatus: self::RESPONSE_STATUS_OK,
-            responseBody: $this->serializeResult($result),
-        );
-
-        return $result;
     }
 
     private function resolveUser(
@@ -431,8 +522,10 @@ final readonly class CheckoutHandler
 
         usort(
             $items,
-            static fn (array $left, array $right): int
-            => $left['productId'] <=> $right['productId'],
+            static fn (
+                array $left,
+                array $right,
+            ): int => $left['productId'] <=> $right['productId'],
         );
 
         $payload = [
@@ -505,5 +598,13 @@ final readonly class CheckoutHandler
             'debtAmount' => $result->debtAmount->toDecimal(),
             'status' => $result->status->value,
         ];
+    }
+
+    private function resolveFailureStatus(
+        \Throwable $exception,
+    ): int {
+        return $exception instanceof \DomainException
+            ? 422
+            : 500;
     }
 }

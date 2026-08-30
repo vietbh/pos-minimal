@@ -9,18 +9,14 @@ use App\Domain\User\User;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(
-    name: 'debt_payments',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_debt_payment_debt_created',
-            columns: ['debt_id', 'created_at'],
-        ),
-        new ORM\Index(
-            name: 'idx_debt_payment_user_created',
-            columns: ['user_id', 'created_at'],
-        ),
-    ],
+#[ORM\Table(name: 'debt_payments')]
+#[ORM\Index(
+    name: 'idx_debt_payment_debt_created',
+    columns: ['debt_id', 'created_at'],
+)]
+#[ORM\Index(
+    name: 'idx_debt_payment_user_created',
+    columns: ['user_id', 'created_at'],
 )]
 class DebtPayment
 {

@@ -9,18 +9,14 @@ use App\Domain\Shared\ValueObject\Money;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ORM\Table(
-    name: 'order_items',
-    indexes: [
-        new ORM\Index(
-            name: 'idx_order_item_order',
-            columns: ['order_id'],
-        ),
-        new ORM\Index(
-            name: 'idx_order_item_product',
-            columns: ['product_id'],
-        ),
-    ],
+#[ORM\Table(name: 'order_items')]
+#[ORM\Index(
+    name: 'idx_order_item_order',
+    columns: ['order_id'],
+)]
+#[ORM\Index(
+    name: 'idx_order_item_product',
+    columns: ['product_id'],
 )]
 class OrderItem
 {
