@@ -78,7 +78,7 @@ final class CheckoutIdempotencyConcurrencyTest extends IntegrationTestCase
         unlink($resultA);
         unlink($resultB);
 
-        $worker = __DIR__.'/../../../../../Support/CheckoutConcurrencyWorker.php';
+        $worker = __DIR__.'/../../../../Support/CheckoutConcurrencyWorker.php';
 
         $commandA = [
             PHP_BINARY,
@@ -108,12 +108,15 @@ final class CheckoutIdempotencyConcurrencyTest extends IntegrationTestCase
          */
         $this->waitUntilFileExists(
             $resultA.'.ready',
+            10,
+            $processA,
         );
 
         $this->waitUntilFileExists(
             $resultB.'.ready',
+            10,
+            $processB,
         );
-
         /*
          * Release both processes at approximately the same time.
          */
@@ -283,10 +286,16 @@ final class CheckoutIdempotencyConcurrencyTest extends IntegrationTestCase
             $descriptorSpec,
             $pipes,
             dirname(__DIR__, 5),
+            [
+                'APP_ENV' => 'test',
+                'APP_DEBUG' => '1',
+            ],
         );
 
         if (!is_resource($process)) {
-            self::fail('Unable to start concurrency worker.');
+            self::fail(
+                'Unable to start concurrency worker.',
+            );
         }
 
         fclose($pipes[0]);
@@ -331,10 +340,34 @@ final class CheckoutIdempotencyConcurrencyTest extends IntegrationTestCase
     private function waitUntilFileExists(
         string $path,
         int $timeoutSeconds = 10,
+        ?array $process = null,
     ): void {
         $deadline = microtime(true) + $timeoutSeconds;
 
         while (!file_exists($path)) {
+            if ($process !== null) {
+                $status = proc_get_status($process['process']);
+
+                if ($status['running'] === false) {
+                    $stdout = stream_get_contents($process['stdout']);
+                    $stderr = stream_get_contents($process['stderr']);
+
+                    self::fail(
+                        sprintf(
+                            "Concurrency worker exited before readiness file existed.\n".
+                            "Path: %s\n".
+                            "Exit code: %s\n".
+                            "STDOUT:\n%s\n".
+                            "STDERR:\n%s",
+                            $path,
+                            (string) $status['exitcode'],
+                            $stdout ?: '<empty>',
+                            $stderr ?: '<empty>',
+                        ),
+                    );
+                }
+            }
+
             if (microtime(true) >= $deadline) {
                 self::fail(
                     sprintf(

@@ -18,3 +18,14 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+# Local environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+
+# Local phase artifacts
+*.zip

@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<main class="product-image-upload" data-controller="product-image-upload">
+    <h1>Product image</h1>
+
+    <form action="{{ path('product_image_upload', {productId: productId}) }}" data-product-image-upload-target="form" data-action="submit->product-image-upload#submit" enctype="multipart/form-data">
+        <label for="product-image-file">Choose an image</label>
+        <input type="hidden" name="_token" value="{{ csrf_token('product_image_upload') }}" data-product-image-upload-target="token">
+        <input id="product-image-file" type="file" name="image" accept="image/jpeg,image/png,image/webp" required data-product-image-upload-target="input">
+        <button type="submit" data-product-image-upload-target="submit">Upload</button>
+    </form>
+
+    <p role="status" aria-live="polite" data-product-image-upload-target="status"></p>
+</main>
+{% endblock %}

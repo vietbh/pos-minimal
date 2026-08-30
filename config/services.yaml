@@ -21,3 +21,17 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    App\Infrastructure\Storage\LocalFileStorage:
+        arguments:
+            $rootPath: '%kernel.project_dir%/%env(PRODUCT_IMAGE_STORAGE_ROOT)%'
+
+    App\Application\Common\Storage\FileStorageInterface:
+        alias: App\Infrastructure\Storage\LocalFileStorage
+
+    App\Infrastructure\Image\ImageMagickProcessor:
+        arguments:
+            $binary: '%env(IMAGE_MAGICK_BINARY)%'
+
+    App\Application\Product\Image\ImageProcessorInterface:
+        alias: App\Infrastructure\Image\ImageMagickProcessor

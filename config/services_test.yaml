@@ -6,6 +6,9 @@ services:
             $sessionId: null
             $requestId: 'test-checkout-golden-path'
 
+    App\Application\Security\RuntimeActorContextProvider:
+        public: true
+
     App\Application\Order\Command\Checkout\CheckoutHandlerEntryPoint:
         autowire: true
         autoconfigure: true
