@@ -32,3 +32,7 @@
 
 # Local artifacts
 *.zip
+
+# Local environment overrides / secrets
+.env.*
+!.env.example
