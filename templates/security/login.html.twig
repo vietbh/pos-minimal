@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+</head>
+<body>
+<form method="post">
+    <label>
+        Username
+        <input
+            type="text"
+            name="_username"
+            value="{{ last_username }}"
+            autocomplete="username"
+            required
+        >
+    </label>
+
+    <label>
+        Password
+        <input
+            type="password"
+            name="_password"
+            autocomplete="current-password"
+            required
+        >
+    </label>
+
+    <input
+        type="hidden"
+        name="_csrf_token"
+        value="{{ csrf_token('authenticate') }}"
+    >
+
+    {% if error %}
+        <p role="alert">Invalid credentials.</p>
+    {% endif %}
+
+    <button type="submit">Login</button>
+</form>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Application\Security;
+
+enum Permission: string
+{
+    case POS_ACCESS = 'POS_ACCESS';
+    case POS_CHECKOUT = 'POS_CHECKOUT';
+
+    case ORDER_VIEW = 'ORDER_VIEW';
+    case ORDER_CANCEL = 'ORDER_CANCEL';
+    case ORDER_REFUND = 'ORDER_REFUND';
+
+    case CUSTOMER_VIEW = 'CUSTOMER_VIEW';
+    case CUSTOMER_CREATE = 'CUSTOMER_CREATE';
+    case CUSTOMER_EDIT = 'CUSTOMER_EDIT';
+
+    case DEBT_VIEW = 'DEBT_VIEW';
+    case DEBT_PAYMENT = 'DEBT_PAYMENT';
+
+    case PRODUCT_VIEW = 'PRODUCT_VIEW';
+    case PRODUCT_CREATE = 'PRODUCT_CREATE';
+    case PRODUCT_EDIT = 'PRODUCT_EDIT';
+    case PRODUCT_PRICE_CHANGE = 'PRODUCT_PRICE_CHANGE';
+    case PRODUCT_ACTIVATE = 'PRODUCT_ACTIVATE';
+
+    case STOCK_VIEW = 'STOCK_VIEW';
+    case STOCK_ADJUST = 'STOCK_ADJUST';
+    case STOCK_HISTORY_VIEW = 'STOCK_HISTORY_VIEW';
+
+    case STATISTICS_VIEW = 'STATISTICS_VIEW';
+
+    case AUDIT_VIEW = 'AUDIT_VIEW';
+
+    case SESSION_VIEW = 'SESSION_VIEW';
+    case SESSION_REVOKE = 'SESSION_REVOKE';
+
+    case USER_MANAGE = 'USER_MANAGE';
+}
