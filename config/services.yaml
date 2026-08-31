@@ -39,3 +39,6 @@ services:
     App\Command\CleanupOrphanFilesCommand:
         arguments:
             $storageRoot: '%kernel.project_dir%/%env(PRODUCT_IMAGE_STORAGE_ROOT)%'
+
+    App\Application\Product\Command\AdjustStock\AdjustStockHandler:
+        public: true

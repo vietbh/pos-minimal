@@ -13,3 +13,6 @@ services:
         autowire: true
         autoconfigure: true
         public: true
+
+#    App\Application\Product\Command\AdjustStock\AdjustStockHandler:
+#        public: true
