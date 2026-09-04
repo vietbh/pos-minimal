@@ -28,3 +28,13 @@ services:
         autowire: true
         autoconfigure: true
         public: true
+
+    App\Application\Order\Command\AttachCustomerToDraft\AttachCustomerToDraftHandler:
+        autowire: true
+        autoconfigure: true
+        public: true
+
+    App\Application\Order\Command\DetachCustomerFromDraft\DetachCustomerFromDraftHandler:
+        autowire: true
+        autoconfigure: true
+        public: true
