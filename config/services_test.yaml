@@ -38,3 +38,8 @@ services:
         autowire: true
         autoconfigure: true
         public: true
+
+    App\Application\Order\Query\GetDraftOrder\GetDraftOrderHandler:
+        autowire: true
+        autoconfigure: true
+        public: true
