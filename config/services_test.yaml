@@ -13,3 +13,18 @@ services:
         autowire: true
         autoconfigure: true
         public: true
+
+    App\Application\Order\Command\AddProductToDraft\AddProductToDraftHandler:
+        autowire: true
+        autoconfigure: true
+        public: true
+
+    App\Application\Order\Command\ChangeDraftItemQuantity\ChangeDraftItemQuantityHandler:
+        autowire: true
+        autoconfigure: true
+        public: true
+
+    App\Application\Order\Command\RemoveDraftItem\RemoveDraftItemHandler:
+        autowire: true
+        autoconfigure: true
+        public: true
