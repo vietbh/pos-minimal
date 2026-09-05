@@ -1,0 +1,136 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mobile POS{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .pos-shell { max-width: 960px; margin: 0 auto; padding: 16px; }
+        .pos-card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+        .pos-grid { display: grid; gap: 12px; }
+        .pos-field { display: block; margin-bottom: 12px; }
+        .pos-field:last-child { margin-bottom: 0; }
+        input, select, textarea { width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid #bbb; border-radius: 10px; padding: 8px 10px; }
+        textarea { min-height: 120px; resize: vertical; }
+        button { min-height: 44px; padding: 10px 16px; border-radius: 10px; border: 1px solid #777; cursor: pointer; }
+        button:disabled { cursor: wait; opacity: .6; }
+        .pos-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pos-message { padding: 12px; border-radius: 10px; margin-bottom: 12px; }
+        .pos-error { border: 1px solid #b42318; }
+        .pos-success { border: 1px solid #027a48; }
+        .pos-status { min-height: 24px; margin: 8px 0; }
+        .pos-result-grid { display: grid; gap: 8px; }
+        .pos-result-row { display: flex; justify-content: space-between; gap: 16px; }
+        .pos-result-row span:last-child { font-variant-numeric: tabular-nums; }
+        [hidden] { display: none !important; }
+        @media (min-width: 700px) {
+            .pos-grid { grid-template-columns: 1fr 1fr; }
+            .pos-result-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="pos-shell"
+     data-controller="pos-checkout"
+     data-pos-checkout-csrf-token-value="{{ checkout_csrf_token }}"
+     data-pos-checkout-endpoint-value="{{ path('pos_checkout') }}">
+
+    <h1>Mobile POS</h1>
+    <p>Checkout totals, stock, payment validation, authorization and idempotency are enforced by the server.</p>
+
+    <div class="pos-status"
+         data-pos-checkout-target="status"
+         role="status"
+         aria-live="polite"></div>
+
+    <div class="pos-message pos-error"
+         data-pos-checkout-target="message"
+         role="alert"
+         aria-live="assertive"
+         tabindex="-1"
+         hidden></div>
+
+    <form data-action="submit->pos-checkout#submit" novalidate>
+        <div class="pos-card">
+            <h2>Cart</h2>
+            <label class="pos-field" for="pos-items">
+                Items JSON
+                <textarea id="pos-items"
+                          data-pos-checkout-target="items"
+                          placeholder='[{"productId":1,"quantity":1}]'
+                          autocomplete="off"></textarea>
+            </label>
+        </div>
+
+        <div class="pos-grid">
+            <div class="pos-card">
+                <label class="pos-field" for="pos-customer-id">
+                    Customer ID (optional)
+                    <input id="pos-customer-id"
+                           data-pos-checkout-target="customerId"
+                           type="number"
+                           min="1"
+                           inputmode="numeric"
+                           placeholder="Leave blank"
+                           autocomplete="off">
+                </label>
+            </div>
+
+            <div class="pos-card">
+                <label class="pos-field" for="pos-payment-method">
+                    Payment method
+                    <select id="pos-payment-method" data-pos-checkout-target="paymentMethod">
+                        <option value="CASH">Cash</option>
+                        <option value="BANK_TRANSFER">Bank transfer</option>
+                    </select>
+                </label>
+
+                <label class="pos-field" for="pos-payment-amount">
+                    Payment amount
+                    <input id="pos-payment-amount"
+                           data-pos-checkout-target="paymentAmount"
+                           inputmode="decimal"
+                           value="0.00"
+                           autocomplete="off">
+                </label>
+            </div>
+        </div>
+
+        <div class="pos-card">
+            <label class="pos-field" for="pos-note">
+                Note
+                <input id="pos-note"
+                       data-pos-checkout-target="note"
+                       maxlength="1000"
+                       autocomplete="off">
+            </label>
+            <p>Displayed total is authoritative only when returned by the server.</p>
+        </div>
+
+        <div class="pos-actions">
+            <button type="submit" data-pos-checkout-target="submitButton">Checkout</button>
+            <button type="button"
+                    data-action="click->pos-checkout#retry"
+                    data-pos-checkout-target="retryButton"
+                    hidden>
+                Retry checkout
+            </button>
+        </div>
+    </form>
+
+    <section class="pos-card pos-success"
+             data-pos-checkout-target="success"
+             aria-live="polite"
+             hidden>
+        <h2>Checkout successful</h2>
+        <div class="pos-result-grid">
+            <div class="pos-result-row"><span>Order</span><strong data-pos-checkout-target="resultOrder"></strong></div>
+            <div class="pos-result-row"><span>Total</span><strong data-pos-checkout-target="resultTotal"></strong></div>
+            <div class="pos-result-row"><span>Paid</span><strong data-pos-checkout-target="resultPaid"></strong></div>
+            <div class="pos-result-row"><span>Debt</span><strong data-pos-checkout-target="resultDebt"></strong></div>
+            <div class="pos-result-row"><span>Request ID</span><span data-pos-checkout-target="requestId"></span></div>
+        </div>
+    </section>
+</div>
+{% endblock %}
