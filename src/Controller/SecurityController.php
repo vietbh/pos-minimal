@@ -16,7 +16,7 @@ final class SecurityController
     ) {
     }
 
-    #[Route('/login', name: 'login', methods: ['GET', 'POST'])]
+    #[Route('/auth/login', name: 'login', methods: ['GET', 'POST'])]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
         return new Response(
@@ -27,7 +27,7 @@ final class SecurityController
         );
     }
 
-    #[Route('/logout', name: 'logout', methods: ['GET', 'POST'])]
+    #[Route('/auth/logout', name: 'logout', methods: ['GET', 'POST'])]
     public function logout(): never
     {
         throw new \LogicException(

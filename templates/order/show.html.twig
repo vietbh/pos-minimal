@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Order #{{ order.orderNumber }}{% endblock %}
+
+{% block stylesheets %}
+    <style>
+        .order-page { max-width: 760px; margin: 0 auto; padding: 16px 14px 32px; }
+        .order-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .order-head h1 { margin: 0; font-size: 1.35rem; }
+        .order-back { display: inline-block; margin-bottom: 14px; }
+        .order-status { display: inline-block; padding: 5px 9px; border-radius: 999px; background: #f1f5f9; font-size: .8rem; font-weight: 800; }
+        .order-section { margin-top: 16px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; }
+        .order-section h2 { margin: 0 0 12px; font-size: 1rem; }
+        .order-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+        .order-row:last-child { border-bottom: 0; }
+        .muted { color: #64748b; }
+        .strong { font-weight: 800; }
+        .order-item { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .order-item:last-child { border-bottom: 0; }
+        .order-item-meta { color: #64748b; font-size: .88rem; }
+        .order-payment, .order-debt { padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .order-payment:last-child, .order-debt:last-child { border-bottom: 0; }
+    </style>
+{% endblock %}
+
+{% block body %}
+<main class="order-page">
+    <a class="order-back" href="{{ path('orders_index') }}">← Orders</a>
+    <header class="order-head">
+        <div>
+            <h1>#{{ order.orderNumber }}</h1>
+            <div class="muted">{{ order.createdAt|date('d/m/Y H:i:s') }}</div>
+        </div>
+        <span class="order-status">{{ order.status.value|title }}</span>
+    </header>
+
+    <section class="order-section" aria-labelledby="order-summary">
+        <h2 id="order-summary">Summary</h2>
+        <div class="order-row"><span class="muted">Customer</span><span>{{ order.customerName }}{% if order.customerPhone %}<br><span class="muted">{{ order.customerPhone }}</span>{% endif %}</span></div>
+        <div class="order-row"><span class="muted">Created by</span><span>{{ order.createdBy }}</span></div>
+        <div class="order-row"><span class="muted">Subtotal</span><span>{{ order.subtotal }} đ</span></div>
+        <div class="order-row"><span class="strong">Total</span><span class="strong">{{ order.total }} đ</span></div>
+        <div class="order-row"><span class="muted">Paid</span><span>{{ order.paidAmount }} đ</span></div>
+        <div class="order-row"><span class="muted">Debt</span><span>{{ order.debtAmount }} đ</span></div>
+        {% if order.note %}<div class="order-row"><span class="muted">Note</span><span>{{ order.note }}</span></div>{% endif %}
+    </section>
+
+    <section class="order-section" aria-labelledby="order-items">
+        <h2 id="order-items">Items</h2>
+        {% for item in order.items %}
+            <div class="order-item">
+                <div><div class="strong">{{ item.productName }}</div><div class="order-item-meta">{{ item.sku ?? 'No SKU' }} · {{ item.quantity }} × {{ item.unitPrice }} đ</div></div>
+                <div class="strong">{{ item.subtotal }} đ</div>
+            </div>
+        {% endfor %}
+    </section>
+
+    <section class="order-section" aria-labelledby="order-payments">
+        <h2 id="order-payments">Payments</h2>
+        {% if order.payments is empty %}
+            <div class="muted">No payment recorded.</div>
+        {% else %}
+            {% for payment in order.payments %}
+                <div class="order-payment">
+                    <div class="order-row"><span>{{ payment.method|title }}</span><span class="strong">{{ payment.amount }} đ</span></div>
+                    <div class="order-item-meta">{{ payment.createdAt|date('d/m/Y H:i') }} · {{ payment.username }}{% if payment.reference %} · {{ payment.reference }}{% endif %}</div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </section>
+
+    {% if order.debt %}
+        <section class="order-section" aria-labelledby="order-debt">
+            <h2 id="order-debt">Debt</h2>
+            <div class="order-row"><span class="muted">Status</span><span>{{ order.debt.status|title }}</span></div>
+            <div class="order-row"><span class="muted">Original</span><span>{{ order.debt.originalAmount }} đ</span></div>
+            <div class="order-row"><span class="muted">Paid</span><span>{{ order.debt.paidAmount }} đ</span></div>
+            <div class="order-row"><span class="strong">Remaining</span><span class="strong">{{ order.debt.remainingAmount }} đ</span></div>
+        </section>
+    {% endif %}
+</main>
+{% endblock %}

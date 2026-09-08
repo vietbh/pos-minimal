@@ -65,7 +65,7 @@ final class AuthenticationTest extends WebTestCase
 
         $client = $this->client;
 
-        $client->request('GET', '/login');
+        $client->request('GET', '/auth/login');
 
         self::assertResponseIsSuccessful();
 
@@ -86,14 +86,14 @@ final class AuthenticationTest extends WebTestCase
 
         $client = $this->client;
 
-        $client->request('GET', '/login');
+        $client->request('GET', '/auth/login');
 
         $client->submitForm('Login', [
             '_username' => 'cashier',
             '_password' => 'wrong-password',
         ]);
 
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects('/auth/login');
 
         $client->followRedirect();
 
@@ -107,14 +107,14 @@ final class AuthenticationTest extends WebTestCase
     {
         $client = $this->client;
 
-        $client->request('GET', '/login');
+        $client->request('GET', '/auth/login');
 
         $client->submitForm('Login', [
             '_username' => 'does-not-exist',
             '_password' => 'anything',
         ]);
 
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects('/auth/login');
 
         $client->followRedirect();
 
@@ -137,14 +137,14 @@ final class AuthenticationTest extends WebTestCase
 
         $client = $this->client;
 
-        $client->request('GET', '/login');
+        $client->request('GET', '/auth/login');
 
         $client->submitForm('Login', [
             '_username' => 'inactive',
             '_password' => 'correct-password',
         ]);
 
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects('/auth/login');
 
         $client->followRedirect();
 
@@ -165,14 +165,14 @@ final class AuthenticationTest extends WebTestCase
 
         $client->request(
             'POST',
-            '/login',
+            '/auth/login',
             [
                 '_username' => 'cashier',
                 '_password' => 'correct-password',
             ],
         );
 
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects('/auth/login');
     }
 
     private function createUser(

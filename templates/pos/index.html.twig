@@ -30,7 +30,7 @@
     </style>
 {% endblock %}
 
-{% block body %}
+{% block body %}<nav class="app-nav">{% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}">Products</a>{% endif %} {% if is_granted('CUSTOMER_VIEW') %}<a href="{{ path('customers_index') }}">Customers</a>{% endif %} {% if is_granted('STOCK_VIEW') %}<a href="{{ path('admin_stock_index') }}">Stock</a>{% endif %}</nav>
 <div class="pos-shell"
      data-controller="pos-checkout"
      data-pos-checkout-csrf-token-value="{{ checkout_csrf_token }}"

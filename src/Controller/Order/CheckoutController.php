@@ -26,7 +26,7 @@ final class CheckoutController extends AbstractController
 {
     private const CSRF_TOKEN_ID = 'pos_checkout';
 
-    #[Route('/pos', name: 'pos', methods: ['GET'])]
+    #[Route('/app/pos', name: 'pos', methods: ['GET'])]
     public function pos(CsrfTokenManagerInterface $csrfTokenManager): Response
     {
         if (!$this->getUser() instanceof User) {
@@ -42,7 +42,7 @@ final class CheckoutController extends AbstractController
         ]);
     }
 
-    #[Route('/api/pos/checkout', name: 'pos_checkout', methods: ['POST'], format: 'json')]
+    #[Route('/app/checkout', name: 'pos_checkout', methods: ['POST'], format: 'json')]
     public function checkout(
         Request $request,
         CheckoutHandlerEntryPoint $handler,

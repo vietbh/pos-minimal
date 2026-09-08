@@ -14,5 +14,7 @@ interface DebtRepositoryInterface
 
     public function findByOrderId(int $orderId): ?Debt;
 
+    public function findByOrderIdForUpdate(int $orderId): ?Debt;
+
     public function findByCustomerId(int $customerId): array;
 }

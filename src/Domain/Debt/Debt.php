@@ -174,6 +174,9 @@ class Debt
 
     public function addPayment(DebtPayment $payment): void
     {
+        if ($this->status->isReversed()) {
+            throw new \DomainException('Reversed debt cannot receive payments.');
+        }
         if ($payment->getDebt() !== $this) {
             $payment->assignDebt($this);
         }
@@ -183,6 +186,16 @@ class Debt
         }
 
         $this->recalculateStatus();
+    }
+
+    public function reverse(): void
+    {
+        if ($this->status->isReversed()) {
+            throw new \DomainException('Debt has already been reversed.');
+        }
+
+        $this->status = DebtStatus::REVERSED;
+        $this->touch();
     }
 
     public function getPaidAmount(): Money
@@ -198,6 +211,10 @@ class Debt
 
     public function getRemainingAmount(): Money
     {
+        if ($this->status->isReversed()) {
+            return Money::zero();
+        }
+
         $paid = $this->getPaidAmount();
 
         if ($paid->isGreaterThanOrEqual($this->originalAmount)) {
@@ -241,7 +258,7 @@ class Debt
 
     public function canReceivePayment(): bool
     {
-        return !$this->isPaid();
+        return !$this->isPaid() && !$this->status->isReversed();
     }
 
     public function getCreatedAt(): \DateTimeImmutable

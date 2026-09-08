@@ -9,6 +9,7 @@ enum DebtStatus: string
     case OPEN = 'OPEN';
     case PARTIALLY_PAID = 'PARTIALLY_PAID';
     case PAID = 'PAID';
+    case REVERSED = 'REVERSED';
 
     public function isOpen(): bool
     {
@@ -25,8 +26,13 @@ enum DebtStatus: string
         return $this === self::PAID;
     }
 
+    public function isReversed(): bool
+    {
+        return $this === self::REVERSED;
+    }
+
     public function isClosed(): bool
     {
-        return $this === self::PAID;
+        return $this === self::PAID || $this === self::REVERSED;
     }
 }

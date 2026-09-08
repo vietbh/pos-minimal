@@ -9,6 +9,7 @@ enum OrderStatus: string
     case DRAFT = 'DRAFT';
     case COMPLETED = 'COMPLETED';
     case CANCELLED = 'CANCELLED';
+    case REFUNDED = 'REFUNDED';
 
     public function isDraft(): bool
     {
@@ -25,11 +26,17 @@ enum OrderStatus: string
         return $this === self::CANCELLED;
     }
 
+    public function isRefunded(): bool
+    {
+        return $this === self::REFUNDED;
+    }
+
     public function isFinal(): bool
     {
         return match ($this) {
             self::COMPLETED,
-            self::CANCELLED => true,
+            self::CANCELLED,
+            self::REFUNDED => true,
             self::DRAFT => false,
         };
     }

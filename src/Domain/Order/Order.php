@@ -211,6 +211,11 @@ class Order
         return $this->status === OrderStatus::CANCELLED;
     }
 
+    public function isRefunded(): bool
+    {
+        return $this->status === OrderStatus::REFUNDED;
+    }
+
     /**
      * @return Collection<int, OrderItem>
      */
@@ -380,6 +385,17 @@ class Order
 
         $this->status = OrderStatus::CANCELLED;
         $this->cancelledAt = $cancelledAt ?? new \DateTimeImmutable();
+    }
+
+    public function refund(): void
+    {
+        if ($this->status !== OrderStatus::COMPLETED) {
+            throw new \DomainException(
+                'Only completed orders can be refunded.',
+            );
+        }
+
+        $this->status = OrderStatus::REFUNDED;
     }
 
     public function getNote(): ?string

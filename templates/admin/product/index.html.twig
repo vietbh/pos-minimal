@@ -1,0 +1,9 @@
+{% extends 'base.html.twig' %}
+{% block title %}Products{% endblock %}
+{% block body %}
+<div class="app-shell"><header class="app-header"><h1>Products</h1><nav><a href="{{ path('pos') }}">POS</a> <a href="{{ path('customers_index') }}">Customers</a> <a href="{{ path('admin_stock_index') }}">Stock</a>{% if is_granted('PRODUCT_CREATE') %} <a class="button" href="{{ path('admin_products_new') }}">New product</a>{% endif %}</nav></header>
+{% for message in app.flashes('success') %}<div class="flash success">{{ message }}</div>{% endfor %}{% for message in app.flashes('error') %}<div class="flash error">{{ message }}</div>{% endfor %}
+<form class="search-bar" method="get"><label for="product-search">Search product</label><input id="product-search" name="q" value="{{ q }}" placeholder="Name or SKU" autocomplete="off"><button type="submit">Search</button></form>
+{% if q == '' %}<div class="empty-state">Search by product name or SKU to see products.</div>{% elseif products is empty %}<div class="empty-state">No products found.</div>{% else %}<div class="card-list">{% for product in products %}<a class="card" href="{{ path('admin_products_show',{id:product.id}) }}"><div><strong>{{ product.name }}</strong><small>{{ product.sku ?: 'No SKU' }}</small></div><div class="card-meta"><span>{{ (product.sellingPrice / 100)|number_format(0,'.',',') }}</span><span>Stock: {{ product.stockQuantity }}</span></div></a>{% endfor %}</div>{% endif %}
+</div>
+{% endblock %}

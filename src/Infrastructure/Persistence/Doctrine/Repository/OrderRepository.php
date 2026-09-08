@@ -7,6 +7,7 @@ namespace App\Infrastructure\Persistence\Doctrine\Repository;
 use App\Domain\Order\Order;
 use App\Domain\Order\Repository\OrderRepositoryInterface;
 use App\Domain\Order\ValueObject\OrderNumber;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class OrderRepository implements OrderRepositoryInterface
@@ -26,6 +27,11 @@ final class OrderRepository implements OrderRepositoryInterface
         return $this->entityManager
             ->getRepository(Order::class)
             ->find($id);
+    }
+
+    public function findByIdForUpdate(int $id): ?Order
+    {
+        return $this->entityManager->find(Order::class, $id, LockMode::PESSIMISTIC_WRITE);
     }
 
     public function findByOrderNumber(

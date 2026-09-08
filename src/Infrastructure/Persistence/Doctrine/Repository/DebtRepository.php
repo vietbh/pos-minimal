@@ -6,6 +6,7 @@ namespace App\Infrastructure\Persistence\Doctrine\Repository;
 
 use App\Domain\Debt\Debt;
 use App\Domain\Debt\Repository\DebtRepositoryInterface;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class DebtRepository implements DebtRepositoryInterface
@@ -43,6 +44,21 @@ final class DebtRepository implements DebtRepositoryInterface
     /**
      * @return list<Debt>
      */
+    public function findByOrderIdForUpdate(int $orderId): ?Debt
+    {
+        $debt = $this->entityManager->createQueryBuilder()
+            ->select('d')
+            ->from(Debt::class, 'd')
+            ->where('IDENTITY(d.order) = :orderId')
+            ->setParameter('orderId', $orderId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->getOneOrNullResult();
+
+        return $debt;
+    }
+
     public function findByCustomerId(int $customerId): array
     {
         return $this->entityManager

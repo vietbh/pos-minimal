@@ -46,7 +46,7 @@ final class CheckoutControllerTest extends WebTestCase
     {
         $this->client->request(
             'POST',
-            '/api/pos/checkout',
+            '/app/checkout',
             server: [
                 'HTTP_IDEMPOTENCY_KEY' => 'unauthenticated',
                 'HTTP_X_CSRF_TOKEN' => 'invalid',
@@ -94,7 +94,7 @@ final class CheckoutControllerTest extends WebTestCase
 
         $this->client->request(
             'POST',
-            '/api/pos/checkout',
+            '/app/checkout',
             server: [
                 'HTTP_IDEMPOTENCY_KEY' =>
                     'http-checkout-' . bin2hex(random_bytes(8)),
@@ -180,7 +180,7 @@ final class CheckoutControllerTest extends WebTestCase
 
         $this->client->request(
             'POST',
-            '/api/pos/checkout',
+            '/app/checkout',
             server: [
                 'HTTP_X_CSRF_TOKEN' => $csrf,
                 'CONTENT_TYPE' => 'application/json',
@@ -216,13 +216,13 @@ final class CheckoutControllerTest extends WebTestCase
         $this->client->loginUser($user);
 
         // Establish authenticated session before testing CSRF.
-        $this->client->request('GET', '/pos');
+        $this->client->request('GET', '/app/pos');
 
         self::assertResponseIsSuccessful();
 
         $this->client->request(
             'POST',
-            '/api/pos/checkout',
+            '/app/checkout',
             server: [
                 'HTTP_IDEMPOTENCY_KEY' => 'csrf-test',
                 'HTTP_X_CSRF_TOKEN' => 'invalid',
@@ -249,7 +249,7 @@ final class CheckoutControllerTest extends WebTestCase
 
     private function getCheckoutCsrfToken(): string
     {
-        $this->client->request('GET', '/pos');
+        $this->client->request('GET', '/app/pos');
 
         self::assertResponseIsSuccessful();
 

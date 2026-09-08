@@ -13,6 +13,8 @@ interface OrderRepositoryInterface
 
     public function findById(int $id): ?Order;
 
+    public function findByIdForUpdate(int $id): ?Order;
+
     public function findByOrderNumber(
         OrderNumber $orderNumber,
     ): ?Order;

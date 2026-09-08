@@ -24,10 +24,10 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[IsGranted('ROLE_USER')]
+#[IsGranted('ROLE_ADMIN')]
 final class ProductImageController extends AbstractController
 {
-    #[Route('/products/{productId}/images/upload', name: 'product_image_upload_form', methods: ['GET'], requirements: ['productId' => '\\d+'])]
+    #[Route('/admin/products/{productId}/images/upload', name: 'product_image_upload_form', methods: ['GET'], requirements: ['productId' => '\\d+'])]
     public function form(int $productId, ProductRepositoryInterface $products): Response
     {
         $product = $products->findById($productId);
@@ -41,7 +41,7 @@ final class ProductImageController extends AbstractController
         ]);
     }
 
-    #[Route('/products/{productId}/images', name: 'product_image_upload', methods: ['POST'], requirements: ['productId' => '\\d+'])]
+    #[Route('/admin/products/{productId}/images', name: 'product_image_upload', methods: ['POST'], requirements: ['productId' => '\\d+'])]
     public function upload(
         int $productId,
         Request $request,
@@ -94,7 +94,7 @@ final class ProductImageController extends AbstractController
         ], Response::HTTP_ACCEPTED);
     }
 
-    #[Route('/product-images/{id}/{variant}', name: 'product_image_serve', methods: ['GET'], requirements: ['id' => '\\d+', 'variant' => 'original|thumbnail|medium'])]
+    #[Route('/media/products/{id}/{variant}', name: 'product_image_serve', methods: ['GET'], requirements: ['id' => '\\d+', 'variant' => 'original|thumbnail|medium'])]
     public function serve(
         int $id,
         string $variant,
@@ -125,7 +125,7 @@ final class ProductImageController extends AbstractController
         return $response;
     }
 
-    #[Route('/product-images/{id}', name: 'product_image_delete', methods: ['DELETE'], requirements: ['id' => '\\d+'])]
+    #[Route('/media/products/{id}', name: 'product_image_delete', methods: ['DELETE'], requirements: ['id' => '\\d+'])]
     public function delete(
         int $id,
         DeleteProductImageHandler $handler,
