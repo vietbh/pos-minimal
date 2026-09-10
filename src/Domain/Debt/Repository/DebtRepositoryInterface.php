@@ -12,6 +12,8 @@ interface DebtRepositoryInterface
 
     public function findById(int $id): ?Debt;
 
+    public function findByIdForUpdate(int $id): ?Debt;
+
     public function findByOrderId(int $orderId): ?Debt;
 
     public function findByOrderIdForUpdate(int $orderId): ?Debt;

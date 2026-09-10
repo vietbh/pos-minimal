@@ -19,6 +19,17 @@
         {% endif %}
     </head>
     <body>
+        {% if app.user %}
+            <nav class="app-nav" aria-label="Main navigation">
+                <a href="{{ path('pos') }}">POS</a>
+                {% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}">Products</a>{% endif %}
+                {% if is_granted('CUSTOMER_VIEW') %}<a href="{{ path('customers_index') }}">Customers</a>{% endif %}
+                {% if is_granted('ORDER_VIEW') %}<a href="{{ path('orders_index') }}">Orders</a>{% endif %}
+                {% if is_granted('DEBT_VIEW') %}<a href="{{ path('debts_index') }}">Debts</a>{% endif %}
+                {% if is_granted('STOCK_VIEW') %}<a href="{{ path('admin_stock_index') }}">Stock</a>{% endif %}
+                <a href="{{ path('logout') }}">Logout</a>
+            </nav>
+        {% endif %}
         {% block body %}{% endblock %}
     </body>
 </html>

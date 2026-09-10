@@ -40,5 +40,20 @@ services:
         arguments:
             $storageRoot: '%kernel.project_dir%/%env(PRODUCT_IMAGE_STORAGE_ROOT)%'
 
+    App\Controller\HealthController:
+        arguments:
+            $storageRoot: '%kernel.project_dir%/%env(PRODUCT_IMAGE_STORAGE_ROOT)%'
+
+    App\Command\ProductionReadinessCheckCommand:
+        arguments:
+            $storageRoot: '%kernel.project_dir%/%env(PRODUCT_IMAGE_STORAGE_ROOT)%'
+            $environment: '%kernel.environment%'
+            $debug: '%kernel.debug%'
+
+    App\Command\BackupDatabaseCommand:
+        arguments:
+            $backupRoot: '%kernel.project_dir%/%env(PRODUCTION_BACKUP_ROOT)%'
+            $mysqldumpBinary: '%env(MYSQLDUMP_BINARY)%'
+
     App\Application\Product\Command\AdjustStock\AdjustStockHandler:
         public: true

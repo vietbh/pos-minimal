@@ -1,0 +1,25 @@
+<?php
+
+declare(strict_types=1);
+namespace App\Controller\Debt;
+use App\Application\Debt\Command\PayDebt\{PayDebtHandlerEntryPoint,PayDebtInput};
+use App\Application\Debt\Query\GetDebt\{GetDebtHandler,GetDebtInput};
+use App\Application\Debt\Query\ListDebts\{ListDebtsHandler,ListDebtsInput};
+use App\Application\Security\{ActorContext,Permission,RuntimeActorContextProvider};
+use App\Domain\User\User;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\{JsonResponse,Request,Response};
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Csrf\{CsrfToken,CsrfTokenManagerInterface};
+final class DebtController extends AbstractController {
+ private const CSRF='debt_payment';
+ #[Route('/app/debts',name:'debts_index',methods:['GET'])]
+ public function index(Request $request,ListDebtsHandler $handler):Response { $this->requireUser();$this->denyAccessUnlessGranted(Permission::DEBT_VIEW->value);$search=trim((string)$request->query->get('q',''));$status=trim((string)$request->query->get('status',''));$result=$handler(new ListDebtsInput($search,$status!==''?$status:null,max(1,$request->query->getInt('page',1)),min(50,max(1,$request->query->getInt('perPage',20)))));return $this->render('debt/index.html.twig',['debts'=>$result,'search'=>$search,'status'=>$status]); }
+ #[Route('/app/debts/{id<\\d+>}',name:'debts_show',methods:['GET'])]
+ public function show(int $id,GetDebtHandler $handler):Response { $this->requireUser();$this->denyAccessUnlessGranted(Permission::DEBT_VIEW->value);$debt=$handler(new GetDebtInput($id));if($debt===null)throw $this->createNotFoundException('Debt not found.');return $this->render('debt/show.html.twig',['debt'=>$debt,'csrfToken'=>$this->container->get(CsrfTokenManagerInterface::class)->getToken(self::CSRF)->getValue()]); }
+ #[Route('/app/debts/{id<\\d+>}/payments',name:'debt_payment',methods:['POST'],format:'json')]
+ public function pay(int $id,Request $request,PayDebtHandlerEntryPoint $handler,CsrfTokenManagerInterface $csrf,RuntimeActorContextProvider $actorContextProvider):JsonResponse { $requestId=$this->requestId($request);$user=$this->getUser();if(!$user instanceof User||!$user->isActive())return $this->error('AUTHENTICATION_REQUIRED','Authentication is required.',401,$requestId);if(!$this->isGranted(Permission::DEBT_PAYMENT->value))return $this->error('ACCESS_DENIED','You are not allowed to pay debt.',403,$requestId);if(!$csrf->isTokenValid(new CsrfToken(self::CSRF,(string)$request->headers->get('X-CSRF-TOKEN',''))))return $this->error('CSRF_INVALID','Invalid CSRF token.',403,$requestId);$key=trim((string)$request->headers->get('Idempotency-Key',''));if($key==='')return $this->error('IDEMPOTENCY_KEY_REQUIRED','Idempotency-Key header is required.',400,$requestId);try{$p=$request->toArray();$amount=$p['amount']??null;if(!is_string($amount)&&!is_int($amount)&&!is_float($amount))throw new \InvalidArgumentException('Payment amount is required.');$amount=(string)$amount;if(trim($amount)==='')throw new \InvalidArgumentException('Payment amount is required.');$actorContextProvider->set(new ActorContext($user->getId()??0,null,$requestId));try{$r=$handler->handle(new PayDebtInput($id,$amount,$key));}finally{$actorContextProvider->clear();}return $this->json(['data'=>['debtId'=>$r->debtId,'paymentId'=>$r->paymentId,'amount'=>$r->amount,'paidAmount'=>$r->paidAmount,'remainingAmount'=>$r->remainingAmount,'status'=>$r->status],'requestId'=>$requestId],200,['X-Request-ID'=>$requestId]);}catch(\JsonException|\InvalidArgumentException $e){return $this->error('VALIDATION_ERROR',$e->getMessage(),400,$requestId);}catch(\Throwable $e){if($e instanceof \App\Application\Common\Idempotency\IdempotencyConflict)return $this->error('IDEMPOTENCY_CONFLICT','Idempotency key conflicts with an existing request.',409,$requestId);if($e instanceof \DomainException){if(str_contains($e->getMessage(),'already in progress'))return $this->error('IDEMPOTENCY_IN_PROGRESS','This request is already being processed.',409,$requestId);if(str_contains($e->getMessage(),'cannot exceed'))return $this->error('DEBT_PAYMENT_EXCEEDS_REMAINING',$e->getMessage(),422,$requestId);return $this->error('DEBT_INVALID_STATE',$e->getMessage(),409,$requestId);}if($e instanceof \RuntimeException&&$e->getMessage()==='Debt not found.')return $this->error('DEBT_NOT_FOUND','Debt was not found.',404,$requestId);return $this->error('INTERNAL_ERROR','Unable to complete debt payment.',500,$requestId);} }
+ private function requireUser():User { $u=$this->getUser();if(!$u instanceof User)throw $this->createAccessDeniedException('Authentication required.');return $u; }
+ private function requestId(Request $r):string{$v=trim((string)$r->headers->get('X-Request-ID',''));return $v!==''&&preg_match('/^[A-Za-z0-9._:-]{1,100}$/',$v)===1?$v:bin2hex(random_bytes(16));}
+ private function error(string $c,string $m,int $s,string $r):JsonResponse{return $this->json(['errorCode'=>$c,'message'=>$m,'requestId'=>$r],$s,['X-Request-ID'=>$r]);}
+}

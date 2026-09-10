@@ -69,6 +69,29 @@
         {% endif %}
     </section>
 
+    {% if order.status.value == 'COMPLETED' and (is_granted('ORDER_CANCEL') or is_granted('ORDER_REFUND')) %}
+        <section class="order-section" aria-labelledby="order-lifecycle">
+            <h2 id="order-lifecycle">Actions</h2>
+            <div data-controller="order-lifecycle" data-order-lifecycle-url-value="" data-order-lifecycle-csrf-value="{{ csrf_token('order_lifecycle') }}">
+                <div class="modal-actions">
+                    {% if is_granted('ORDER_CANCEL') %}<button type="button" data-action="click->order-lifecycle#open" data-url="{{ path('order_cancel',{id:order.id}) }}">Cancel order</button>{% endif %}
+                    {% if is_granted('ORDER_REFUND') %}<button type="button" data-action="click->order-lifecycle#open" data-url="{{ path('order_refund',{id:order.id}) }}">Refund order</button>{% endif %}
+                </div>
+                <div class="modal-backdrop" hidden data-order-lifecycle-target="modal">
+                    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="lifecycle-title">
+                        <h2 id="lifecycle-title">Confirm operation</h2>
+                        <p class="muted">Enter a reason before continuing.</p>
+                        <form data-action="submit->order-lifecycle#submit">
+                            <label>Reason<textarea data-order-lifecycle-target="reason" required maxlength="255" rows="4"></textarea></label>
+                            <p class="error" role="alert" hidden data-order-lifecycle-target="error"></p>
+                            <div class="modal-actions"><button type="button" data-action="click->order-lifecycle#close">Close</button><button type="submit" data-order-lifecycle-target="submit">Confirm</button></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
     {% if order.debt %}
         <section class="order-section" aria-labelledby="order-debt">
             <h2 id="order-debt">Debt</h2>

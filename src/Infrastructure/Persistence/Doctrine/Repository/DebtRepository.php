@@ -28,6 +28,19 @@ final class DebtRepository implements DebtRepositoryInterface
             ->find($id);
     }
 
+    public function findByIdForUpdate(int $id): ?Debt
+    {
+        return $this->entityManager->createQueryBuilder()
+            ->select('d')
+            ->from(Debt::class, 'd')
+            ->where('d.id = :id')
+            ->setParameter('id', $id)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->setLockMode(\Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE)
+            ->getOneOrNullResult();
+    }
+
     public function findByOrderId(int $orderId): ?Debt
     {
         return $this->entityManager

@@ -1,0 +1,12 @@
+<?php
+
+declare(strict_types=1);
+namespace App\Tests\Frontend;
+use PHPUnit\Framework\TestCase;
+final class OrderDebtUiContractTest extends TestCase {
+ public function testOrderDetailExposesLifecycleActionsThroughPermissionChecks():void{$root=dirname(__DIR__,2);$s=file_get_contents($root.'/templates/order/show.html.twig');self::assertNotFalse($s);self::assertStringContainsString("is_granted('ORDER_CANCEL')",$s);self::assertStringContainsString("is_granted('ORDER_REFUND')",$s);self::assertStringContainsString("csrf_token('order_lifecycle')",$s);self::assertStringContainsString('data-controller="order-lifecycle"',$s);self::assertStringContainsString('this.idempotencyKey',$this->read($root.'/assets/controllers/order_lifecycle_controller.js'));self::assertStringContainsString('X-Request-ID',$this->read($root.'/assets/controllers/order_lifecycle_controller.js'));}
+ public function testDebtUiUsesBackendMutationAndPermissionAwareNavigation():void{$root=dirname(__DIR__,2);$s=file_get_contents($root.'/templates/debt/show.html.twig');$base=file_get_contents($root.'/templates/base.html.twig');self::assertNotFalse($s);self::assertNotFalse($base);self::assertStringContainsString('data-controller="debt-payment"',$s);self::assertStringContainsString("csrfToken",$s);self::assertStringContainsString('Idempotency-Key',$this->read($root.'/assets/controllers/debt_payment_controller.js'));self::assertStringContainsString('this.idempotencyKey', $this->read($root.'/assets/controllers/debt_payment_controller.js'));self::assertStringContainsString('X-Request-ID', $this->read($root.'/assets/controllers/debt_payment_controller.js'));self::assertStringContainsString("is_granted('DEBT_VIEW')",$base);}
+ public function testFrontendDoesNotCalculateAuthoritativeDebt():void{$root=dirname(__DIR__,2);foreach([$root.'/templates/debt',$root.'/assets/controllers/debt_payment_controller.js'] as $path){if(is_dir($path)){ $it=new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path));foreach($it as $f){if($f->isFile())$this->assertNoCalculation(file_get_contents($f->getPathname()));}}else{$this->assertNoCalculation(file_get_contents($path));}}}
+ private function assertNoCalculation(string $s):void{foreach(['debtRemaining =','remainingAmount =','calculateDebt','debtOriginal -'] as $forbidden)self::assertStringNotContainsString($forbidden,$s);}
+ private function read(string $p):string{$s=file_get_contents($p);self::assertNotFalse($s);return $s;}
+}

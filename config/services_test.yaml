@@ -1,45 +1,46 @@
-services:
-    App\Application\Security\ActorContext:
-        public: true
-        arguments:
-            $userId: 1
-            $sessionId: null
-            $requestId: 'test-checkout-golden-path'
+when@test:
+    services:
+        App\Application\Debt\Command\PayDebt\PayDebtHandlerEntryPoint:
+            public: true
+            autowire: true
+            autoconfigure: true
+        App\Application\Security\RuntimeActorContextProvider:
+            public: true
+            autowire: true
+            autoconfigure: true
 
-    App\Application\Security\RuntimeActorContextProvider:
-        public: true
+        App\Application\Order\Command\AddProductToDraft\AddProductToDraftHandler:
+            public: true
+            autowire: true
+            autoconfigure: true
 
-    App\Application\Order\Command\Checkout\CheckoutHandlerEntryPoint:
-        autowire: true
-        autoconfigure: true
-        public: true
+        App\Application\Order\Command\ChangeDraftItemQuantity\ChangeDraftItemQuantityHandler:
+            public: true
+            autowire: true
+            autoconfigure: true
 
-    App\Application\Order\Command\AddProductToDraft\AddProductToDraftHandler:
-        autowire: true
-        autoconfigure: true
-        public: true
+        App\Application\Order\Command\AttachCustomerToDraft\AttachCustomerToDraftHandler:
+            public: true
+            autowire: true
+            autoconfigure: true
 
-    App\Application\Order\Command\ChangeDraftItemQuantity\ChangeDraftItemQuantityHandler:
-        autowire: true
-        autoconfigure: true
-        public: true
+        App\Application\Order\Command\DetachCustomerFromDraft\DetachCustomerFromDraftHandler:
+            public: true
+            autowire: true
+            autoconfigure: true
 
-    App\Application\Order\Command\RemoveDraftItem\RemoveDraftItemHandler:
-        autowire: true
-        autoconfigure: true
-        public: true
+        App\Application\Order\Command\RemoveDraftItem\RemoveDraftItemHandler:
+            public: true
+            autowire: true
+            autoconfigure: true
 
-    App\Application\Order\Command\AttachCustomerToDraft\AttachCustomerToDraftHandler:
-        autowire: true
-        autoconfigure: true
-        public: true
+        App\Application\Order\Query\GetDraftOrder\GetDraftOrderHandler:
+            public: true
+            autowire: true
+            autoconfigure: true
 
-    App\Application\Order\Command\DetachCustomerFromDraft\DetachCustomerFromDraftHandler:
-        autowire: true
-        autoconfigure: true
-        public: true
-
-    App\Application\Order\Query\GetDraftOrder\GetDraftOrderHandler:
-        autowire: true
-        autoconfigure: true
-        public: true
+        # Checkout concurrency worker
+        App\Application\Order\Command\Checkout\CheckoutHandlerEntryPoint:
+            public: true
+            autowire: true
+            autoconfigure: true
