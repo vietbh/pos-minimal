@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Statistics{% endblock %}
+
+{% block stylesheets %}
+<style>
+.statistics { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.statistics-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.statistics-card { background:#fff; border:1px solid #ddd; border-radius:12px; padding:14px; }
+.statistics-card h2 { margin:0 0 8px; font-size:1rem; }
+.statistics-value { font-size:1.45rem; font-weight:700; }
+.statistics-muted { color:#666; font-size:.85rem; }
+.statistics-table { width:100%; border-collapse:collapse; font-size:.9rem; }
+.statistics-table th,.statistics-table td { padding:8px 4px; border-bottom:1px solid #eee; text-align:left; }
+.statistics-table th:last-child,.statistics-table td:last-child { text-align:right; }
+.statistics-filter { display:grid; gap:10px; margin-bottom:14px; }
+.statistics-filter .fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.statistics-filter input,.statistics-filter select,.statistics-filter button { min-height:42px; padding:8px; }
+@media (min-width: 760px) { .statistics-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .statistics-filter { grid-template-columns:auto 1fr auto; align-items:end; } }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="statistics" data-controller="statistics-filter">
+    <h1>Statistics</h1>
+    <p class="statistics-muted">Range: {{ from }} → {{ to }} · timezone {{ timezone }}</p>
+
+    <form method="get" class="statistics-filter" data-action="submit->statistics-filter#loading">
+        <div>
+            <label for="preset">Preset</label>
+            <select id="preset" name="preset" data-action="change->statistics-filter#preset">
+                <option value="custom" data-statistics-preset-value="custom">Custom</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+            </select>
+        </div>
+        <div class="fields" data-statistics-filter-target="custom">
+            <div><label for="from">From</label><input id="from" type="date" name="from" value="{{ from }}" required></div>
+            <div><label for="to">To</label><input id="to" type="date" name="to" value="{{ to }}" required></div>
+        </div>
+        <div><label for="limit">Top N</label><input id="limit" type="number" name="limit" min="1" max="100" value="{{ limit }}"></div>
+        <button type="submit">Apply</button>
+        <span hidden data-statistics-filter-target="loading">Loading…</span>
+    </form>
+
+    <div class="statistics-grid">
+        <section class="statistics-card"><h2>Gross Sales</h2><div class="statistics-value">{{ dashboard.sales.grossSales }}</div></section>
+        <section class="statistics-card"><h2>Net Sales</h2><div class="statistics-value">{{ dashboard.sales.netSales }}</div></section>
+        <section class="statistics-card"><h2>Payments Collected</h2><div class="statistics-value">{{ dashboard.sales.paymentsCollected }}</div></section>
+        <section class="statistics-card"><h2>AOV</h2><div class="statistics-value">{{ dashboard.sales.averageOrderValue }}</div><div class="statistics-muted">{{ dashboard.sales.qualifyingOrders }} qualifying orders</div></section>
+        <section class="statistics-card"><h2>Cancelled</h2><div class="statistics-value">{{ dashboard.sales.cancelledAmount }}</div><div class="statistics-muted">{{ dashboard.sales.cancelledOrders }} orders</div></section>
+        <section class="statistics-card"><h2>Refunded</h2><div class="statistics-value">{{ dashboard.sales.refundedAmount }}</div><div class="statistics-muted">{{ dashboard.sales.refundedOrders }} orders</div></section>
+    </div>
+
+    <div class="statistics-grid" style="margin-top:12px">
+        <section class="statistics-card"><h2>Payments</h2>
+            {% if dashboard.payments %}<table class="statistics-table"><tr><th>Method</th><th>Amount</th></tr>{% for p in dashboard.payments %}<tr><td>{{ p.paymentMethod }}</td><td>{{ p.amount }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">No payments in this period.</p>{% endif %}
+        </section>
+        <section class="statistics-card"><h2>Debt</h2><table class="statistics-table"><tr><th>Debts</th><td>{{ dashboard.debt.debtCount }}</td></tr><tr><th>Original</th><td>{{ dashboard.debt.originalAmount }}</td></tr><tr><th>Collected</th><td>{{ dashboard.debt.collectedAmount }}</td></tr><tr><th>Outstanding</th><td>{{ dashboard.debt.outstandingAmount }}</td></tr></table></section>
+        <section class="statistics-card"><h2>Stock Snapshot</h2><table class="statistics-table"><tr><th>Total products</th><td>{{ dashboard.stock.totalProducts }}</td></tr><tr><th>Active</th><td>{{ dashboard.stock.activeProducts }}</td></tr><tr><th>Low stock</th><td>{{ dashboard.stock.lowStockProducts }}</td></tr><tr><th>Out of stock</th><td>{{ dashboard.stock.outOfStockProducts }}</td></tr><tr><th>Total quantity</th><td>{{ dashboard.stock.totalStockQuantity }}</td></tr></table></section>
+    </div>
+
+    <div class="statistics-grid" style="margin-top:12px">
+        <section class="statistics-card"><h2>Top Products</h2>{% if dashboard.topProducts %}<table class="statistics-table"><tr><th>Product</th><th>Qty</th></tr>{% for p in dashboard.topProducts %}<tr><td>{{ p.name }}</td><td>{{ p.quantity }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">No product sales in this period.</p>{% endif %}</section>
+        <section class="statistics-card"><h2>Top Customers</h2>{% if dashboard.topCustomers %}<table class="statistics-table"><tr><th>Customer</th><th>Spent</th></tr>{% for c in dashboard.topCustomers %}<tr><td>{{ c.name }}</td><td>{{ c.totalSpent }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">No customer sales in this period.</p>{% endif %}</section>
+    </div>
+</div>
+{% endblock %}

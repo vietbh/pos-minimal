@@ -12,6 +12,7 @@ use App\Domain\User\User;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use SortDirection;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'debts')]
@@ -105,8 +106,8 @@ class Debt
         orphanRemoval: false,
     )]
     #[ORM\OrderBy([
-        'createdAt' => 'ASC',
-        'id' => 'ASC',
+        'createdAt' => SortDirection::Ascending,
+        'id' => SortDirection::Ascending,
     ])]
     private Collection $payments;
 

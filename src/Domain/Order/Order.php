@@ -12,6 +12,7 @@ use App\Domain\User\User;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use SortDirection;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'orders')]
@@ -68,8 +69,8 @@ class Order
     private ?Customer $customer = null;
 
     #[ORM\Column(
-        enumType: OrderStatus::class,
         length: 30,
+        enumType: OrderStatus::class,
     )]
     private OrderStatus $status;
 
@@ -113,13 +114,13 @@ class Order
      * @var Collection<int, OrderItem>
      */
     #[ORM\OneToMany(
-        mappedBy: 'order',
         targetEntity: OrderItem::class,
+        mappedBy: 'order',
         cascade: ['persist'],
         orphanRemoval: true,
     )]
     #[ORM\OrderBy([
-        'id' => 'ASC',
+        'id' => SortDirection::Ascending,
     ])]
     private Collection $items;
 
@@ -127,14 +128,14 @@ class Order
      * @var Collection<int, Payment>
      */
     #[ORM\OneToMany(
-        mappedBy: 'order',
         targetEntity: Payment::class,
+        mappedBy: 'order',
         cascade: ['persist'],
         orphanRemoval: false,
     )]
     #[ORM\OrderBy([
-        'createdAt' => 'ASC',
-        'id' => 'ASC',
+        'createdAt' => SortDirection::Ascending,
+        'id' => SortDirection::Ascending,
     ])]
     private Collection $payments;
 

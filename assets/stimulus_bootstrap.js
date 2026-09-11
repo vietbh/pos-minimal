@@ -1,4 +1,5 @@
 import { startStimulusApp } from '@symfony/stimulus-bundle';
+import StatisticsFilterController from './controllers/statistics_filter_controller.js';
 
 const app = startStimulusApp();
-// register any custom, 3rd party controllers here
+app.register('statistics-filter', StatisticsFilterController);

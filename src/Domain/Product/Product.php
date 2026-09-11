@@ -9,6 +9,7 @@ use App\Domain\Shared\ValueObject\Money;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use SortDirection;
 
 #[ORM\Entity]
 #[ORM\Table(
@@ -109,8 +110,8 @@ class Product
         cascade: ['persist'],
     )]
     #[ORM\OrderBy([
-        'sortOrder' => 'ASC',
-        'id' => 'ASC',
+        'sortOrder' => SortDirection::Ascending,
+        'id' => SortDirection::Ascending,
     ])]
     private Collection $images;
 

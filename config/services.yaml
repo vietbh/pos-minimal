@@ -57,3 +57,7 @@ services:
 
     App\Application\Product\Command\AdjustStock\AdjustStockHandler:
         public: true
+
+    App\Controller\Statistics\StatisticsController:
+        arguments:
+            $appTimezone: '%env(APP_TIMEZONE)%'

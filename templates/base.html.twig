@@ -27,6 +27,7 @@
                 {% if is_granted('ORDER_VIEW') %}<a href="{{ path('orders_index') }}">Orders</a>{% endif %}
                 {% if is_granted('DEBT_VIEW') %}<a href="{{ path('debts_index') }}">Debts</a>{% endif %}
                 {% if is_granted('STOCK_VIEW') %}<a href="{{ path('admin_stock_index') }}">Stock</a>{% endif %}
+                {% if is_granted('STATISTICS_VIEW') %}<a href="{{ path('statistics_index') }}">Statistics</a>{% endif %}
                 <a href="{{ path('logout') }}">Logout</a>
             </nav>
         {% endif %}
