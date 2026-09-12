@@ -2,134 +2,107 @@
 
 {% block title %}Mobile POS{% endblock %}
 
-{% block stylesheets %}
-    {{ parent() }}
-    <style>
-        .pos-shell { max-width: 960px; margin: 0 auto; padding: 16px; }
-        .pos-card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
-        .pos-grid { display: grid; gap: 12px; }
-        .pos-field { display: block; margin-bottom: 12px; }
-        .pos-field:last-child { margin-bottom: 0; }
-        input, select, textarea { width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid #bbb; border-radius: 10px; padding: 8px 10px; }
-        textarea { min-height: 120px; resize: vertical; }
-        button { min-height: 44px; padding: 10px 16px; border-radius: 10px; border: 1px solid #777; cursor: pointer; }
-        button:disabled { cursor: wait; opacity: .6; }
-        .pos-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .pos-message { padding: 12px; border-radius: 10px; margin-bottom: 12px; }
-        .pos-error { border: 1px solid #b42318; }
-        .pos-success { border: 1px solid #027a48; }
-        .pos-status { min-height: 24px; margin: 8px 0; }
-        .pos-result-grid { display: grid; gap: 8px; }
-        .pos-result-row { display: flex; justify-content: space-between; gap: 16px; }
-        .pos-result-row span:last-child { font-variant-numeric: tabular-nums; }
-        [hidden] { display: none !important; }
-        @media (min-width: 700px) {
-            .pos-grid { grid-template-columns: 1fr 1fr; }
-            .pos-result-grid { grid-template-columns: 1fr 1fr; }
-        }
-    </style>
-{% endblock %}
-
-{% block body %}<nav class="app-nav">{% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}">Products</a>{% endif %} {% if is_granted('CUSTOMER_VIEW') %}<a href="{{ path('customers_index') }}">Customers</a>{% endif %} {% if is_granted('STOCK_VIEW') %}<a href="{{ path('admin_stock_index') }}">Stock</a>{% endif %}</nav>
-<div class="pos-shell"
+{% block body %}
+<div class="pos-page"
      data-controller="pos-checkout"
      data-pos-checkout-csrf-token-value="{{ checkout_csrf_token }}"
-     data-pos-checkout-endpoint-value="{{ path('pos_checkout') }}">
-
-    <h1>Mobile POS</h1>
-    <p>Checkout totals, stock, payment validation, authorization and idempotency are enforced by the server.</p>
-
-    <div class="pos-status"
-         data-pos-checkout-target="status"
-         role="status"
-         aria-live="polite"></div>
-
-    <div class="pos-message pos-error"
-         data-pos-checkout-target="message"
-         role="alert"
-         aria-live="assertive"
-         tabindex="-1"
-         hidden></div>
-
-    <form data-action="submit->pos-checkout#submit" novalidate>
-        <div class="pos-card">
-            <h2>Cart</h2>
-            <label class="pos-field" for="pos-items">
-                Items JSON
-                <textarea id="pos-items"
-                          data-pos-checkout-target="items"
-                          placeholder='[{"productId":1,"quantity":1}]'
-                          autocomplete="off"></textarea>
-            </label>
+     data-pos-checkout-endpoint-value="{{ path('pos_checkout') }}"
+     data-pos-checkout-product-search-url-value="{{ path('pos_products_search') }}"
+     data-pos-checkout-customer-search-url-value="{{ path('pos_customers_search') }}">
+    <header class="pos-header">
+        <div>
+            <p class="pos-eyebrow">Sales</p>
+            <h1>New sale</h1>
         </div>
+        <span class="pos-state" data-pos-checkout-target="status" role="status" aria-live="polite">Ready</span>
+    </header>
 
-        <div class="pos-grid">
-            <div class="pos-card">
-                <label class="pos-field" for="pos-customer-id">
-                    Customer ID (optional)
-                    <input id="pos-customer-id"
-                           data-pos-checkout-target="customerId"
-                           type="number"
-                           min="1"
-                           inputmode="numeric"
-                           placeholder="Leave blank"
-                           autocomplete="off">
-                </label>
+    <div class="pos-message pos-error" data-pos-checkout-target="message" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
+
+    <main class="pos-layout">
+        <section class="pos-card pos-products" aria-labelledby="product-search-heading">
+            <div class="pos-section-header">
+                <div>
+                    <h2 id="product-search-heading">Products</h2>
+                    <p class="muted">Search by name or SKU.</p>
+                </div>
             </div>
+            <label class="sr-only" for="pos-product-search">Search products</label>
+            <input id="pos-product-search"
+                   class="pos-search"
+                   type="search"
+                   placeholder="Search product or SKU…"
+                   autocomplete="off"
+                   data-pos-checkout-target="productSearch"
+                   data-action="input->pos-checkout#searchProducts keydown->pos-checkout#productSearchKeydown">
+            <div class="pos-results" data-pos-checkout-target="productResults" aria-live="polite"></div>
+        </section>
 
-            <div class="pos-card">
-                <label class="pos-field" for="pos-payment-method">
-                    Payment method
-                    <select id="pos-payment-method" data-pos-checkout-target="paymentMethod">
+        <section class="pos-card pos-cart" aria-labelledby="cart-heading">
+            <div class="pos-section-header">
+                <div>
+                    <h2 id="cart-heading">Cart</h2>
+                    <p class="muted"><span data-pos-checkout-target="cartCount">0</span> items</p>
+                </div>
+                <button type="button" class="button" data-action="click->pos-checkout#clearCart">Clear</button>
+            </div>
+            <div class="pos-cart-list" data-pos-checkout-target="cart"></div>
+            <div class="pos-empty" data-pos-checkout-target="cartEmpty">Add a product to start the sale.</div>
+            <div class="pos-total-note" data-pos-checkout-target="cartTotalNote">Final total is confirmed by the server at checkout.</div>
+        </section>
+
+        <section class="pos-card" aria-labelledby="customer-heading">
+            <div class="pos-section-header">
+                <div>
+                    <h2 id="customer-heading">Customer</h2>
+                    <p class="muted">Optional.</p>
+                </div>
+                <button type="button" class="button" data-pos-checkout-target="clearCustomer" data-action="click->pos-checkout#clearCustomer" hidden>Remove</button>
+            </div>
+            <input class="pos-search"
+                   type="search"
+                   placeholder="Search name or phone…"
+                   autocomplete="off"
+                   data-pos-checkout-target="customerSearch"
+                   data-action="input->pos-checkout#searchCustomers">
+            <div class="pos-selected" data-pos-checkout-target="selectedCustomer" hidden></div>
+            <div class="pos-results" data-pos-checkout-target="customerResults" aria-live="polite"></div>
+        </section>
+
+        <section class="pos-card pos-checkout-card" aria-labelledby="payment-heading">
+            <h2 id="payment-heading">Payment</h2>
+            <div class="pos-payment-grid">
+                <label>Method
+                    <select data-pos-checkout-target="paymentMethod">
                         <option value="CASH">Cash</option>
                         <option value="BANK_TRANSFER">Bank transfer</option>
                     </select>
                 </label>
-
-                <label class="pos-field" for="pos-payment-amount">
-                    Payment amount
-                    <input id="pos-payment-amount"
-                           data-pos-checkout-target="paymentAmount"
-                           inputmode="decimal"
-                           value="0.00"
-                           autocomplete="off">
+                <label>Amount
+                    <input data-pos-checkout-target="paymentAmount" inputmode="decimal" value="0.00" autocomplete="off">
                 </label>
             </div>
-        </div>
-
-        <div class="pos-card">
-            <label class="pos-field" for="pos-note">
-                Note
-                <input id="pos-note"
-                       data-pos-checkout-target="note"
-                       maxlength="1000"
-                       autocomplete="off">
+            <label>Note
+                <input data-pos-checkout-target="note" maxlength="1000" autocomplete="off">
             </label>
-            <p>Displayed total is authoritative only when returned by the server.</p>
-        </div>
+            <button type="button" class="button primary pos-checkout-button" data-pos-checkout-target="submitButton" data-action="click->pos-checkout#submit">Checkout</button>
+            <button type="button" class="button" data-pos-checkout-target="retryButton" data-action="click->pos-checkout#retry" hidden>Retry checkout</button>
+        </section>
+    </main>
 
-        <div class="pos-actions">
-            <button type="submit" data-pos-checkout-target="submitButton">Checkout</button>
-            <button type="button"
-                    data-action="click->pos-checkout#retry"
-                    data-pos-checkout-target="retryButton"
-                    hidden>
-                Retry checkout
-            </button>
-        </div>
-    </form>
-
-    <section class="pos-card pos-success"
-             data-pos-checkout-target="success"
-             aria-live="polite"
-             hidden>
-        <h2>Checkout successful</h2>
-        <div class="pos-result-grid">
-            <div class="pos-result-row"><span>Order</span><strong data-pos-checkout-target="resultOrder"></strong></div>
-            <div class="pos-result-row"><span>Total</span><strong data-pos-checkout-target="resultTotal"></strong></div>
-            <div class="pos-result-row"><span>Paid</span><strong data-pos-checkout-target="resultPaid"></strong></div>
-            <div class="pos-result-row"><span>Debt</span><strong data-pos-checkout-target="resultDebt"></strong></div>
-            <div class="pos-result-row"><span>Request ID</span><span data-pos-checkout-target="requestId"></span></div>
+    <section class="pos-card pos-success" data-pos-checkout-target="success" hidden aria-live="polite">
+        <div class="pos-success-icon" aria-hidden="true">✓</div>
+        <div>
+            <p class="pos-eyebrow">Completed</p>
+            <h2>Sale completed</h2>
+            <p>Order <strong data-pos-checkout-target="resultOrder"></strong></p>
+            <dl class="pos-result-grid">
+                <div><dt>Total</dt><dd data-pos-checkout-target="resultTotal"></dd></div>
+                <div><dt>Paid</dt><dd data-pos-checkout-target="resultPaid"></dd></div>
+                <div><dt>Debt</dt><dd data-pos-checkout-target="resultDebt"></dd></div>
+            </dl>
+            <p class="muted">Request <span data-pos-checkout-target="requestId"></span></p>
+            <button type="button" class="button primary" data-action="click->pos-checkout#newSale">New sale</button>
         </div>
     </section>
 </div>

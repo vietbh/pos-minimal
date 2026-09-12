@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller\Order;
 
+use App\Application\Customer\Query\SearchCustomers\SearchCustomersHandler;
+use App\Application\Customer\Query\SearchCustomers\SearchCustomersInput;
 use App\Application\Order\Command\Checkout\CheckoutHandlerEntryPoint;
+use App\Application\Product\Query\SearchProducts\SearchProductsHandler;
+use App\Application\Product\Query\SearchProducts\SearchProductsInput;
 use App\Application\Order\Command\Checkout\CheckoutInput;
 use App\Application\Order\Command\Checkout\CheckoutItemInput;
 use App\Application\Order\Command\Checkout\CheckoutPaymentInput;
@@ -39,6 +43,43 @@ final class CheckoutController extends AbstractController
 
         return $this->render('pos/index.html.twig', [
             'checkout_csrf_token' => $csrfTokenManager->getToken(self::CSRF_TOKEN_ID)->getValue(),
+        ]);
+    }
+
+    #[Route('/app/pos/products', name: 'pos_products_search', methods: ['GET'], format: 'json')]
+    public function searchProducts(Request $request, SearchProductsHandler $handler): JsonResponse
+    {
+        $this->requirePosAccess(Permission::PRODUCT_VIEW);
+        $query = trim((string) $request->query->get('q', ''));
+        $limit = min(20, max(1, $request->query->getInt('limit', 20)));
+        $results = $handler(new SearchProductsInput($query, $limit));
+
+        return $this->json([
+            'data' => array_map(static fn ($product): array => [
+                'id' => $product->id,
+                'sku' => $product->sku,
+                'name' => $product->name,
+                'unit' => $product->unit,
+                'sellingPrice' => $product->sellingPrice,
+                'stockQuantity' => $product->stockQuantity,
+            ], $results),
+        ]);
+    }
+
+    #[Route('/app/pos/customers', name: 'pos_customers_search', methods: ['GET'], format: 'json')]
+    public function searchCustomers(Request $request, SearchCustomersHandler $handler): JsonResponse
+    {
+        $this->requirePosAccess(Permission::CUSTOMER_VIEW);
+        $query = trim((string) $request->query->get('q', ''));
+        $limit = min(20, max(1, $request->query->getInt('limit', 20)));
+        $results = $handler(new SearchCustomersInput($query, $limit));
+
+        return $this->json([
+            'data' => array_map(static fn ($customer): array => [
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'phone' => $customer->phone,
+            ], $results),
         ]);
     }
 
@@ -207,6 +248,18 @@ final class CheckoutController extends AbstractController
         }
 
         return $this->error('INTERNAL_ERROR', 'Unable to complete checkout.', Response::HTTP_INTERNAL_SERVER_ERROR, $requestId);
+    }
+
+    private function requirePosAccess(Permission $permission): void
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User || !$user->isActive()) {
+            throw $this->createAccessDeniedException('Authentication required.');
+        }
+
+        if (!$this->isGranted(Permission::POS_ACCESS->value) || !$this->isGranted($permission->value)) {
+            throw $this->createAccessDeniedException('Access denied.');
+        }
     }
 
     private function requestId(Request $request): string
