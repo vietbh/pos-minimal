@@ -139,6 +139,8 @@ final class CheckoutController extends AbstractController
                 'total' => $result->total->toDecimal(),
                 'paidAmount' => $result->paidAmount->toDecimal(),
                 'debtAmount' => $result->debtAmount->toDecimal(),
+                'tenderedAmount' => $result->tenderedAmount->toDecimal(),
+                'changeAmount' => $result->changeAmount->toDecimal(),
                 'status' => $result->status->value,
             ],
             'requestId' => $requestId,
@@ -177,8 +179,14 @@ final class CheckoutController extends AbstractController
 
         $method = $payment['method'] ?? null;
         $amount = $payment['amount'] ?? null;
+        $tenderedAmount = $payment['tenderedAmount'] ?? null;
+
         if (!is_string($method) || (!is_string($amount) && !is_int($amount))) {
             throw new \InvalidArgumentException('payment.method and payment.amount are required.');
+        }
+
+        if ($tenderedAmount !== null && !is_string($tenderedAmount) && !is_int($tenderedAmount)) {
+            throw new \InvalidArgumentException('payment.tenderedAmount must be a string, integer, or null.');
         }
 
         $paymentMethod = PaymentMethod::tryFrom($method);
@@ -198,6 +206,9 @@ final class CheckoutController extends AbstractController
 
         try {
             $money = Money::fromDecimal((string) $amount);
+            $tenderedMoney = $tenderedAmount === null
+                ? null
+                : Money::fromDecimal((string) $tenderedAmount);
         } catch (\InvalidArgumentException $exception) {
             throw new \InvalidArgumentException($exception->getMessage(), previous: $exception);
         }
@@ -205,7 +216,7 @@ final class CheckoutController extends AbstractController
         return new CheckoutInput(
             items: $mappedItems,
             customerId: $customerId,
-            payment: new CheckoutPaymentInput($paymentMethod, $money),
+            payment: new CheckoutPaymentInput($paymentMethod, $money, $tenderedMoney),
             note: $note,
             idempotencyKey: $idempotencyKey,
         );

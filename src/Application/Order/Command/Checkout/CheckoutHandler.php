@@ -243,6 +243,23 @@ final readonly class CheckoutHandler
         $order->recalculateTotals();
 
         $paymentAmount = $input->payment->amount;
+        $tenderedAmount = $input->payment->tenderedAmount ?? $paymentAmount;
+
+        if ($input->payment->method === \App\Domain\Payment\Enum\PaymentMethod::BANK_TRANSFER
+            && !$paymentAmount->equals($order->getTotal())
+        ) {
+            throw new \DomainException(
+                'Bank transfer amount must equal the order total.',
+            );
+        }
+
+        if ($input->payment->method === \App\Domain\Payment\Enum\PaymentMethod::CASH) {
+            if ($tenderedAmount->isLessThanOrEqual($order->getTotal())) {
+                $paymentAmount = $tenderedAmount;
+            } else {
+                $paymentAmount = $order->getTotal();
+            }
+        }
 
         if ($paymentAmount->isPositive()) {
             $payment = new Payment(
@@ -348,6 +365,12 @@ final readonly class CheckoutHandler
                     'debtAmount' => $order
                         ->getDebtAmount()
                         ->toDecimal(),
+                    'tenderedAmount' => $tenderedAmount->toDecimal(),
+                    'changeAmount' => $this->calculateChange(
+                        $input,
+                        $order->getTotal(),
+                        $tenderedAmount,
+                    )->toDecimal(),
                 ],
             ),
         );
@@ -368,6 +391,12 @@ final readonly class CheckoutHandler
             total: $order->getTotal(),
             paidAmount: $order->getPaidAmount(),
             debtAmount: $order->getDebtAmount(),
+            tenderedAmount: $tenderedAmount,
+            changeAmount: $this->calculateChange(
+                $input,
+                $order->getTotal(),
+                $tenderedAmount,
+            ),
             status: $order->getStatus(),
         );
     }
@@ -534,6 +563,7 @@ final readonly class CheckoutHandler
             'payment' => [
                 'method' => $input->payment->method->value,
                 'amount' => $input->payment->amount->toDecimal(),
+                'tenderedAmount' => $input->payment->tenderedAmount?->toDecimal(),
             ],
             'note' => $input->note,
         ];
@@ -580,6 +610,8 @@ final readonly class CheckoutHandler
             total: Money::fromDecimal((string) $body['total']),
             paidAmount: Money::fromDecimal((string) $body['paidAmount']),
             debtAmount: Money::fromDecimal((string) $body['debtAmount']),
+            tenderedAmount: Money::fromDecimal((string) ($body['tenderedAmount'] ?? $body['paidAmount'])),
+            changeAmount: Money::fromDecimal((string) ($body['changeAmount'] ?? '0.00')),
             status: OrderStatus::from((string) $body['status']),
         );
     }
@@ -596,8 +628,25 @@ final readonly class CheckoutHandler
             'total' => $result->total->toDecimal(),
             'paidAmount' => $result->paidAmount->toDecimal(),
             'debtAmount' => $result->debtAmount->toDecimal(),
+            'tenderedAmount' => $result->tenderedAmount->toDecimal(),
+            'changeAmount' => $result->changeAmount->toDecimal(),
             'status' => $result->status->value,
         ];
+    }
+
+    private function calculateChange(
+        CheckoutInput $input,
+        Money $total,
+        Money $tenderedAmount,
+    ): Money {
+        if (
+            $input->payment->method !== \App\Domain\Payment\Enum\PaymentMethod::CASH
+            || !$tenderedAmount->isGreaterThan($total)
+        ) {
+            return Money::zero();
+        }
+
+        return $tenderedAmount->subtract($total);
     }
 
     private function resolveFailureStatus(

@@ -15,6 +15,8 @@ final readonly class CheckoutResult
         public Money $total,
         public Money $paidAmount,
         public Money $debtAmount,
+        public Money $tenderedAmount,
+        public Money $changeAmount,
         public OrderStatus $status,
     ) {
     }

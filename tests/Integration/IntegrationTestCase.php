@@ -35,8 +35,9 @@ abstract class IntegrationTestCase extends KernelTestCase
          * This deliberately does not use an outer transaction because
          * application code owns explicit transaction boundaries.
          */
+        $schemaTool->dropDatabase();
+
         if ($metadata !== []) {
-            $schemaTool->dropSchema($metadata);
             $schemaTool->createSchema($metadata);
         }
     }

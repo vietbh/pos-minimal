@@ -31,10 +31,7 @@ final class PosCheckoutUiContractTest extends TestCase
     {
         self::assertStringContainsString('this.idempotencyKey = null;', $this->controllerSource);
         self::assertStringContainsString('if (this.idempotencyKey === null)', $this->controllerSource);
-        self::assertMatchesRegularExpression(
-            '/[\'"]Idempotency-Key[\'"]\s*:\s*this\.idempotencyKey/',
-            $this->controllerSource
-        );
+        self::assertStringContainsString("'Idempotency-Key': this.idempotencyKey", $this->controllerSource);
         self::assertStringContainsString('this.submit();', $this->controllerSource);
         self::assertStringContainsString('this.idempotencyKey = null;', $this->controllerSource);
     }
@@ -44,39 +41,35 @@ final class PosCheckoutUiContractTest extends TestCase
         self::assertStringContainsString('if (this.inFlight || this.state === \'SUCCESS\')', $this->controllerSource);
         self::assertStringContainsString('this.inFlight = true;', $this->controllerSource);
         self::assertStringContainsString('this.inFlight = submitting;', $this->controllerSource);
-        self::assertMatchesRegularExpression(
-            '/this\.submitButtonTarget\.disabled\s*=\s*submitting/',
-            $this->controllerSource
-        );
+        self::assertStringContainsString('this.submitButtonTarget.disabled = submitting;', $this->controllerSource);
     }
 
     public function testNetworkAndTimeoutPreserveCartAndOfferRetry(): void
     {
-        self::assertMatchesRegularExpression(
-            "/errorCode\s*:\s*timedOut\s*\?\s*['\"]CHECKOUT_TIMEOUT['\"]\s*:\s*['\"]NETWORK_UNKNOWN['\"]/",
-            $this->controllerSource
-        );
+        self::assertStringContainsString("errorCode: timedOut ? 'CHECKOUT_TIMEOUT' : 'NETWORK_UNKNOWN'", $this->controllerSource);
         self::assertStringContainsString("status === 0 || status >= 500", $this->controllerSource);
-        self::assertStringContainsString("this.cartItems", $this->controllerSource);
-        self::assertStringContainsString("this.idempotencyKey = null", $this->controllerSource);
-        self::assertStringContainsString("this.persistCart()", $this->controllerSource);
+        self::assertStringContainsString('this.cartItems = [];', $this->controllerSource);
+        self::assertStringContainsString('this.persistCart();', $this->controllerSource);
     }
 
     public function testStableErrorCodeAndRequestIdAreHandled(): void
     {
-        self::assertMatchesRegularExpression(
-            '/body\.errorCode\s*\|\|\s*this\.errorCodeForStatus\s*\(\s*response\.status\s*\)/',
-            $this->controllerSource
-        );
-        self::assertMatchesRegularExpression(
-            '/body\.requestId\s*\|\|\s*response\.headers\.get\(\s*[\'"]X-Request-ID[\'"]\s*\)/',
-            $this->controllerSource
-        );
-        self::assertMatchesRegularExpression(
-            '/[\'"]Content-Type[\'"]\s*:\s*[\'"]application\/json[\'"]/',
-            $this->controllerSource
-        );
+        self::assertStringContainsString('body.errorCode || this.errorCodeForStatus(response.status)', $this->controllerSource);
+        self::assertStringContainsString('body.requestId || response.headers.get(\'X-Request-ID\')', $this->controllerSource);
+        self::assertStringContainsString('this.requestIdTarget.textContent', $this->controllerSource);
+    }
 
+    public function testCheckoutUsesRequiredHeaders(): void
+    {
+        foreach ([
+            "'Content-Type': 'application/json'",
+            "'Accept': 'application/json'",
+            "'X-CSRF-TOKEN': this.csrfTokenValue",
+            "'Idempotency-Key': this.idempotencyKey",
+            "'X-Request-ID': this.newRequestId()",
+        ] as $header) {
+            self::assertStringContainsString($header, $this->controllerSource);
+        }
     }
 
     public function testAccessibleErrorAndResultTargetsExist(): void
@@ -86,6 +79,45 @@ final class PosCheckoutUiContractTest extends TestCase
         self::assertStringContainsString('tabindex="-1"', $this->templateSource);
         self::assertStringContainsString('data-pos-checkout-target="retryButton"', $this->templateSource);
         self::assertStringContainsString('data-pos-checkout-target="requestId"', $this->templateSource);
+    }
+
+
+    public function testCashTenderedAndChangeAreRepresentedInTheUiContract(): void
+    {
+        self::assertStringContainsString('customerTendered', $this->controllerSource);
+        self::assertStringContainsString('tenderedAmount', $this->controllerSource);
+        self::assertStringContainsString('changeAmount', $this->controllerSource);
+        self::assertStringContainsString('data-pos-checkout-target="customerTendered"', $this->templateSource);
+        self::assertStringContainsString('data-pos-checkout-target="paymentChange"', $this->templateSource);
+    }
+
+    public function testMoneyUsesMinorUnitsWithoutFloatingPointArithmetic(): void
+    {
+        self::assertStringContainsString('parseMajorToMinor', $this->controllerSource);
+        self::assertStringContainsString('BigInt', $this->controllerSource);
+        self::assertStringNotContainsString('Number(item.unitPrice) * item.quantity', $this->controllerSource);
+    }
+
+    public function testCashTenderSuggestionsUsePracticalAmountsAtOrAboveTotal(): void
+    {
+        self::assertStringContainsString('practicalCashSuggestions', $this->controllerSource);
+        self::assertStringContainsString('totalMinor % 1000000n === 0n', $this->controllerSource);
+        self::assertStringContainsString('this.roundUp(totalMinor, 5000000n)', $this->controllerSource);
+        self::assertStringContainsString('20000000n, 50000000n, 100000000n', $this->controllerSource);
+        self::assertStringContainsString('value >= totalMinor', $this->controllerSource);
+        self::assertStringContainsString('sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))', $this->controllerSource);
+        self::assertStringContainsString('data-pos-checkout-target="quickCash"', $this->templateSource);
+    }
+
+    public function testCashAndBankTransferHaveDistinctUiSemantics(): void
+    {
+        self::assertStringContainsString("value=\"CASH\"", $this->templateSource);
+        self::assertStringContainsString("value=\"BANK_TRANSFER\"", $this->templateSource);
+        self::assertStringContainsString('Customer gives', $this->templateSource);
+        self::assertStringContainsString('Transfer amount', $this->templateSource);
+        self::assertStringContainsString("tenderedAmount: isCash ?", $this->controllerSource);
+        self::assertStringContainsString("Bank transfer amount must equal the order total.", $this->controllerSource);
+        self::assertStringContainsString("this.paymentMethodsTargets", $this->controllerSource);
     }
 
     public function testFrontendDoesNotBecomeBusinessAuthority(): void
@@ -112,6 +144,7 @@ final class PosCheckoutUiContractTest extends TestCase
         self::assertStringContainsString('data.total', $this->controllerSource);
         self::assertStringContainsString('data.paidAmount', $this->controllerSource);
         self::assertStringContainsString('data.debtAmount', $this->controllerSource);
-        self::assertStringContainsString('this.persistCart()', $this->controllerSource);
+        self::assertStringContainsString('data.tenderedAmount', $this->controllerSource);
+        self::assertStringContainsString('data.changeAmount', $this->controllerSource);
     }
 }

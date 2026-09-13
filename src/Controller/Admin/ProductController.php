@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Application\Security\RuntimeActorContextProvider;
+use App\Application\Security\ActorContext;
 use App\Application\Product\Command\ActivateProduct\ActivateProductHandler;
 use App\Application\Product\Command\ActivateProduct\ActivateProductInput;
 use App\Application\Product\Command\AdjustStock\AdjustStockHandlerEntryPoint;
@@ -112,15 +114,68 @@ final class ProductController extends AbstractController
     { $this->denyAccessUnlessGranted(Permission::PRODUCT_ACTIVATE->value); $this->checkCsrf($request, $csrf, 'admin_product_state'); $handler(new DeactivateProductInput($id)); return $this->redirectToRoute('admin_products_show', ['id' => $id]); }
 
     #[Route('/admin/products/{id<\d+>}/stock', name: 'admin_products_stock', methods: ['POST'])]
-    public function stock(int $id, Request $request, AdjustStockHandlerEntryPoint $handler, CsrfTokenManagerInterface $csrf): Response
-    {
+    public function stock(
+        int $id,
+        Request $request,
+        AdjustStockHandlerEntryPoint $handler,
+        CsrfTokenManagerInterface $csrf,
+        RuntimeActorContextProvider $actorContextProvider,
+    ): Response {
         $this->denyAccessUnlessGranted(Permission::STOCK_ADJUST->value);
         $this->checkCsrf($request, $csrf, 'admin_stock_adjust');
-        $key = trim((string) $request->headers->get('Idempotency-Key', $request->request->get('idempotencyKey', '')));
-        if ($key === '') { $this->addFlash('error', 'Idempotency key is required.'); return $this->redirectToRoute('admin_products_show', ['id' => $id]); }
-        try { $handler->handle(new AdjustStockInput($id, $request->request->getInt('quantityChange'), trim((string) $request->request->get('reason', '')) ?: null, $key)); $this->addFlash('success', 'Stock updated.'); }
-        catch (\Throwable $e) { $this->addFlash('error', $this->safeMessage($e)); }
-        return $this->redirectToRoute('admin_products_show', ['id' => $id]);
+
+        $key = trim((string) $request->headers->get(
+            'Idempotency-Key',
+            $request->request->get('idempotencyKey', '')
+        ));
+
+        if ($key === '') {
+            $this->addFlash('error', 'Idempotency key is required.');
+
+            return $this->redirectToRoute('admin_products_show', [
+                'id' => $id,
+            ]);
+        }
+
+        try {
+            $user = $this->getUser();
+
+            if (!$user instanceof User || !$user->isActive()) {
+                throw $this->createAccessDeniedException('Authentication is required.');
+            }
+
+            $requestId = $request->headers->get('X-Request-ID')
+                ?: bin2hex(random_bytes(16));
+
+            $actorContextProvider->set(
+                new ActorContext(
+                    $user->getId() ?? 0,
+                    null,
+                    $requestId,
+                )
+            );
+
+            try {
+                $handler->handle(
+                    new AdjustStockInput(
+                        $id,
+                        $request->request->getInt('quantityChange'),
+                        trim((string) $request->request->get('reason', '')) ?: null,
+                        $key,
+                    )
+                );
+
+                $this->addFlash('success', 'Stock updated.');
+            } finally {
+                $actorContextProvider->clear();
+            }
+        } catch (\Throwable $e) {
+            $this->addFlash('error', $this->safeMessage($e));
+        }
+
+        return $this->redirectToRoute('admin_products_show', [
+            'id' => $id,
+        ]);
     }
 
     /** @return array{name:string,sellingPrice:string,sku:string,unit:string,costPrice:string,lowStockThreshold:int,note:string} */

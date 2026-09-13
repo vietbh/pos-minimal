@@ -12,6 +12,25 @@ final readonly class CheckoutPaymentInput
     public function __construct(
         public PaymentMethod $method,
         public Money $amount,
+        public ?Money $tenderedAmount = null,
     ) {
+        if (
+            $this->method !== PaymentMethod::CASH
+            && $this->tenderedAmount !== null
+        ) {
+            throw new \InvalidArgumentException(
+                'Tendered amount is only supported for cash payments.',
+            );
+        }
+
+        if (
+            $this->method === PaymentMethod::CASH
+            && $this->tenderedAmount !== null
+            && !$this->tenderedAmount->isPositive()
+        ) {
+            throw new \InvalidArgumentException(
+                'Cash tendered amount must be greater than zero.',
+            );
+        }
     }
 }

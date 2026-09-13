@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Mobile POS{% endblock %}
+{% block title %}Point of Sale{% endblock %}
 
 {% block body %}
 <div class="pos-page"
@@ -9,101 +9,144 @@
      data-pos-checkout-endpoint-value="{{ path('pos_checkout') }}"
      data-pos-checkout-product-search-url-value="{{ path('pos_products_search') }}"
      data-pos-checkout-customer-search-url-value="{{ path('pos_customers_search') }}">
-    <header class="pos-header">
-        <div>
-            <p class="pos-eyebrow">Sales</p>
-            <h1>New sale</h1>
-        </div>
-        <span class="pos-state" data-pos-checkout-target="status" role="status" aria-live="polite">Ready</span>
-    </header>
 
     <div class="pos-message pos-error" data-pos-checkout-target="message" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
 
-    <main class="pos-layout">
-        <section class="pos-card pos-products" aria-labelledby="product-search-heading">
-            <div class="pos-section-header">
-                <div>
-                    <h2 id="product-search-heading">Products</h2>
-                    <p class="muted">Search by name or SKU.</p>
-                </div>
+    <div data-pos-checkout-target="saleView">
+        <header class="pos-header">
+            <div>
+                <p class="pos-eyebrow">Point of Sale</p>
+                <h1>New sale</h1>
             </div>
-            <label class="sr-only" for="pos-product-search">Search products</label>
-            <input id="pos-product-search"
-                   class="pos-search"
-                   type="search"
-                   placeholder="Search product or SKU…"
-                   autocomplete="off"
-                   data-pos-checkout-target="productSearch"
-                   data-action="input->pos-checkout#searchProducts keydown->pos-checkout#productSearchKeydown">
-            <div class="pos-results" data-pos-checkout-target="productResults" aria-live="polite"></div>
-        </section>
+            <span class="pos-state" data-pos-checkout-target="status" role="status" aria-live="polite">Ready</span>
+        </header>
 
-        <section class="pos-card pos-cart" aria-labelledby="cart-heading">
-            <div class="pos-section-header">
-                <div>
-                    <h2 id="cart-heading">Cart</h2>
-                    <p class="muted"><span data-pos-checkout-target="cartCount">0</span> items</p>
+        <main class="pos-layout">
+            <section class="pos-card pos-products" aria-labelledby="product-search-heading">
+                <div class="pos-section-header">
+                    <div>
+                        <h2 id="product-search-heading">Products</h2>
+                        <p class="muted">Search by product name or SKU.</p>
+                    </div>
                 </div>
-                <button type="button" class="button" data-action="click->pos-checkout#clearCart">Clear</button>
-            </div>
-            <div class="pos-cart-list" data-pos-checkout-target="cart"></div>
-            <div class="pos-empty" data-pos-checkout-target="cartEmpty">Add a product to start the sale.</div>
-            <div class="pos-total-note" data-pos-checkout-target="cartTotalNote">Final total is confirmed by the server at checkout.</div>
-        </section>
+                <label class="sr-only" for="pos-product-search">Search products</label>
+                <input id="pos-product-search"
+                       class="pos-search"
+                       type="search"
+                       placeholder="Search product or SKU…"
+                       autocomplete="off"
+                       data-pos-checkout-target="productSearch"
+                       data-action="input->pos-checkout#searchProducts keydown->pos-checkout#productSearchKeydown">
+                <div class="pos-results" data-pos-checkout-target="productResults" aria-live="polite"></div>
+            </section>
 
-        <section class="pos-card" aria-labelledby="customer-heading">
-            <div class="pos-section-header">
-                <div>
-                    <h2 id="customer-heading">Customer</h2>
-                    <p class="muted">Optional.</p>
+            <section class="pos-card pos-cart" aria-labelledby="cart-heading">
+                <div class="pos-section-header">
+                    <div>
+                        <h2 id="cart-heading">Current sale</h2>
+                        <p class="muted"><span data-pos-checkout-target="cartCount">0</span> items</p>
+                    </div>
+                    <button type="button" class="button" data-action="click->pos-checkout#clearCart">Clear</button>
                 </div>
-                <button type="button" class="button" data-pos-checkout-target="clearCustomer" data-action="click->pos-checkout#clearCustomer" hidden>Remove</button>
-            </div>
-            <input class="pos-search"
-                   type="search"
-                   placeholder="Search name or phone…"
-                   autocomplete="off"
-                   data-pos-checkout-target="customerSearch"
-                   data-action="input->pos-checkout#searchCustomers">
-            <div class="pos-selected" data-pos-checkout-target="selectedCustomer" hidden></div>
-            <div class="pos-results" data-pos-checkout-target="customerResults" aria-live="polite"></div>
-        </section>
+                <div class="pos-cart-list" data-pos-checkout-target="cart"></div>
+                <div class="pos-empty" data-pos-checkout-target="cartEmpty">Add a product to start the sale.</div>
+                <div class="pos-cart-total"><span>Total</span><strong data-pos-checkout-target="cartTotal">0.00</strong></div>
+                <p class="pos-total-note">Final total is confirmed by the server at checkout.</p>
+            </section>
 
-        <section class="pos-card pos-checkout-card" aria-labelledby="payment-heading">
-            <h2 id="payment-heading">Payment</h2>
-            <div class="pos-payment-grid">
-                <label>Method
-                    <select data-pos-checkout-target="paymentMethod">
-                        <option value="CASH">Cash</option>
-                        <option value="BANK_TRANSFER">Bank transfer</option>
-                    </select>
+            <section class="pos-card" aria-labelledby="customer-heading">
+                <div class="pos-section-header">
+                    <div>
+                        <h2 id="customer-heading">Customer</h2>
+                        <p class="muted">Optional</p>
+                    </div>
+                    <button type="button" class="button" data-pos-checkout-target="clearCustomer" data-action="click->pos-checkout#clearCustomer" hidden>Remove</button>
+                </div>
+                <div class="pos-selected" data-pos-checkout-target="selectedCustomer" hidden></div>
+                <label class="sr-only" for="pos-customer-search">Search customers</label>
+                <input id="pos-customer-search"
+                       class="pos-search"
+                       type="search"
+                       placeholder="Search customer by name or phone…"
+                       autocomplete="off"
+                       data-pos-checkout-target="customerSearch"
+                       data-action="input->pos-checkout#searchCustomers">
+                <div class="pos-results" data-pos-checkout-target="customerResults" aria-live="polite"></div>
+            </section>
+
+            <section class="pos-card pos-payment-card" aria-labelledby="payment-heading">
+                <div class="pos-section-header">
+                    <div>
+                        <p class="pos-eyebrow">Payment</p>
+                        <h2 id="payment-heading">Complete sale</h2>
+                    </div>
+                </div>
+
+                <div class="pos-payment-total">
+                    <span>Order total</span>
+                    <strong data-pos-checkout-target="paymentTotal">0.00</strong>
+                </div>
+
+                <fieldset class="pos-methods">
+                    <legend>Payment method</legend>
+                    <label class="pos-method"><input type="radio" name="payment-method" value="CASH" checked data-pos-checkout-target="paymentMethods" data-action="change->pos-checkout#paymentMethodChanged"> <span>Cash</span></label>
+                    <label class="pos-method"><input type="radio" name="payment-method" value="BANK_TRANSFER" data-pos-checkout-target="paymentMethods" data-action="change->pos-checkout#paymentMethodChanged"> <span>Bank transfer</span></label>
+                </fieldset>
+
+                <div class="pos-payment-fields">
+                    <label data-cash-only>Customer gives
+                        <input data-pos-checkout-target="customerTendered"
+                               data-action="input->pos-checkout#customerTenderedChanged"
+                               inputmode="decimal"
+                               placeholder="0.00"
+                               autocomplete="off">
+                    </label>
+                    <label hidden data-transfer-only>Transfer amount
+                        <input data-pos-checkout-target="paymentAmount"
+                               data-action="input->pos-checkout#paymentAmountChanged blur->pos-checkout#normalizePaymentAmount"
+                               inputmode="decimal"
+                               placeholder="0.00"
+                               autocomplete="off">
+                    </label>
+                </div>
+
+                <div class="pos-quick-cash" data-pos-checkout-target="quickCash" aria-label="Quick cash amounts"></div>
+
+                <dl class="pos-payment-summary">
+                    <div><dt>Payment applied</dt><dd data-pos-checkout-target="paymentApplied">0.00</dd></div>
+                    <div data-cash-only><dt>Remaining</dt><dd data-pos-checkout-target="paymentDue">0.00</dd></div>
+                    <div data-cash-only><dt>Change due</dt><dd data-pos-checkout-target="paymentChange">0.00</dd></div>
+                </dl>
+                <p class="pos-payment-state" data-pos-checkout-target="paymentState" role="status" aria-live="polite">Add products</p>
+
+                <label>Note
+                    <input data-pos-checkout-target="note" maxlength="1000" autocomplete="off">
                 </label>
-                <label>Amount
-                    <input data-pos-checkout-target="paymentAmount" inputmode="decimal" value="0.00" autocomplete="off">
-                </label>
-            </div>
-            <label>Note
-                <input data-pos-checkout-target="note" maxlength="1000" autocomplete="off">
-            </label>
-            <button type="button" class="button primary pos-checkout-button" data-pos-checkout-target="submitButton" data-action="click->pos-checkout#submit">Checkout</button>
-            <button type="button" class="button" data-pos-checkout-target="retryButton" data-action="click->pos-checkout#retry" hidden>Retry checkout</button>
-        </section>
-    </main>
+
+                <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="submitButton" data-action="click->pos-checkout#submit">
+                    Complete sale
+                </button>
+                <button type="button" class="button" data-pos-checkout-target="retryButton" data-action="click->pos-checkout#retry" hidden>
+                    Retry checkout
+                </button>
+            </section>
+        </main>
+    </div>
 
     <section class="pos-card pos-success" data-pos-checkout-target="success" hidden aria-live="polite">
         <div class="pos-success-icon" aria-hidden="true">✓</div>
-        <div>
-            <p class="pos-eyebrow">Completed</p>
-            <h2>Sale completed</h2>
-            <p>Order <strong data-pos-checkout-target="resultOrder"></strong></p>
-            <dl class="pos-result-grid">
-                <div><dt>Total</dt><dd data-pos-checkout-target="resultTotal"></dd></div>
-                <div><dt>Paid</dt><dd data-pos-checkout-target="resultPaid"></dd></div>
-                <div><dt>Debt</dt><dd data-pos-checkout-target="resultDebt"></dd></div>
-            </dl>
-            <p class="muted">Request <span data-pos-checkout-target="requestId"></span></p>
-            <button type="button" class="button primary" data-action="click->pos-checkout#newSale">New sale</button>
-        </div>
+        <p class="pos-eyebrow">Completed</p>
+        <h1>Sale completed</h1>
+        <p>Order <strong data-pos-checkout-target="resultOrder"></strong></p>
+        <dl class="pos-result-grid">
+            <div><dt>Total</dt><dd data-pos-checkout-target="resultTotal"></dd></div>
+            <div><dt>Paid</dt><dd data-pos-checkout-target="resultPaid"></dd></div>
+            <div data-pos-checkout-target="resultTenderedRow"><dt>Customer gave</dt><dd data-pos-checkout-target="resultTendered"></dd></div>
+            <div data-pos-checkout-target="resultChangeRow"><dt>Change due</dt><dd data-pos-checkout-target="resultChange"></dd></div>
+            <div data-pos-checkout-target="resultDebtRow"><dt>Debt</dt><dd data-pos-checkout-target="resultDebt"></dd></div>
+        </dl>
+        <p class="muted">Request <span data-pos-checkout-target="requestId"></span></p>
+        <button type="button" class="button primary pos-complete-button" data-action="click->pos-checkout#newSale">New sale</button>
     </section>
 </div>
 {% endblock %}
