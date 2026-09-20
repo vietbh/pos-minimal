@@ -1,14 +1,18 @@
-{% extends 'base.html.twig' %}
+{% extends 'layout/pos.html.twig' %}
 
-{% block title %}Point of Sale{% endblock %}
+{% block title %}{{ 'pos.page_title'|trans }}{% endblock %}
 
-{% block body %}
+{% block pos_body %}
 <div class="pos-page"
-     data-controller="pos-checkout"
+     data-controller="pos-checkout mobile-ux"
      data-pos-checkout-csrf-token-value="{{ checkout_csrf_token }}"
      data-pos-checkout-endpoint-value="{{ path('pos_checkout') }}"
      data-pos-checkout-product-search-url-value="{{ path('pos_products_search') }}"
-     data-pos-checkout-customer-search-url-value="{{ path('pos_customers_search') }}">
+     data-pos-checkout-product-catalog-url-value="{{ path('pos_products_catalog') }}"
+     data-pos-checkout-customer-search-url-value="{{ path('pos_customers_search') }}"
+     data-pos-checkout-payment-reference-regenerate-base-url-value="{{ path('payment_reference_regenerate', {id: 0}) }}"
+     data-pos-checkout-complete-order-base-url-value="{{ path('order_complete', {id: 0}) }}"
+     data-pos-checkout-manual-bank-confirm-available-value="{{ manual_bank_confirm_allowed ? 'true' : 'false' }}">
 
     <div class="pos-message pos-error" data-pos-checkout-target="message" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
 
@@ -18,7 +22,7 @@
                 <p class="pos-eyebrow">Point of Sale</p>
                 <h1>New sale</h1>
             </div>
-            <span class="pos-state" data-pos-checkout-target="status" role="status" aria-live="polite">Ready</span>
+            <div class="pos-header-meta"><span class="pos-current-time" data-pos-checkout-target="currentTime" aria-label="Current time"></span><span class="pos-state" data-pos-checkout-target="status" role="status" aria-live="polite">Ready</span></div>
         </header>
 
         <main class="pos-layout">
@@ -29,15 +33,31 @@
                         <p class="muted">Search by product name or SKU.</p>
                     </div>
                 </div>
-                <label class="sr-only" for="pos-product-search">Search products</label>
-                <input id="pos-product-search"
-                       class="pos-search"
-                       type="search"
-                       placeholder="Search product or SKU…"
-                       autocomplete="off"
-                       data-pos-checkout-target="productSearch"
-                       data-action="input->pos-checkout#searchProducts keydown->pos-checkout#productSearchKeydown">
+                <div class="pos-product-filters">
+                    <label class="sr-only" for="pos-product-search">Search products</label>
+                    <input id="pos-product-search"
+                           class="pos-search"
+                           type="search"
+                           placeholder="Search product or SKU…"
+                           autocomplete="off"
+                           enterkeyhint="search"
+                           data-pos-checkout-target="productSearch"
+                           data-action="input->pos-checkout#searchProducts keydown->pos-checkout#productSearchKeydown">
+                    <label class="sr-only" for="pos-product-category">Product category</label>
+                    <select id="pos-product-category"
+                            class="pos-search"
+                            data-pos-checkout-target="productCategory"
+                            data-action="change->pos-checkout#productCategoryChanged">
+                        <option value="">All categories</option>
+                    </select>
+                </div>
+                <div class="pos-catalog-meta" data-pos-checkout-target="productCatalogMeta" aria-live="polite"></div>
                 <div class="pos-results" data-pos-checkout-target="productResults" aria-live="polite"></div>
+                <nav class="pos-product-pagination" data-pos-checkout-target="productPagination" aria-label="Product pagination" hidden>
+                    <button type="button" class="button" data-pos-checkout-target="productPrevious" data-action="click->pos-checkout#previousProductPage">Trước</button>
+                    <span data-pos-checkout-target="productPageIndicator">Trang 1 / 1</span>
+                    <button type="button" class="button" data-pos-checkout-target="productNext" data-action="click->pos-checkout#nextProductPage">Sau</button>
+                </nav>
             </section>
 
             <section class="pos-card pos-cart" aria-labelledby="cart-heading">
@@ -50,7 +70,7 @@
                 </div>
                 <div class="pos-cart-list" data-pos-checkout-target="cart"></div>
                 <div class="pos-empty" data-pos-checkout-target="cartEmpty">Add a product to start the sale.</div>
-                <div class="pos-cart-total"><span>Total</span><strong data-pos-checkout-target="cartTotal">0.00</strong></div>
+                <div class="pos-cart-total"><span>Total</span><strong data-pos-checkout-target="cartTotal">0</strong></div>
                 <p class="pos-total-note">Final total is confirmed by the server at checkout.</p>
             </section>
 
@@ -69,6 +89,7 @@
                        type="search"
                        placeholder="Search customer by name or phone…"
                        autocomplete="off"
+                       enterkeyhint="search"
                        data-pos-checkout-target="customerSearch"
                        data-action="input->pos-checkout#searchCustomers">
                 <div class="pos-results" data-pos-checkout-target="customerResults" aria-live="polite"></div>
@@ -84,7 +105,7 @@
 
                 <div class="pos-payment-total">
                     <span>Order total</span>
-                    <strong data-pos-checkout-target="paymentTotal">0.00</strong>
+                    <strong data-pos-checkout-target="paymentTotal">0</strong>
                 </div>
 
                 <fieldset class="pos-methods">
@@ -95,32 +116,78 @@
 
                 <div class="pos-payment-fields">
                     <label data-cash-only>Customer gives
-                        <input data-pos-checkout-target="customerTendered"
-                               data-action="input->pos-checkout#customerTenderedChanged"
-                               inputmode="decimal"
-                               placeholder="0.00"
-                               autocomplete="off">
+                        <div class="pos-payment-input-row">
+                            <input data-pos-checkout-target="customerTendered"
+                                   inputmode="decimal"
+                                   enterkeyhint="done"
+                                   data-action="input->pos-checkout#customerTenderedChanged"
+                                   inputmode="decimal"
+                                   placeholder="0"
+                                   autocomplete="off">
+                            <button type="button"
+                                    class="button"
+                                    data-pos-checkout-target="clearTendered"
+                                    data-action="click->pos-checkout#clearCustomerTendered"
+                                    hidden>Clear</button>
+                        </div>
                     </label>
-                    <label hidden data-transfer-only>Transfer amount
+                    <label hidden style="display:none" data-transfer-only>Transfer amount
                         <input data-pos-checkout-target="paymentAmount"
+                               inputmode="decimal"
+                               enterkeyhint="done"
                                data-action="input->pos-checkout#paymentAmountChanged blur->pos-checkout#normalizePaymentAmount"
                                inputmode="decimal"
-                               placeholder="0.00"
+                               placeholder="0"
                                autocomplete="off">
                     </label>
+                    <label hidden style="display:none" data-transfer-only>Receiving account
+                        <select data-pos-checkout-target="bankAccount"
+                                data-action="change->pos-checkout#bankAccountChanged">
+{#                            <option value="">Select receiving account</option>#}
+                            {% for account in payment_bank_accounts %}
+                                <option value="{{ account.id }}"
+                                        data-bank-bin="{{ account.bankBin }}"
+                                        data-bank-name="{{ account.bankName }}"
+                                        data-account-number="{{ account.accountNumber }}"
+                                        data-account-name="{{ account.accountName }}"
+                                        data-qr-template="{{ account.qrTemplate }}"
+                                        data-transfer-content="{{ account.transferContentTemplate }}">
+                                    {{ account.bankName }} · {{ account.accountNumber }} · {{ account.accountName }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+
+                <div class="pos-payment-received-banner" data-pos-checkout-target="paymentReceivedBanner" hidden aria-live="assertive" role="alert">
+                    <div class="pos-payment-received-icon" aria-hidden="true">✓</div>
+                    <div>
+                        <strong>ĐÃ NHẬN TIỀN</strong>
+                        <span>Ngân hàng đã xác nhận thanh toán</span>
+                        <b data-pos-checkout-target="paymentReceivedBannerAmount">0</b>
+                    </div>
+                </div>
+
+                <div class="pos-bank-details" data-pos-checkout-target="bankDetails" hidden style="display:none" aria-live="polite">
+                    <div><span class="muted">Receiving account</span></div>
+                    <div><strong data-pos-checkout-target="bankName"></strong> · <span data-pos-checkout-target="bankNumber"></span></div>
+                    <div class="muted">Account name: <strong data-pos-checkout-target="bankAccountName"></strong></div>
+                    <div class="muted">Transfer content: <strong data-pos-checkout-target="transferContent"></strong></div>
+                    <div class="pos-bank-qr-placeholder" data-pos-checkout-target="bankQrPlaceholder" aria-live="polite">QR sẽ xuất hiện sau khi bắt đầu thanh toán.</div>
+                    <img data-pos-checkout-target="bankQr" class="pos-bank-qr" alt="VietQR payment QR" hidden style="display:none">
                 </div>
 
                 <div class="pos-quick-cash" data-pos-checkout-target="quickCash" aria-label="Quick cash amounts"></div>
 
                 <dl class="pos-payment-summary">
-                    <div><dt>Payment applied</dt><dd data-pos-checkout-target="paymentApplied">0.00</dd></div>
-                    <div data-cash-only><dt>Remaining</dt><dd data-pos-checkout-target="paymentDue">0.00</dd></div>
-                    <div data-cash-only><dt>Change due</dt><dd data-pos-checkout-target="paymentChange">0.00</dd></div>
+                    <div><dt>Payment applied</dt><dd data-pos-checkout-target="paymentApplied">0</dd></div>
+                    <div data-pos-checkout-target="paymentDueRow" hidden><dt>Remaining</dt><dd data-pos-checkout-target="paymentDue">0</dd></div>
+                    <div data-cash-only data-pos-checkout-target="paymentChangeRow" hidden><dt>Change due</dt><dd data-pos-checkout-target="paymentChange">0</dd></div>
                 </dl>
                 <p class="pos-payment-state" data-pos-checkout-target="paymentState" role="status" aria-live="polite">Add products</p>
 
                 <label>Note
-                    <input data-pos-checkout-target="note" maxlength="1000" autocomplete="off">
+                    <input data-pos-checkout-target="note" maxlength="1000" autocomplete="off" enterkeyhint="done">
                 </label>
 
                 <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="submitButton" data-action="click->pos-checkout#submit">
@@ -134,10 +201,34 @@
     </div>
 
     <section class="pos-card pos-success" data-pos-checkout-target="success" hidden aria-live="polite">
+        <div class="pos-current-time pos-success-time" data-pos-checkout-target="currentTime" aria-label="Current time"></div>
         <div class="pos-success-icon" aria-hidden="true">✓</div>
-        <p class="pos-eyebrow">Completed</p>
-        <h1>Sale completed</h1>
+        <p class="pos-eyebrow" data-pos-checkout-target="successEyebrow">Completed</p>
+        <h1 data-pos-checkout-target="successTitle">Sale completed</h1>
         <p>Order <strong data-pos-checkout-target="resultOrder"></strong></p>
+        <section class="pos-bank-reference-result" data-pos-checkout-target="paymentReferenceResult" hidden>
+            <div><strong>Mã chuyển khoản</strong></div>
+            <div class="pos-payment-reference" data-pos-checkout-target="resultPaymentReference"></div>
+            <div>Hết hạn: <strong data-pos-checkout-target="resultPaymentReferenceExpiresAt"></strong></div>
+            <div>Còn lại: <strong data-pos-checkout-target="resultPaymentReferenceCountdown"></strong></div>
+            <div>Nội dung: <strong data-pos-checkout-target="resultPaymentReferenceTransferContent"></strong></div>
+            <button type="button" class="pos-qr-button" data-pos-checkout-target="resultPaymentReferenceQrButton" data-action="click->pos-checkout#openQrModal" aria-label="Open payment QR full screen"><img data-pos-checkout-target="resultPaymentReferenceQr" class="pos-bank-qr" alt="VietQR payment QR" hidden></button>
+            <button type="button" class="button" data-pos-checkout-target="regeneratePaymentReferenceButton" data-action="click->pos-checkout#regeneratePaymentReference" disabled>Tạo mã mới</button>
+            <p class="muted" data-pos-checkout-target="paymentReferenceHint">Mã mới chỉ được tạo khi mã hiện tại đã hết hạn.</p>
+        </section>
+        <section class="pos-webhook-enrichment" data-pos-checkout-target="webhookEnrichment" hidden aria-live="polite">
+            <div class="pos-webhook-enrichment-head">
+                <strong>Thông tin giao dịch ngân hàng</strong>
+                <span data-pos-checkout-target="webhookEnrichmentState">Đang chờ webhook</span>
+            </div>
+            <div class="pos-webhook-enrichment-grid">
+                <div><span>Provider</span><strong data-pos-checkout-target="webhookProvider">—</strong></div>
+                <div><span>Mã giao dịch</span><strong data-pos-checkout-target="webhookExternalId">—</strong></div>
+                <div><span>Thời gian nhận</span><strong data-pos-checkout-target="webhookOccurredAt">—</strong></div>
+                <div><span>Số tiền</span><strong data-pos-checkout-target="webhookAmount">—</strong></div>
+            </div>
+            <p data-pos-checkout-target="webhookDescription"></p>
+        </section>
         <dl class="pos-result-grid">
             <div><dt>Total</dt><dd data-pos-checkout-target="resultTotal"></dd></div>
             <div><dt>Paid</dt><dd data-pos-checkout-target="resultPaid"></dd></div>
@@ -146,7 +237,35 @@
             <div data-pos-checkout-target="resultDebtRow"><dt>Debt</dt><dd data-pos-checkout-target="resultDebt"></dd></div>
         </dl>
         <p class="muted">Request <span data-pos-checkout-target="requestId"></span></p>
-        <button type="button" class="button primary pos-complete-button" data-action="click->pos-checkout#newSale">New sale</button>
+        <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="completePaidSaleButton" data-action="click->pos-checkout#completePaidSale" hidden>Complete sale</button>
+                <button type="button" class="button warning" data-pos-checkout-target="manualBankConfirmButton" data-action="click->pos-checkout#manualBankConfirm" hidden>Confirm bank transfer manually</button>
+        <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="newSaleButton" data-action="click->pos-checkout#newSale">New sale</button>
     </section>
+    <div class="pos-payment-received-modal" data-pos-checkout-target="paymentReceivedModal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pos-payment-received-title" aria-describedby="pos-payment-received-description">
+        <div class="pos-payment-received-backdrop" aria-hidden="true"></div>
+        <section class="pos-payment-received-card">
+            <div class="pos-payment-received-check" aria-hidden="true"><span>✓</span></div>
+            <p class="pos-eyebrow">Payment received</p>
+            <h2 id="pos-payment-received-title">Payment Received</h2>
+            <p id="pos-payment-received-description" class="pos-payment-received-message">The bank transfer has been confirmed.</p>
+            <strong class="pos-payment-received-amount" data-pos-checkout-target="paymentReceivedModalAmount">0</strong>
+            <div class="pos-payment-received-reference" data-pos-checkout-target="paymentReceivedModalReference"></div>
+            <button type="button" class="button primary pos-payment-received-new-sale" data-action="click->pos-checkout#newSale">New Sale</button>
+            <p class="pos-payment-received-countdown" role="status" aria-live="polite">Returning to POS in <strong data-pos-checkout-target="paymentReceivedCountdown">5</strong>…</p>
+        </section>
+    </div>
+
+    <div class="pos-qr-modal" data-pos-checkout-target="qrModal" hidden role="dialog" aria-modal="true" aria-labelledby="pos-qr-modal-title" data-action="keydown->pos-checkout#handleQrModalKeydown">
+        <div class="pos-qr-modal-backdrop" data-action="click->pos-checkout#closeQrModal"></div>
+        <section class="pos-qr-modal-card">
+            <button type="button" class="button pos-qr-modal-close" data-pos-checkout-target="qrModalClose" data-action="click->pos-checkout#closeQrModal" aria-label="Close QR">×</button>
+            <p class="pos-eyebrow">Bank transfer</p>
+            <h2 id="pos-qr-modal-title">Scan to pay</h2>
+            <img data-pos-checkout-target="qrModalImage" class="pos-qr-modal-image" alt="Large VietQR payment QR">
+            <p class="pos-payment-reference" data-pos-checkout-target="qrModalReference"></p>
+            <p>Amount: <strong data-pos-checkout-target="qrModalAmount"></strong></p>
+            <p>Expires in: <strong data-pos-checkout-target="qrModalCountdown"></strong></p>
+        </section>
+    </div>
 </div>
 {% endblock %}

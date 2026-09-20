@@ -99,3 +99,7 @@ access:
   back_home: Back to Home
 session:
   expired: Your session has expired. Please sign in again.
+
+pos:
+  page_title: Point of Sale · Mobile POS
+  close: Close

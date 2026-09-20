@@ -99,3 +99,7 @@ access:
   back_home: Về trang chủ
 session:
   expired: Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
+
+pos:
+  page_title: Điểm bán hàng · Mobile POS
+  close: Đóng
