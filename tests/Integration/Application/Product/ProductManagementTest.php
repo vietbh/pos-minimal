@@ -113,7 +113,7 @@ final class ProductManagementTest extends IntegrationTestCase
             sellingPrice: Money::fromDecimal('30000.00'),
         ));
 
-
+        
         $firstSku = $this->getProduct($firstId)->getSku()?->value();
         $secondSku = $this->getProduct($secondId)->getSku()?->value();
 

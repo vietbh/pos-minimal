@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Payment;
 
+use App\Application\Common\Transaction\TransactionContextInterface;
 use App\Application\Common\Transaction\TransactionManagerInterface;
 use App\Application\Order\Command\Checkout\ProductLockingInterface;
 use App\Application\Order\Command\CompleteOrder\CompleteOrderService;
@@ -22,7 +23,6 @@ use App\Domain\Payment\Repository\ExternalPaymentTransactionRepositoryInterface;
 use App\Domain\Payment\Repository\PaymentReferenceRepositoryInterface;
 use App\Domain\Shared\ValueObject\Money;
 use App\Domain\User\User;
-use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class ManualBankPaymentConfirmationService
 {
@@ -36,7 +36,6 @@ final readonly class ManualBankPaymentConfirmationService
         private AuditLogRepositoryInterface $auditLogs,
         private CompleteOrderService $completion,
         private ExternalPaymentTransactionRepositoryInterface $externalTransactions,
-        private EntityManagerInterface $em,
         private TransactionManagerInterface $transactions,
     ) {}
 
@@ -54,7 +53,7 @@ final readonly class ManualBankPaymentConfirmationService
         User $actor,
         ?string $requestId = null,
     ): array {
-        return $this->transactions->run(function () use ($sessionId, $reference, $amount, $actor, $requestId): array {
+        return $this->transactions->run(function (TransactionContextInterface $transaction) use ($sessionId, $reference, $amount, $actor, $requestId): array {
             $session = $this->sessions->findByIdForUpdate($sessionId);
             if ($session === null) {
                 throw new \RuntimeException('Checkout payment session not found.');
@@ -114,6 +113,11 @@ final readonly class ManualBankPaymentConfirmationService
             $paymentReference->markMatched(new \DateTimeImmutable());
             $session->markPaid();
 
+            // The order/payment use generated database identifiers. Synchronize the
+            // pending inserts while keeping the current transaction open before the
+            // completion service needs the order ID and reloads it with FOR UPDATE.
+            $transaction->flush();
+
             $this->auditLogs->save(new AuditLog(
                 action: 'PAYMENT_MANUALLY_CONFIRMED',
                 user: $actor,
@@ -137,8 +141,6 @@ final readonly class ManualBankPaymentConfirmationService
                 requestId: $requestId,
                 source: 'MANUAL_BANK_CONFIRMATION',
             );
-            $this->em->flush();
-
             return $this->result($session, $order, $payment);
         });
     }

@@ -63,7 +63,6 @@ final class ManualBankPaymentConfirmationServiceTest extends TestCase
         $completion = $this->createMock(CompleteOrderService::class);
         $externalTransactions = $this->createMock(ExternalPaymentTransactionRepositoryInterface::class);
         $externalTransactions->expects(self::once())->method('findLatestByOrderId')->with(77)->willReturn(null);
-        $em = $this->createMock(EntityManagerInterface::class);
 
         $sessions->expects(self::once())->method('findByIdForUpdate')->willReturn($session);
         $references->expects(self::once())->method('findByReferenceForUpdate')->with('ABC12345')->willReturn($reference);
@@ -75,9 +74,23 @@ final class ManualBankPaymentConfirmationServiceTest extends TestCase
         $payments->expects(self::once())->method('save')->with(self::isInstanceOf(\App\Domain\Order\Payment::class))->willReturnCallback(function ($payment): void {
             (new \ReflectionClass($payment))->getProperty('id')->setValue($payment, 88);
         });
-        $completion->expects(self::once())->method('completePaidOrder')->with(77, $user, 'req-manual', 'MANUAL_BANK_CONFIRMATION');
         $audits->expects(self::once())->method('save');
-        $em->expects(self::once())->method('flush');
+
+        $flushCount = 0;
+        $transactionContext = new class($flushCount) implements TransactionContextInterface {
+            public function __construct(private int &$flushCount) {}
+
+            public function flush(): void
+            {
+                ++$this->flushCount;
+            }
+        };
+
+        $completion->expects(self::once())->method('completePaidOrder')->willReturnCallback(
+            function () use (&$flushCount): void {
+                self::assertSame(1, $flushCount, 'The new order/payment must be flushed before completion reloads the generated order ID.');
+            },
+        );
 
         $service = new ManualBankPaymentConfirmationService(
             $sessions,
@@ -89,11 +102,12 @@ final class ManualBankPaymentConfirmationServiceTest extends TestCase
             $audits,
             $completion,
             $externalTransactions,
-            $em,
-            new class implements TransactionManagerInterface {
+            new class($transactionContext) implements TransactionManagerInterface {
+                public function __construct(private TransactionContextInterface $context) {}
+
                 public function run(callable $operation): mixed
                 {
-                    return $operation(new class implements TransactionContextInterface { public function flush(): void {} });
+                    return $operation($this->context);
                 }
             },
         );

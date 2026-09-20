@@ -193,6 +193,17 @@ final class PosCheckoutUiContractTest extends TestCase
     }
 
 
+    public function testManualCompletionPolicyUsesCashierConfirmationInsteadOfWebhookCompletion(): void
+    {
+        self::assertStringContainsString("const isManualCompletion = this.bankTransferCompletionPolicy === 'MANUAL';", $this->controllerSource);
+        self::assertStringContainsString('this.manualBankConfirmButtonTarget.hidden = false;', $this->controllerSource);
+        self::assertStringContainsString('this.completePaidSaleButtonTarget.hidden = true;', $this->controllerSource);
+        self::assertStringContainsString("/manual-confirm", $this->controllerSource);
+        self::assertStringContainsString("this.state = 'SUCCESS';", $this->controllerSource);
+        self::assertStringContainsString('this.cartItems = [];', $this->controllerSource);
+    }
+
+
     public function testManualBankConfirmationIsExplicitAndPermissionGated(): void
     {
         self::assertStringContainsString('manualBankConfirm', $this->controllerSource);

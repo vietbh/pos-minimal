@@ -903,18 +903,37 @@ export default class extends Controller {
         this.renderWebhookEnrichment(data.externalTransaction || null, isBankPending);
 
         if (isBankPending) {
-            if (this.hasManualBankConfirmButtonTarget && this.manualBankConfirmAvailableValue) {
-                this.manualBankConfirmButtonTarget.hidden = false;
-                this.manualBankConfirmButtonTarget.disabled = false;
+            const isManualCompletion = this.bankTransferCompletionPolicy === 'MANUAL';
+
+            // MANUAL policy has one authoritative cashier action: confirm that
+            // the real transfer was independently verified. That endpoint both
+            // records the payment and completes the paid order atomically.
+            // Do not expose the webhook-recovery completion action for MANUAL
+            // policy, because it requires a reconciled webhook and produces the
+            // misleading ORDER_COMPLETION_FAILED state shown by the old UI.
+            if (isManualCompletion) {
+                if (this.hasManualBankConfirmButtonTarget && this.manualBankConfirmAvailableValue) {
+                    this.manualBankConfirmButtonTarget.hidden = false;
+                    this.manualBankConfirmButtonTarget.disabled = false;
+                }
+                if (this.hasCompletePaidSaleButtonTarget) {
+                    this.completePaidSaleButtonTarget.hidden = true;
+                    this.completePaidSaleButtonTarget.disabled = true;
+                }
+            } else {
+                if (this.hasManualBankConfirmButtonTarget) {
+                    this.manualBankConfirmButtonTarget.hidden = true;
+                    this.manualBankConfirmButtonTarget.disabled = true;
+                }
+                if (this.hasCompletePaidSaleButtonTarget) {
+                    this.completePaidSaleButtonTarget.hidden = false;
+                    this.completePaidSaleButtonTarget.disabled = false;
+                    this.completePaidSaleButtonTarget.textContent = this.messagesValue.completeSaleManually;
+                }
             }
             this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode(this.messagesValue.bankTransfer));
             this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode(this.messagesValue.waitingPayment));
             this.setStatus(this.messagesValue.waitingBankTransfer);
-            if (this.hasCompletePaidSaleButtonTarget) {
-                this.completePaidSaleButtonTarget.hidden = false;
-                this.completePaidSaleButtonTarget.disabled = false;
-                this.completePaidSaleButtonTarget.textContent = this.messagesValue.completeSaleManually;
-            }
             this.startPaymentStatusPolling();
             this.idempotencyKey = null;
             this.retryButtonTarget.hidden = true;
@@ -1092,9 +1111,19 @@ export default class extends Controller {
             });
         } catch (error) {
             this.state = 'PAYMENT_RECEIVED';
-            // Manual recovery remains available when the browser/device missed
-            // the successful webhook or automatic completion failed.
-            if (this.hasCompletePaidSaleButtonTarget) {
+            // MANUAL policy must recover through the explicit cashier
+            // confirmation endpoint; AUTO policy may recover through the
+            // webhook-reconciliation completion endpoint.
+            if (this.bankTransferCompletionPolicy === 'MANUAL') {
+                if (this.hasManualBankConfirmButtonTarget && this.manualBankConfirmAvailableValue) {
+                    this.manualBankConfirmButtonTarget.hidden = false;
+                    this.manualBankConfirmButtonTarget.disabled = false;
+                }
+                if (this.hasCompletePaidSaleButtonTarget) {
+                    this.completePaidSaleButtonTarget.hidden = true;
+                    this.completePaidSaleButtonTarget.disabled = true;
+                }
+            } else if (this.hasCompletePaidSaleButtonTarget) {
                 this.completePaidSaleButtonTarget.hidden = false;
                 this.completePaidSaleButtonTarget.disabled = false;
                 this.completePaidSaleButtonTarget.textContent = this.messagesValue.completeSaleManually;
