@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static values = { url: String, csrf: String, requiredLabel: String, genericErrorLabel: String, recordedLabel: String };
+    static values = { url: String, csrf: String, requiredMessage: String, failedMessage: String, recordedTemplate: String };
     static targets = ['form', 'submit', 'remaining', 'error', 'success'];
 
     connect() {
@@ -20,7 +20,7 @@ export default class extends Controller {
             .trim();
 
         if (!amount) {
-            this.showError(this.requiredLabelValue);
+            this.showError(this.requiredMessageValue);
             return;
         }
 
@@ -53,13 +53,13 @@ export default class extends Controller {
 
             if (!response.ok) {
                 const code = body.errorCode ? ` [${body.errorCode}]` : '';
-                const message = body.message || this.genericErrorLabelValue;
+                const message = body.message || this.failedMessageValue;
                 throw new Error(`${message}${code}`);
             }
 
             this.remainingTarget.textContent = `${body.data.remainingAmount} đ`;
             this.successTarget.textContent =
-                `${this.recordedLabelValue} ${body.data.remainingAmount} đ`;
+                this.recordedTemplateValue.replace('{amount}', body.data.remainingAmount);
             this.successTarget.hidden = false;
             this.formTarget.reset();
 
@@ -70,7 +70,7 @@ export default class extends Controller {
                 window.setTimeout(() => window.location.reload(), 400);
             }
         } catch (error) {
-            this.showError(error instanceof Error ? error.message : this.genericErrorLabelValue);
+            this.showError(error instanceof Error ? error.message : this.failedMessageValue);
         } finally {
             this.inFlight = false;
             this.submitTarget.disabled = false;

@@ -35,6 +35,7 @@ export default class extends Controller {
         processingLabel: String,
         completeSaleLabel: String,
         bankPaymentLabel: String,
+        messages: Object,
     };
 
     connect() {
@@ -71,7 +72,7 @@ export default class extends Controller {
         this.renderCart();
         this.paymentMethodChanged();
         this.loadProductCatalog(1);
-        this.setStatus('Ready');
+        this.setStatus(this.messagesValue.ready);
     }
 
     disconnect() {
@@ -127,7 +128,7 @@ export default class extends Controller {
             });
             const body = await response.json().catch(() => ({}));
             if (sequence !== this.productCatalogSequence) return;
-            if (!response.ok) throw new Error(body.message || 'Unable to load products.');
+            if (!response.ok) throw new Error(body.message || this.messagesValue.unableLoadProducts);
 
             const products = Array.isArray(body.data) ? body.data : [];
             const pagination = body.pagination || {};
@@ -139,7 +140,7 @@ export default class extends Controller {
             this.renderProductPagination(pagination);
         } catch (error) {
             if (sequence === this.productCatalogSequence) {
-                this.productResultsTarget.textContent = error?.message || 'Unable to load products.';
+                this.productResultsTarget.textContent = error?.message || this.messagesValue.unableLoadProducts;
                 this.renderProductPagination({ page: 1, totalPages: 1, total: 0 });
             }
         } finally {
@@ -151,7 +152,7 @@ export default class extends Controller {
 
     renderProductCategories(categories) {
         const selected = this.productCategoryTarget.value || this.productCatalogCategory || '';
-        const options = [new Option('All categories', '')];
+        const options = [new Option(this.messagesValue.allCategories, '')];
         for (const category of categories) {
             if (!category?.id) continue;
             options.push(new Option(String(category.name || `Category #${category.id}`), String(category.id)));
@@ -219,8 +220,8 @@ export default class extends Controller {
             const meta = document.createElement('small');
             meta.textContent = [
                 product.categoryName || 'Chưa phân loại',
-                product.sku || 'No SKU',
-                `${this.formatMajor(product.sellingPrice)} / ${product.unit || 'unit'}`,
+                product.sku || this.messagesValue.noSku,
+                `${this.formatMajor(product.sellingPrice)} / ${product.unit || this.messagesValue.unit}`,
                 `Stock ${product.stockQuantity}`,
             ].join(' · ');
 
@@ -408,7 +409,7 @@ export default class extends Controller {
             );
             const body = await response.json().catch(() => ({}));
             if (sequence !== this.customerSearchSequence) return;
-            if (!response.ok) throw new Error(body.message || 'Unable to search customers.');
+            if (!response.ok) throw new Error(body.message || this.messagesValue.unableSearchCustomers);
 
             const customers = Array.isArray(body.data) ? body.data : [];
             this.customers = new Map(customers.map((customer) => [String(customer.id), customer]));
@@ -487,8 +488,8 @@ export default class extends Controller {
     updateSubmitButtonLabel() {
         if (!this.hasSubmitButtonTarget || this.inFlight) return;
         this.submitButtonTarget.textContent = this.paymentMethodValue() === 'BANK_TRANSFER'
-            ? 'Start bank payment'
-            : 'Complete sale';
+            ? this.messagesValue.startBankPayment
+            : this.messagesValue.completeSaleButton;
     }
 
     bankAccountChanged() {
@@ -605,16 +606,16 @@ export default class extends Controller {
             this.paymentDueRowTarget.hidden = due === 0n;
             this.paymentChangeRowTarget.hidden = change === 0n;
             this.paymentStateTarget.textContent = totalMinor === 0n
-                ? 'Add products'
+                ? this.messagesValue.addProducts
                 : enteredMinor <= 0n
-                    ? 'Enter customer amount'
+                    ? this.messagesValue.enterCustomerAmount
                     : change > 0n
-                        ? 'Change due'
+                        ? this.messagesValue.changeDue
                         : due > 0n
                             ? this.customer !== null
-                                ? 'Debt will be created'
-                                : 'Select a customer or enter full payment'
-                            : 'Paid in full';
+                                ? this.messagesValue.debtWillBeCreated
+                                : this.messagesValue.selectCustomerOrFullPayment
+                            : this.messagesValue.paidInFull;
             this.submitButtonTarget.disabled = !canCompleteCash;
             this.renderQuickCash(totalMinor);
             return;
@@ -632,14 +633,14 @@ export default class extends Controller {
             && this.bankAccountTarget.value !== ''
             && enteredMinor === totalMinor;
         this.paymentStateTarget.textContent = totalMinor === 0n
-            ? 'Add products'
+            ? this.messagesValue.addProducts
             : this.bankAccountTarget.value === ''
-                ? 'Configure a receiving account'
+                ? this.messagesValue.configureReceivingAccount
                 : canCompleteTransfer
-                    ? 'Paid in full'
+                    ? this.messagesValue.paidInFull
                     : enteredMinor > totalMinor
-                        ? 'Transfer amount cannot exceed the order total'
-                        : 'Enter the exact transfer amount';
+                        ? this.messagesValue.transferCannotExceed
+                        : this.messagesValue.enterExactTransfer;
         this.submitButtonTarget.disabled = !canCompleteTransfer;
         this.quickCashTarget.replaceChildren();
     }
@@ -716,7 +717,7 @@ export default class extends Controller {
         if (this.inFlight || this.state === 'SUCCESS') return;
 
         if (this.cartItems.length === 0) {
-            this.handleError({ status: 400, errorCode: 'VALIDATION_ERROR', message: 'Cart must contain at least one item.' });
+            this.handleError({ status: 400, errorCode: 'VALIDATION_ERROR', message: this.messagesValue.cartEmpty });
             return;
         }
 
@@ -728,7 +729,7 @@ export default class extends Controller {
         try {
             enteredMinor = this.parseMajorToMinor(rawAmount);
         } catch {
-            this.handleError({ status: 400, errorCode: 'VALIDATION_ERROR', message: 'Payment amount must be a valid amount.' });
+            this.handleError({ status: 400, errorCode: 'VALIDATION_ERROR', message: this.messagesValue.paymentInvalid });
             return;
         }
 
@@ -736,7 +737,7 @@ export default class extends Controller {
             this.handleError({
                 status: 400,
                 errorCode: 'VALIDATION_ERROR',
-                message: isCash ? 'Customer tendered amount must be greater than zero.' : 'Transfer amount must be greater than zero.',
+                message: isCash ? this.messagesValue.customerTenderedZero : this.messagesValue.transferZero,
             });
             return;
         }
@@ -745,7 +746,7 @@ export default class extends Controller {
             this.handleError({
                 status: 422,
                 errorCode: 'INVALID_PAYMENT',
-                message: 'Bank transfer amount must equal the order total.',
+                message: this.messagesValue.bankTransferExact,
             });
             return;
         }
@@ -798,14 +799,14 @@ export default class extends Controller {
                 this.handleError({
                     status: response.status,
                     errorCode: body.errorCode || this.errorCodeForStatus(response.status),
-                    message: body.message || 'Unable to complete checkout.',
+                    message: body.message || this.messagesValue.unableCheckout,
                     requestId: body.requestId || response.headers.get('X-Request-ID'),
                 });
                 return;
             }
 
             if (!body?.data) {
-                this.handleError({ status: 500, errorCode: 'INTERNAL_ERROR', message: 'Checkout succeeded without a valid result.', requestId: body?.requestId || response.headers.get('X-Request-ID') });
+                this.handleError({ status: 500, errorCode: 'INTERNAL_ERROR', message: this.messagesValue.invalidResult, requestId: body?.requestId || response.headers.get('X-Request-ID') });
                 return;
             }
 
@@ -816,8 +817,8 @@ export default class extends Controller {
                 status: 0,
                 errorCode: timedOut ? 'CHECKOUT_TIMEOUT' : 'NETWORK_UNKNOWN',
                 message: timedOut
-                    ? 'Checkout timed out. The result is unknown. Retry with the same key.'
-                    : 'The checkout result is unknown. Retry with the same key.',
+                    ? this.messagesValue.timeoutUnknown
+                    : this.messagesValue.unknownResult,
                 requestId: null,
             });
         } finally {
@@ -862,7 +863,7 @@ export default class extends Controller {
         this.productResultsTarget.replaceChildren();
         this.renderCart();
         this.setSubmitting(false);
-        this.setStatus('Ready');
+        this.setStatus(this.messagesValue.ready);
         this.productSearchTarget.focus();
     }
 
@@ -906,13 +907,13 @@ export default class extends Controller {
                 this.manualBankConfirmButtonTarget.hidden = false;
                 this.manualBankConfirmButtonTarget.disabled = false;
             }
-            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Bank transfer'));
-            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Waiting for payment'));
-            this.setStatus('Waiting for bank transfer.');
+            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode(this.messagesValue.bankTransfer));
+            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode(this.messagesValue.waitingPayment));
+            this.setStatus(this.messagesValue.waitingBankTransfer);
             if (this.hasCompletePaidSaleButtonTarget) {
                 this.completePaidSaleButtonTarget.hidden = false;
                 this.completePaidSaleButtonTarget.disabled = false;
-                this.completePaidSaleButtonTarget.textContent = 'Complete sale manually';
+                this.completePaidSaleButtonTarget.textContent = this.messagesValue.completeSaleManually;
             }
             this.startPaymentStatusPolling();
             this.idempotencyKey = null;
@@ -921,8 +922,8 @@ export default class extends Controller {
             return;
         }
 
-        this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Completed'));
-        this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Sale completed'));
+        this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode(this.messagesValue.completed));
+        this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode(this.messagesValue.saleCompleted));
         this.cartItems = [];
         this.persistCart();
         this.renderCart();
@@ -933,7 +934,7 @@ export default class extends Controller {
         if (this.hasPaymentReceivedBannerTarget) {
             this.paymentReceivedBannerTarget.hidden = true;
         }
-        this.setStatus('Sale completed.');
+        this.setStatus(this.messagesValue.saleCompleted);
     }
 
     updateCurrentTime() {
@@ -955,7 +956,7 @@ export default class extends Controller {
         const reference = String(this.paymentReference ?? '').trim();
         const amount = this.paymentReferenceAmount ?? '';
         if (!reference || !amount) {
-            this.setStatus('Missing payment reference or amount.');
+            this.setStatus(this.messagesValue.missingReference);
             return;
         }
         if (!window.confirm('Xác nhận bạn đã kiểm tra giao dịch chuyển khoản thực tế và số tiền đúng với đơn?')) return;
@@ -977,12 +978,12 @@ export default class extends Controller {
                 body: JSON.stringify({ paymentReference: reference, amount: String(amount) }),
             });
             const body = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(body.message || 'Unable to confirm bank payment manually.');
+            if (!response.ok) throw new Error(body.message || this.messagesValue.unableManualConfirm);
             this.paymentReferenceOrderId = Number(body.data?.orderId ?? 0) || null;
             this.renderWebhookEnrichment(body.data?.externalTransaction || null, body.data?.webhookEnrichmentPending !== false);
             this.state = 'SUCCESS';
-            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Completed'));
-            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Sale completed'));
+            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode(this.messagesValue.completed));
+            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode(this.messagesValue.saleCompleted));
             this.resultOrderTarget.textContent = String(body.data?.orderNumber ?? '');
             this.resultPaidTarget.textContent = this.formatMajor(body.data?.paidAmount ?? amount);
             this.resultDebtTarget.textContent = this.formatMajor(body.data?.debtAmount ?? '0');
@@ -999,7 +1000,7 @@ export default class extends Controller {
         } catch (error) {
             this.manualBankConfirmButtonTarget.hidden = false;
             this.manualBankConfirmButtonTarget.disabled = false;
-            this.setStatus(error?.message || 'Manual bank confirmation failed.');
+            this.setStatus(error?.message || this.messagesValue.manualConfirmFailed);
         } finally {
             this.inFlight = false;
         }
@@ -1042,13 +1043,13 @@ export default class extends Controller {
                     }
                     this.renderWebhookEnrichment(statusBody.data.externalTransaction || null, !statusBody.data.externalTransaction);
                     if (statusBody.data.status !== 'PAID' && statusBody.data.paymentReceived !== true) {
-                        throw new Error('Payment has not been confirmed by the bank yet.');
+                        throw new Error(this.messagesValue.paymentNotConfirmed);
                     }
                 }
             }
 
             if (!this.paymentReferenceOrderId) {
-                throw new Error('Payment has not been confirmed by the bank yet.');
+                throw new Error(this.messagesValue.paymentNotConfirmed);
             }
 
             // Manual recovery is intentionally independent of QR/reference
@@ -1067,13 +1068,13 @@ export default class extends Controller {
             });
             const body = await response.json().catch(() => ({}));
             if (!response.ok) {
-                throw new Error(body.message || 'Unable to complete sale.');
+                throw new Error(body.message || this.messagesValue.unableCompleteSale);
             }
 
             this.stopPaymentStatusPolling();
             this.state = 'SUCCESS';
-            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Completed'));
-            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Sale completed'));
+            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode(this.messagesValue.completed));
+            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode(this.messagesValue.saleCompleted));
             this.resultPaidTarget.textContent = this.formatMajor(body.data?.paidAmount ?? '0');
             this.resultDebtTarget.textContent = this.formatMajor(body.data?.debtAmount ?? '0');
             this.resultTenderedRowTarget.hidden = true;
@@ -1082,9 +1083,9 @@ export default class extends Controller {
             this.cartItems = [];
             this.persistCart();
             this.renderCart();
-            this.setStatus('Payment received.');
-            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Payment received'));
-            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Payment received'));
+            this.setStatus(this.messagesValue.paymentReceived);
+            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode(this.messagesValue.paymentReceived));
+            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode(this.messagesValue.paymentReceived));
             this.showPaymentReceivedCelebration({
                 paidAmount: body.data?.paidAmount ?? this.resultPaidTarget.textContent,
                 paymentReference: this.paymentReference,
@@ -1096,17 +1097,17 @@ export default class extends Controller {
             if (this.hasCompletePaidSaleButtonTarget) {
                 this.completePaidSaleButtonTarget.hidden = false;
                 this.completePaidSaleButtonTarget.disabled = false;
-                this.completePaidSaleButtonTarget.textContent = 'Complete sale manually';
+                this.completePaidSaleButtonTarget.textContent = this.messagesValue.completeSaleManually;
             }
             if (this.hasNewSaleButtonTarget) {
                 this.newSaleButtonTarget.hidden = true;
                 this.newSaleButtonTarget.disabled = true;
             }
-            this.setStatus('Payment received. Automatic completion failed; complete the sale manually.');
+            this.setStatus(this.messagesValue.paymentReceivedAutoFail);
             this.handleError({
                 status: 422,
                 errorCode: 'ORDER_COMPLETION_FAILED',
-                message: error?.message || 'Unable to complete sale automatically.',
+                message: error?.message || this.messagesValue.unableCompleteSaleAuto,
             });
         } finally {
             this.inFlight = false;
@@ -1220,8 +1221,8 @@ export default class extends Controller {
                     if (body.data.orderId) this.paymentReferenceOrderId = Number(body.data.orderId);
                     this.state = 'PAYMENT_RECEIVED';
                     this.showPaymentReceivedNotification(body.data);
-                    this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Payment received'));
-                    this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Payment received'));
+                    this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode(this.messagesValue.paymentReceived));
+                    this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode(this.messagesValue.paymentReceived));
                     this.resultPaidTarget.textContent = this.formatMajor(body.data.paidAmount ?? '0');
                     this.resultDebtTarget.textContent = this.formatMajor(body.data.debtAmount ?? '0');
                     this.paymentReferenceHintTarget.textContent = 'Bank transfer received. Completing sale automatically…';
@@ -1422,7 +1423,7 @@ export default class extends Controller {
             });
             this.setStatus('Đã tạo mã chuyển khoản mới.');
         } catch (error) {
-            this.showError('PAYMENT_REFERENCE_INVALID', error?.message || 'Không thể tạo mã thanh toán mới.');
+            this.showError('PAYMENT_REFERENCE_INVALID', error?.message || this.messagesValue.unableCreateReference);
             this.regeneratePaymentReferenceButtonTarget.disabled = true;
         }
     }
@@ -1432,7 +1433,7 @@ export default class extends Controller {
         if (requestId) this.requestIdTarget.textContent = String(requestId);
         this.showError(errorCode, message);
         this.retryButtonTarget.hidden = !this.canRetry(status, errorCode);
-        this.setStatus('Checkout failed. Your sale was preserved.');
+        this.setStatus(this.messagesValue.checkoutFailedPreserved);
     }
 
     canRetry(status, errorCode) {
@@ -1473,7 +1474,7 @@ export default class extends Controller {
 
     parseMajorToMinor(value) {
         const raw = String(value ?? '').trim().replace(/,/g, '');
-        if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) throw new Error('Invalid money amount.');
+        if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) throw new Error(this.messagesValue.invalidMoney);
         const [whole, fraction = ''] = raw.split('.');
         return BigInt(whole) * MINOR_SCALE + BigInt(fraction.padEnd(2, '0') || '0');
     }

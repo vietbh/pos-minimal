@@ -6,8 +6,7 @@ auth:
     subtitle: Đăng nhập vào tài khoản để tiếp tục.
     form_title: Biểu mẫu đăng nhập
     error_title: Đăng nhập không thành công
-    invalid_credentials: Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng kiểm tra
-      và thử lại.
+    invalid_credentials: Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng kiểm tra và thử lại.
     username: Tên đăng nhập
     username_placeholder: Nhập tên đăng nhập
     username_help: Sử dụng tên đăng nhập tài khoản Mobile POS của bạn.
@@ -43,12 +42,11 @@ navigation:
   open_menu: Mở menu
   close_menu: Đóng menu
 app:
-  greeting: 'Xin chào'
-  customers: 'Khách hàng'
+  greeting: Xin chào
+  customers: Khách hàng
   home_title: Trang chủ · Mobile POS
   application: Ứng dụng
-  home_subtitle: Tổng quan nhanh và lối tắt tới các khu vực làm việc. POS là một không
-    gian riêng.
+  home_subtitle: Tổng quan nhanh và lối tắt tới các khu vực làm việc. POS là một không gian riêng.
   primary_actions: Tài khoản và thao tác chính
   profile: Hồ sơ
   settings: Cài đặt
@@ -93,13 +91,62 @@ app:
   sales_workspace: Không gian bán hàng
   account_settings: Tài khoản & cài đặt
   open_account: Mở tài khoản
+  customize: Tùy chỉnh
+  settings_title: Cài đặt
+  settings_help: Điều chỉnh cách Mobile POS hiển thị và hỗ trợ bạn sử dụng dễ dàng hơn.
+  font_size: Cỡ chữ
+  settings_saved: Thiết lập được lưu theo tài khoản và áp dụng trên toàn bộ ứng dụng.
+  appearance: Giao diện
+  appearance_help: Chọn sáng, tối hoặc theo thiết bị.
+  density: Mật độ giao diện
+  density_help: Điều chỉnh khoảng cách giữa các thành phần để dễ thao tác.
+  accessibility: Trợ năng
+  accessibility_help: Các tùy chọn này ưu tiên khả năng đọc và thao tác ổn định.
+  high_contrast: Tương phản cao
+  high_contrast_help: Tăng độ rõ của chữ, đường viền và trạng thái focus.
+  reduce_motion: Giảm chuyển động
+  reduce_motion_help: Giảm hoặc loại bỏ animation và transition không cần thiết.
+  save_settings: Lưu cài đặt
+  back_profile: Quay lại hồ sơ
+  account: Tài khoản
+  profile_title: Hồ sơ
+  profile_help: Quản lý thông tin cơ bản và cách hiển thị ứng dụng trên thiết bị này.
+  basic_info: Thông tin cơ bản
+  username_help: Tên đăng nhập được dùng để đăng nhập vào Mobile POS.
+  username: Tên đăng nhập
+  role: Vai trò
+  status: Trạng thái
+  save_info: Lưu thông tin
+  font_help: Chọn cỡ chữ dễ đọc nhất. Thiết lập được lưu cho tài khoản của bạn.
+  choose_font: Chọn cỡ chữ
+  save_font: Lưu cỡ chữ
+  security: Bảo mật
+  remember_help: Remember Me được quản lý tại màn hình đăng nhập. Khi đăng xuất, phiên hiện tại sẽ kết thúc.
+  current_session: Phiên đăng nhập hiện tại
+  logout_help: Đăng xuất sẽ đưa bạn về màn hình đăng nhập.
+  logout: Đăng xuất
+  locked: Đã khóa
+  font_small: Gọn hơn
+  font_medium: Cân bằng
+  font_large: Dễ đọc hơn
+  appearance_system_help: Tôn trọng thiết lập của thiết bị
+  appearance_light_help: Luôn dùng giao diện sáng
+  appearance_dark_help: Luôn dùng giao diện tối
+  density_compact_help: Nhiều nội dung hơn trên một màn hình
+  density_comfortable_help: Khoảng cách rộng, dễ chạm
+  density_standard_help: Cân bằng
+  appearance_light: Sáng
+  appearance_dark: Tối
+  appearance_system: Theo thiết bị
+  density_comfortable: Thoải mái
+  density_standard: Tiêu chuẩn
+  density_compact: Gọn
 access:
   denied_title: Không có quyền truy cập
   denied_message: Bạn không có quyền truy cập trang này.
   back_home: Về trang chủ
 session:
   expired: Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
-
 pos:
   page_title: Điểm bán hàng · Mobile POS
   close: Đóng
@@ -119,7 +166,7 @@ pos:
     pagination: Phân trang sản phẩm
     previous: Trước
     next: Sau
-    page_indicator: 'Trang %page% / %total%'
+    page_indicator: Trang %page% / %total%
   cart:
     title: Giao dịch hiện tại
     items: sản phẩm
@@ -136,6 +183,36 @@ pos:
     remove: Bỏ chọn
     search_label: Tìm khách hàng
     search_placeholder: Tìm khách hàng theo tên hoặc số điện thoại…
+    create_customer: Tạo khách hàng
+    no_phone: Chưa có số điện thoại
+    name_or_phone: Tên hoặc số điện thoại
+    form_edit: Chỉnh sửa khách hàng
+    form_new: Khách hàng mới
+    back: Quay lại
+    name: Tên
+    phone: Số điện thoại
+    note: Ghi chú
+    pos: POS
+    products: Sản phẩm
+    new: Khách hàng mới
+    search: Tìm khách hàng
+    search_help: Tìm theo tên hoặc số điện thoại.
+    no_found: Không tìm thấy khách hàng.
+    info_help: Thông tin khách hàng và lịch sử công nợ.
+    edit: Sửa khách hàng
+    info: Thông tin
+    no_data: Chưa có
+    debt: Công nợ
+    debt_total: Tổng công nợ
+    debt_paid: Đã thanh toán
+    debt_remaining: Còn phải trả
+    debt_history: Lịch sử công nợ
+    no_debt: Khách hàng chưa có khoản công nợ nào.
+    no_debt_permission: Bạn không có quyền xem thông tin công nợ.
+    recent_orders: Đơn hàng gần đây
+    total_orders: Tổng đơn
+    no_orders: Khách hàng chưa có đơn hàng nào.
+    no_orders_permission: Bạn không có quyền xem lịch sử đơn hàng.
   payment:
     title: Thanh toán
     order_total: Tổng đơn hàng
@@ -187,141 +264,629 @@ pos:
     eyebrow: Đã nhận thanh toán
     title: Đã nhận thanh toán
     message: Chuyển khoản ngân hàng đã được xác nhận.
-
-orders:
-  page_title: Đơn hàng
-  eyebrow: Lịch sử bán hàng
-  title: Đơn hàng
-  subtitle: Tra cứu giao dịch và mở chi tiết từng đơn.
-  open_pos: Mở POS
-  search_label: Tìm kiếm đơn hàng
+  common:
+    back: Quay lại
+    cancel: Hủy
+    clear: Xóa
+    search: Tìm kiếm
+    apply: Áp dụng
+    loading: Đang tải…
+    previous: Trước
+    next: Sau
+    edit: Chỉnh sửa
+    active: Đang hoạt động
+    inactive: Không hoạt động
+    disabled: Đã tắt
+    enable: Bật
+    disable: Tắt
+    status: Trạng thái
+    reason: Lý do
+    date: Ngày
+    type: Loại
+    before: Trước
+    change: Thay đổi
+    after: Sau
+    amount: Số tiền
+    product: Sản phẩm
+    products: Sản phẩm
+    customer: Khách hàng
+    customers: Khách hàng
+    payment: Thanh toán
+    payments: Thanh toán
+    debt: Công nợ
+    stock: Tồn kho
+  admin:
+    catalog: Danh mục
+    inventory: Tồn kho
+    payment_settings: Cài đặt thanh toán
+    products_title: Sản phẩm
+    products_help: Tìm kiếm, xem và quản lý sản phẩm đang hoạt động.
+    new_product: Sản phẩm mới
+    categories: Danh mục
+    search_product: Tìm sản phẩm
+    name_or_sku: Tên hoặc SKU
+    category: Danh mục
+    all_categories: Tất cả danh mục
+    sort: Sắp xếp
+    name_az: Tên A–Z
+    name_za: Tên Z–A
+    apply_filters: Áp dụng bộ lọc
+    low_stock: Sắp hết hàng
+    stock_ok: Tồn kho ổn
+    price: Giá
+    low_threshold: Ngưỡng sắp hết
+    view_product: Xem sản phẩm
+    stock_status: Trạng thái tồn kho
+    images: Hình ảnh
+    change_price: Đổi giá
+    update_price: Cập nhật giá
+    stock_delta: Thay đổi tồn kho
+    adjust_stock: Điều chỉnh tồn kho
+    stock_history: Lịch sử tồn kho
+    no_stock_movements: Chưa có biến động tồn kho.
+    product_information: Thông tin sản phẩm
+    keep_product_clear: Giữ thông tin sản phẩm rõ ràng và dễ cập nhật.
+    name: Tên
+    unit: Đơn vị
+    note: Ghi chú
+    sku: SKU
+    sku_optional: Không bắt buộc. Để trống để tự động tạo.
+    generate_sku: Tạo SKU
+    no_category: Không có danh mục
+    create_category: Tạo danh mục
+    category_help: Dùng khi không chọn danh mục ở trên.
+    pricing_inventory: Giá & tồn kho
+    selling_price: Giá bán
+    cost_price: Giá vốn
+    low_stock_threshold: Ngưỡng sắp hết hàng
+    product_categories: Danh mục sản phẩm
+    categories_help: Quản lý các danh mục dùng cho sản phẩm.
+    new_category: Danh mục mới
+    no_categories: Chưa có danh mục nào.
+    category_used: Được sử dụng trong danh mục sản phẩm.
+    category_information: Thông tin danh mục
+    edit_category: Chỉnh sửa danh mục
+    create_category_action: Tạo danh mục
+    edit_product: Chỉnh sửa sản phẩm
+    save_changes: Lưu thay đổi
+    create_product: Tạo sản phẩm
+    product_new: Sản phẩm mới
+    stock_products: sản phẩm đang hoạt động.
+    stock_search: Tìm sản phẩm
+    no_products_found: Không tìm thấy sản phẩm.
+    no_active_products: Chưa có sản phẩm đang hoạt động.
+    current_stock: Tồn kho hiện tại
+    view_stock: Xem tồn kho
+    stock_pagination: Phân trang tồn kho
+    back_to_stock: Quay lại tồn kho
+    threshold: Ngưỡng
+    threshold_help: Sản phẩm được xem là sắp hết khi tồn kho hiện tại nhỏ hơn hoặc bằng ngưỡng này.
+    update_threshold: Cập nhật ngưỡng
+    quantity_change: Thay đổi số lượng
+    adjust_help: Nhập số dương để tăng tồn kho hoặc số âm để giảm tồn kho.
+    confirm_adjustment: Xác nhận điều chỉnh
+    no_movements: Chưa có biến động.
+    receiving_accounts: Tài khoản ngân hàng nhận tiền
+    receiving_accounts_help: Cấu hình tài khoản dùng để nhận thanh toán chuyển khoản.
+    no_receiving_accounts: Chưa cấu hình tài khoản nhận tiền.
+    only_payment_info: Chỉ cấu hình thông tin cần thiết cho việc nhận và đối soát thanh toán thực tế.
+    bank: Ngân hàng
+    select_bank: Chọn ngân hàng
+    bank_name: Tên ngân hàng
+    bank_bin: BIN ngân hàng
+    account_number: Số tài khoản
+    account_name: Tên tài khoản
+    payment_reference: Mã thanh toán
+    payment_reference_help: Được tạo cho từng giao dịch chuyển khoản. Không nhập tại đây và được dùng để đối soát webhook.
+    transfer_template: Mẫu nội dung chuyển khoản
+    qr_template: Mẫu QR
+    casso_subaccount: ID tài khoản phụ Casso
+    account_number_placeholder: Nhập số tài khoản ngân hàng
+    account_name_placeholder: Tên chủ tài khoản
+    transfer_template_help: Dùng {PAYMENT REFERENCE}; POS sẽ thay bằng mã duy nhất của từng giao dịch.
+    add_account: Thêm tài khoản
+    edit_account: Chỉnh sửa tài khoản nhận tiền
+    compact2: compact2
+    compact: compact
+    qr_only: qr_only
+    optional: Không bắt buộc
+  stat:
+    insights: Phân tích
+    title: Thống kê
+    help: Xem doanh số, thanh toán, công nợ và tồn kho trong khoảng thời gian đã chọn.
+    preset: Khoảng chọn
+    custom: Tùy chỉnh
+    today: Hôm nay
+    yesterday: Hôm qua
+    week: Tuần này
+    month: Tháng này
+    from: Từ ngày
+    to: Đến ngày
+    top_n: Top N
+    apply: Áp dụng
+    loading: Đang tải…
+    gross_sales: Tổng doanh số
+    net_sales: Doanh số thuần
+    payments_collected: Thanh toán đã thu
+    aov: Giá trị đơn trung bình
+    cancelled: Đã hủy
+    refunded: Đã hoàn tiền
+    method: Phương thức
+    no_payments: Không có thanh toán trong khoảng thời gian này.
+    debts: Khoản nợ
+    original: Ban đầu
+    collected: Đã thu
+    outstanding: Còn lại
+    stock_snapshot: Tổng quan tồn kho
+    total_products: Tổng số sản phẩm
+    active: Đang hoạt động
+    low_stock: Sắp hết hàng
+    out_of_stock: Hết hàng
+    total_quantity: Tổng số lượng
+    top_products: Sản phẩm bán chạy
+    qty: SL
+    no_product_sales: Không có sản phẩm bán ra trong khoảng thời gian này.
+    top_customers: Khách hàng nổi bật
+    spent: Đã chi tiêu
+    no_customer_sales: Không có dữ liệu mua hàng của khách trong khoảng thời gian này.
+    orders_suffix: đơn
+    qualifying_suffix: đơn hợp lệ
+    products_units: sản phẩm
+  upload:
+    product_image: Hình ảnh sản phẩm
+    choose_image: Chọn hình ảnh
+    upload: Tải lên
+  app:
+    customize: Tùy chỉnh
+    settings_title: Cài đặt
+    settings_help: Điều chỉnh cách Mobile POS hiển thị và hỗ trợ bạn sử dụng dễ dàng hơn.
+    font_size: Cỡ chữ
+    settings_saved: Thiết lập được lưu theo tài khoản và áp dụng trên toàn bộ ứng dụng.
+    appearance: Giao diện
+    appearance_help: Chọn sáng, tối hoặc theo thiết bị.
+    density: Mật độ giao diện
+    density_help: Điều chỉnh khoảng cách giữa các thành phần để dễ thao tác.
+    accessibility: Trợ năng
+    accessibility_help: Các tùy chọn này ưu tiên khả năng đọc và thao tác ổn định.
+    high_contrast: Tương phản cao
+    high_contrast_help: Tăng độ rõ của chữ, đường viền và trạng thái focus.
+    reduce_motion: Giảm chuyển động
+    reduce_motion_help: Giảm hoặc loại bỏ animation và transition không cần thiết.
+    save_settings: Lưu cài đặt
+    back_profile: Quay lại hồ sơ
+    account: Tài khoản
+    profile_title: Hồ sơ
+    profile_help: Quản lý thông tin cơ bản và cách hiển thị ứng dụng trên thiết bị này.
+    basic_info: Thông tin cơ bản
+    username_help: Tên đăng nhập được dùng để đăng nhập vào Mobile POS.
+    username: Tên đăng nhập
+    role: Vai trò
+    status: Trạng thái
+    save_info: Lưu thông tin
+    font_help: Chọn cỡ chữ dễ đọc nhất. Thiết lập được lưu cho tài khoản của bạn.
+    choose_font: Chọn cỡ chữ
+    save_font: Lưu cỡ chữ
+    security: Bảo mật
+    remember_help: Remember Me được quản lý tại màn hình đăng nhập. Khi đăng xuất, phiên hiện tại sẽ kết thúc.
+    current_session: Phiên đăng nhập hiện tại
+    logout_help: Đăng xuất sẽ đưa bạn về màn hình đăng nhập.
+    logout: Đăng xuất
+    locked: Đã khóa
+  order:
+    title: Đơn hàng
+    help: Tra cứu lịch sử giao dịch và mở chi tiết từng đơn.
+    open_pos: Mở POS
+    search: Tìm kiếm
+    status: Trạng thái
+    all_status: Tất cả trạng thái
+    from: Từ ngày
+    to: Đến ngày
+    clear_filters: Xóa lọc
+    filters_applied: Bộ lọc đang áp dụng
+    not_found: Không tìm thấy đơn hàng
+    try_filters: Thử thay đổi từ khóa, trạng thái hoặc khoảng thời gian.
+    summary: Tổng quan
+    created_by: Người tạo
+    completed: Hoàn tất
+    cancelled: Đã hủy
+    subtotal: Tạm tính
+    total: Tổng cộng
+    paid: Đã thanh toán
+    remaining_debt: Còn nợ
+    bank_details: Thông tin giao dịch ngân hàng
+    provider: Nhà cung cấp
+    transaction_id: Mã giao dịch
+    occurred_at: Thời gian giao dịch
+    reference: Mã thanh toán
+    description: Nội dung
+    webhook_status: Trạng thái webhook
+    webhook_waiting: Đang chờ
+    webhook_note: Thanh toán đã được xác nhận. Khi webhook thực tế gửi về, thông tin giao dịch sẽ được tự động gắn vào đơn này. Mã thanh toán
+      đã xác nhận không bị coi là hết hạn trong bước đối soát.
+    no_payments: Chưa có thanh toán được ghi nhận.
+    actions: Thao tác
+    cancel: Hủy đơn
+    refund: Hoàn tiền
+    confirm_operation: Xác nhận thao tác
+    reason_help: Nhập lý do trước khi tiếp tục.
+    close: Đóng
+    confirm: Xác nhận
+    debt_status: Trạng thái
+    debt_original: Ban đầu
+    debt_paid: Đã trả
+    debt_remaining: Còn lại
+  debt:
+    title: Công nợ
+    help: Số dư công nợ khách hàng
+    all_statuses: Tất cả trạng thái
+    search: Tìm kiếm
+    no_found: Không tìm thấy công nợ.
+    back: ← Công nợ
+    order: Đơn hàng
+    original: Ban đầu
+    paid: Đã trả
+    remaining: Còn lại
+    pay: Trả công nợ
+    amount: Số tiền
+    pay_action: Thanh toán
+    history: Lịch sử thanh toán
+    no_payments: Chưa có thanh toán nào.
+  pos:
+    product_category: Danh mục sản phẩm
+    select_receiving_account: Chọn tài khoản nhận
+    payment_received: Đã nhận tiền
+    bank_confirmed: Ngân hàng đã xác nhận thanh toán
+    receiving_account: Tài khoản nhận
+    account_name: 'Tên tài khoản:'
+    transfer_content: 'Nội dung chuyển khoản:'
+    qr_waiting: QR sẽ xuất hiện sau khi bắt đầu thanh toán.
+    payment_applied: Đã áp dụng thanh toán
+    remaining: Còn lại
+    complete_sale: Hoàn tất giao dịch
+    retry_checkout: Thử lại thanh toán
+    returning: Quay lại POS sau
+  product_category: Danh mục sản phẩm
+  select_receiving_account: Chọn tài khoản nhận
+  bank_confirmed: Ngân hàng đã xác nhận thanh toán
+  receiving_account: Tài khoản nhận
+  account_name: 'Tên tài khoản:'
+  transfer_content: 'Nội dung chuyển khoản:'
+  qr_waiting: QR sẽ xuất hiện sau khi bắt đầu thanh toán.
+  payment_applied: Đã áp dụng thanh toán
+  remaining: Còn lại
+  complete_sale: Hoàn tất giao dịch
+  retry_checkout: Thử lại thanh toán
+  returning: Quay lại POS sau
+  ready: Sẵn sàng
+  all_categories: Tất cả danh mục
+  no_sku: Chưa có SKU
+  unable_load_products: Không thể tải sản phẩm.
+  unable_search_customers: Không thể tìm khách hàng.
+  add_products: Thêm sản phẩm
+  enter_customer_amount: Nhập số tiền khách đưa
+  change_due: Tiền thừa
+  debt_will_be_created: Sẽ tạo công nợ
+  select_customer_or_full_payment: Chọn khách hàng hoặc thanh toán đủ
+  paid_in_full: Đã thanh toán đủ
+  configure_receiving_account: Cấu hình tài khoản nhận tiền
+  transfer_cannot_exceed: Số tiền chuyển khoản không được vượt quá tổng đơn hàng
+  enter_exact_transfer: Nhập đúng số tiền chuyển khoản
+  cart_empty: Giỏ hàng phải có ít nhất một sản phẩm.
+  payment_invalid: Số tiền thanh toán không hợp lệ.
+  customer_tendered_zero: Số tiền khách đưa phải lớn hơn 0.
+  transfer_zero: Số tiền chuyển khoản phải lớn hơn 0.
+  bank_transfer_exact: Số tiền chuyển khoản phải bằng tổng đơn hàng.
+  unable_checkout: Không thể hoàn tất thanh toán.
+  invalid_result: Thanh toán thành công nhưng kết quả không hợp lệ.
+  timeout_unknown: Thanh toán đã hết thời gian chờ. Kết quả chưa xác định. Hãy thử lại với cùng mã.
+  unknown_result: Kết quả thanh toán chưa xác định. Hãy thử lại với cùng mã.
+  bank_transfer: Chuyển khoản
+  waiting_payment: Đang chờ thanh toán
+  waiting_bank_transfer: Đang chờ chuyển khoản.
+  complete_sale_manually: Hoàn tất giao dịch thủ công
+  missing_reference: Thiếu mã thanh toán hoặc số tiền.
+  manual_confirm_failed: Xác nhận chuyển khoản thủ công thất bại.
+  payment_not_confirmed: Ngân hàng chưa xác nhận thanh toán.
+  sale_completed: Giao dịch đã hoàn tất
+  unable_manual_confirm: Không thể xác nhận chuyển khoản thủ công.
+  close_qr: Đóng QR
+  payment_received_banner: Đã nhận thanh toán
+  payment_received_badge: ĐÃ NHẬN TIỀN
+  start_bank_payment: Bắt đầu thanh toán chuyển khoản
+  complete_sale_button: Hoàn tất giao dịch
+  completed: Đã hoàn tất
+  payment_received_auto_fail: Đã nhận thanh toán. Tự động hoàn tất thất bại; hãy hoàn tất giao dịch thủ công.
+  unable_complete_sale: Không thể hoàn tất giao dịch.
+  unable_complete_sale_auto: Không thể tự động hoàn tất giao dịch.
+  unable_create_reference: Không thể tạo mã thanh toán mới.
+  checkout_failed_preserved: Thanh toán thất bại. Giao dịch của bạn vẫn được giữ lại.
+  invalid_money: Số tiền không hợp lệ.
+  unit: đơn vị
+  payment_received_label: Đã nhận thanh toán
+common:
+  back: Quay lại
+  cancel: Hủy
+  clear: Xóa
   search: Tìm kiếm
-  search_placeholder: Mã đơn, tên hoặc số điện thoại khách hàng
-  status: Trạng thái
-  all_statuses: Tất cả trạng thái
-  from: Từ ngày
-  to: Đến ngày
-  search_action: Tìm kiếm
-  clear: Xóa bộ lọc
-  count: '%count% đơn hàng'
-  filtered: Đang áp dụng bộ lọc
-  empty_title: Không tìm thấy đơn hàng
-  empty_message: Thử thay đổi từ khóa, trạng thái hoặc khoảng thời gian.
-  list_label: Danh sách đơn hàng
-  walk_in_customer: Khách lẻ
-  remaining_debt: Còn nợ
-  pagination: Phân trang đơn hàng
+  apply: Áp dụng
+  loading: Đang tải…
   previous: Trước
   next: Sau
-  page: 'Trang %page% / %total%'
-  detail_title: 'Đơn hàng #%number%'
-  back: Quay lại đơn hàng
-  summary: Tổng quan
+  edit: Chỉnh sửa
+  active: Đang hoạt động
+  inactive: Không hoạt động
+  disabled: Đã tắt
+  enable: Bật
+  disable: Tắt
+  status: Trạng thái
+  reason: Lý do
+  date: Ngày
+  type: Loại
+  before: Trước
+  change: Thay đổi
+  after: Sau
+  amount: Số tiền
+  product: Sản phẩm
+  products: Sản phẩm
   customer: Khách hàng
+  customers: Khách hàng
+  payment: Thanh toán
+  payments: Thanh toán
+  debt: Công nợ
+  stock: Tồn kho
+  search_debts: Tìm công nợ
+  filter_status: Lọc theo trạng thái
+admin:
+  catalog: Danh mục
+  inventory: Tồn kho
+  payment_settings: Cài đặt thanh toán
+  products_title: Sản phẩm
+  products_help: Tìm kiếm, xem và quản lý sản phẩm đang hoạt động.
+  new_product: Sản phẩm mới
+  categories: Danh mục
+  search_product: Tìm sản phẩm
+  name_or_sku: Tên hoặc SKU
+  category: Danh mục
+  all_categories: Tất cả danh mục
+  sort: Sắp xếp
+  name_az: Tên A–Z
+  name_za: Tên Z–A
+  apply_filters: Áp dụng bộ lọc
+  low_stock: Sắp hết hàng
+  stock_ok: Tồn kho ổn
+  price: Giá
+  low_threshold: Ngưỡng sắp hết
+  view_product: Xem sản phẩm
+  stock_status: Trạng thái tồn kho
+  images: Hình ảnh
+  change_price: Đổi giá
+  update_price: Cập nhật giá
+  stock_delta: Thay đổi tồn kho
+  adjust_stock: Điều chỉnh tồn kho
+  stock_history: Lịch sử tồn kho
+  no_stock_movements: Chưa có biến động tồn kho.
+  product_information: Thông tin sản phẩm
+  keep_product_clear: Giữ thông tin sản phẩm rõ ràng và dễ cập nhật.
+  name: Tên
+  unit: Đơn vị
+  note: Ghi chú
+  sku: SKU
+  sku_optional: Không bắt buộc. Để trống để tự động tạo.
+  generate_sku: Tạo SKU
+  no_category: Không có danh mục
+  create_category: Tạo danh mục
+  category_help: Dùng khi không chọn danh mục ở trên.
+  pricing_inventory: Giá & tồn kho
+  selling_price: Giá bán
+  cost_price: Giá vốn
+  low_stock_threshold: Ngưỡng sắp hết hàng
+  product_categories: Danh mục sản phẩm
+  categories_help: Quản lý các danh mục dùng cho sản phẩm.
+  new_category: Danh mục mới
+  no_categories: Chưa có danh mục nào.
+  category_used: Được sử dụng trong danh mục sản phẩm.
+  category_information: Thông tin danh mục
+  edit_category: Chỉnh sửa danh mục
+  create_category_action: Tạo danh mục
+  edit_product: Chỉnh sửa sản phẩm
+  save_changes: Lưu thay đổi
+  create_product: Tạo sản phẩm
+  product_new: Sản phẩm mới
+  stock_products: sản phẩm đang hoạt động.
+  stock_search: Tìm sản phẩm
+  no_products_found: Không tìm thấy sản phẩm.
+  no_active_products: Chưa có sản phẩm đang hoạt động.
+  current_stock: Tồn kho hiện tại
+  view_stock: Xem tồn kho
+  stock_pagination: Phân trang tồn kho
+  back_to_stock: Quay lại tồn kho
+  threshold: Ngưỡng
+  threshold_help: Sản phẩm được xem là sắp hết khi tồn kho hiện tại nhỏ hơn hoặc bằng ngưỡng này.
+  update_threshold: Cập nhật ngưỡng
+  quantity_change: Thay đổi số lượng
+  adjust_help: Nhập số dương để tăng tồn kho hoặc số âm để giảm tồn kho.
+  confirm_adjustment: Xác nhận điều chỉnh
+  no_movements: Chưa có biến động.
+  receiving_accounts: Tài khoản ngân hàng nhận tiền
+  receiving_accounts_help: Cấu hình tài khoản dùng để nhận thanh toán chuyển khoản.
+  no_receiving_accounts: Chưa cấu hình tài khoản nhận tiền.
+  only_payment_info: Chỉ cấu hình thông tin cần thiết cho việc nhận và đối soát thanh toán thực tế.
+  bank: Ngân hàng
+  select_bank: Chọn ngân hàng
+  bank_name: Tên ngân hàng
+  bank_bin: BIN ngân hàng
+  account_number: Số tài khoản
+  account_name: Tên tài khoản
+  payment_reference: Mã thanh toán
+  payment_reference_help: Được tạo cho từng giao dịch chuyển khoản. Không nhập tại đây và được dùng để đối soát webhook.
+  transfer_template: Mẫu nội dung chuyển khoản
+  qr_template: Mẫu QR
+  casso_subaccount: ID tài khoản phụ Casso
+  account_number_placeholder: Nhập số tài khoản ngân hàng
+  account_name_placeholder: Tên chủ tài khoản
+  transfer_template_help: Dùng {PAYMENT REFERENCE}; POS sẽ thay bằng mã duy nhất của từng giao dịch.
+  add_account: Thêm tài khoản
+  edit_account: Chỉnh sửa tài khoản nhận tiền
+  compact2: compact2
+  compact: compact
+  qr_only: qr_only
+  optional: Không bắt buộc
+stat:
+  insights: Phân tích
+  title: Thống kê
+  help: Xem doanh số, thanh toán, công nợ và tồn kho trong khoảng thời gian đã chọn.
+  preset: Khoảng chọn
+  custom: Tùy chỉnh
+  today: Hôm nay
+  yesterday: Hôm qua
+  week: Tuần này
+  month: Tháng này
+  from: Từ ngày
+  to: Đến ngày
+  top_n: Top N
+  apply: Áp dụng
+  loading: Đang tải…
+  gross_sales: Tổng doanh số
+  net_sales: Doanh số thuần
+  payments_collected: Thanh toán đã thu
+  aov: Giá trị đơn trung bình
+  cancelled: Đã hủy
+  refunded: Đã hoàn tiền
+  method: Phương thức
+  no_payments: Không có thanh toán trong khoảng thời gian này.
+  debts: Khoản nợ
+  original: Ban đầu
+  collected: Đã thu
+  outstanding: Còn lại
+  stock_snapshot: Tổng quan tồn kho
+  total_products: Tổng số sản phẩm
+  active: Đang hoạt động
+  low_stock: Sắp hết hàng
+  out_of_stock: Hết hàng
+  total_quantity: Tổng số lượng
+  top_products: Sản phẩm bán chạy
+  qty: SL
+  no_product_sales: Không có sản phẩm bán ra trong khoảng thời gian này.
+  top_customers: Khách hàng nổi bật
+  spent: Đã chi tiêu
+  no_customer_sales: Không có dữ liệu mua hàng của khách trong khoảng thời gian này.
+  orders_suffix: đơn
+  qualifying_suffix: đơn hợp lệ
+  products_units: sản phẩm
+upload:
+  product_image: Hình ảnh sản phẩm
+  choose_image: Chọn hình ảnh
+  upload: Tải lên
+  choose_required: Vui lòng chọn hình ảnh.
+  uploading: Đang tải lên…
+  upload_failed: Tải lên thất bại.
+  uploaded: Đã tải hình ảnh. Quá trình xử lý sẽ hoàn tất ở nền.
+order:
+  title: Đơn hàng
+  help: Tra cứu lịch sử giao dịch và mở chi tiết từng đơn.
+  open_pos: Mở POS
+  search: Tìm kiếm
+  status: Trạng thái
+  all_status: Tất cả trạng thái
+  from: Từ ngày
+  to: Đến ngày
+  clear_filters: Xóa lọc
+  filters_applied: Bộ lọc đang áp dụng
+  not_found: Không tìm thấy đơn hàng
+  try_filters: Thử thay đổi từ khóa, trạng thái hoặc khoảng thời gian.
+  summary: Tổng quan
   created_by: Người tạo
-  completed_at: Hoàn tất
-  cancelled_at: Đã hủy
+  completed: Hoàn tất
+  cancelled: Đã hủy
   subtotal: Tạm tính
   total: Tổng cộng
   paid: Đã thanh toán
-  debt: Công nợ
-  note: Ghi chú
-  items: Sản phẩm
-  no_sku: Không có SKU
-  bank_details: Giao dịch ngân hàng
-  transaction_status: Trạng thái
+  remaining_debt: Còn nợ
+  bank_details: Thông tin giao dịch ngân hàng
   provider: Nhà cung cấp
   transaction_id: Mã giao dịch
-  amount: Số tiền
   occurred_at: Thời gian giao dịch
-  payment_reference: Mã thanh toán
+  reference: Mã thanh toán
   description: Nội dung
-  bank_waiting: Đang chờ webhook thực tế gắn thông tin giao dịch vào đơn hàng này.
-  payments: Thanh toán
+  webhook_status: Trạng thái webhook
+  webhook_waiting: Đang chờ
+  webhook_note: Thanh toán đã được xác nhận. Khi webhook thực tế gửi về, thông tin giao dịch sẽ được tự động gắn vào đơn này. Mã thanh toán đã
+    xác nhận không bị coi là hết hạn trong bước đối soát.
   no_payments: Chưa có thanh toán được ghi nhận.
   actions: Thao tác
   cancel: Hủy đơn
   refund: Hoàn tiền
   confirm_operation: Xác nhận thao tác
   reason_help: Nhập lý do trước khi tiếp tục.
-  reason: Lý do
-  reason_required: Vui lòng nhập lý do.
-  operation_error: Không thể hoàn tất thao tác với đơn hàng.
   close: Đóng
   confirm: Xác nhận
-  debt_section: Công nợ
-  original: Ban đầu
-  remaining: Còn lại
-
-customers:
-  title: Khách hàng
-  eyebrow: Quản lý khách hàng
-  subtitle: Tra cứu thông tin, đơn hàng và công nợ khách hàng.
-  new: Thêm khách hàng
-  search_label: Tìm kiếm khách hàng
-  search: Tìm kiếm
-  search_placeholder: Tên hoặc số điện thoại
-  search_action: Tìm kiếm
-  search_hint: Tìm theo tên hoặc số điện thoại.
-  empty_title: Không tìm thấy khách hàng
-  empty_message: Thử tên hoặc số điện thoại khác.
-  list_label: Danh sách khách hàng
-  no_phone: Chưa có số điện thoại
-  new_title: Thêm khách hàng
-  edit_title: Sửa khách hàng
+  debt_status: Trạng thái
+  debt_original: Ban đầu
+  debt_paid: Đã trả
+  debt_remaining: Còn lại
+  back: ← Đơn hàng
+  search_aria: Tìm kiếm đơn hàng
+  search_placeholder: Mã đơn, tên hoặc số điện thoại khách hàng
+  list_aria: Danh sách đơn hàng
+  pagination_aria: Phân trang đơn hàng
+  page: Trang
+  customer_retail: Khách lẻ
+  debt_prefix: 'Còn nợ:'
+  reason_required: Lý do là bắt buộc.
+  operation_failed: Không thể hoàn tất thao tác đơn hàng.
+customer:
+  form_edit: Chỉnh sửa khách hàng
+  form_new: Khách hàng mới
   back: Quay lại
   name: Tên
   phone: Số điện thoại
   note: Ghi chú
-  save: Lưu thay đổi
-  create: Tạo khách hàng
-  detail_subtitle: Thông tin khách hàng, đơn hàng và công nợ.
-  list: Khách hàng
+  title: Khách hàng
+  pos: POS
+  products: Sản phẩm
+  new: Khách hàng mới
+  search: Tìm khách hàng
+  search_help: Tìm theo tên hoặc số điện thoại.
+  no_found: Không tìm thấy khách hàng.
+  info_help: Thông tin khách hàng và lịch sử công nợ.
   edit: Sửa khách hàng
   info: Thông tin
-  not_available: Chưa có
-  updated: 'Cập nhật %date%'
+  no_data: Chưa có
   debt: Công nợ
-  debt_original: Tổng công nợ
+  debt_total: Tổng công nợ
   debt_paid: Đã thanh toán
   debt_remaining: Còn phải trả
   debt_history: Lịch sử công nợ
-  order: 'Đơn #%number%'
-  remaining: Còn lại
-  view_all_debts: 'Xem toàn bộ %count% khoản công nợ'
-  no_debt: Chưa có khoản công nợ nào.
+  no_debt: Khách hàng chưa có khoản công nợ nào.
   no_debt_permission: Bạn không có quyền xem thông tin công nợ.
-  orders: Đơn hàng gần đây
-  order_total: Tổng đơn
-  view_all_orders: 'Xem toàn bộ %count% đơn hàng'
-  no_orders: Chưa có đơn hàng.
-  no_order_permission: Bạn không có quyền xem lịch sử đơn hàng.
-
+  recent_orders: Đơn hàng gần đây
+  total_orders: Tổng đơn
+  no_orders: Khách hàng chưa có đơn hàng nào.
+  no_orders_permission: Bạn không có quyền xem lịch sử đơn hàng.
+  create_customer: Tạo khách hàng
+  name_or_phone: Tên hoặc số điện thoại
+  no_phone: Chưa có số điện thoại
+  updated_at: Cập nhật lần cuối
+  all_debts: Xem toàn bộ {count} khoản công nợ
+  all_orders: Xem toàn bộ {count} đơn hàng
 debt:
   title: Công nợ
-  eyebrow: Công nợ khách hàng
-  subtitle: Tra cứu và xử lý số dư công nợ theo quyền.
-  search_label: Tìm kiếm công nợ
-  search: Tìm kiếm
-  search_placeholder: Khách hàng hoặc đơn hàng
-  status: Trạng thái
+  help: Số dư công nợ khách hàng
   all_statuses: Tất cả trạng thái
-  search_action: Tìm kiếm
-  list_label: Danh sách công nợ
-  order: 'Đơn #%number%'
-  empty: Không tìm thấy khoản công nợ nào.
-  pagination: Phân trang công nợ
-  detail_title: 'Công nợ #%id%'
-  back: Quay lại công nợ
+  search: Tìm kiếm
+  no_found: Không tìm thấy công nợ.
+  back: ← Công nợ
+  order: Đơn hàng
   original: Ban đầu
   paid: Đã trả
   remaining: Còn lại
-  pay_title: Ghi nhận thanh toán
-  pay_help: Máy chủ sẽ kiểm tra số tiền và số dư còn lại.
+  pay: Trả công nợ
   amount: Số tiền
-  pay: Ghi nhận thanh toán
-  payment_required: Vui lòng nhập số tiền thanh toán.
-  payment_error: Không thể hoàn tất thanh toán công nợ.
-  payment_recorded: 'Đã ghi nhận thanh toán. Còn lại:'
+  pay_action: Thanh toán
   history: Lịch sử thanh toán
-  no_payments: Chưa có thanh toán nào được ghi nhận.
+  no_payments: Chưa có thanh toán nào.
+  search_placeholder: Khách hàng hoặc đơn hàng
+  pages_aria: Các trang công nợ
+  payment_required: Số tiền thanh toán là bắt buộc.
+  payment_failed: Không thể hoàn tất thanh toán công nợ.
+  payment_recorded: 'Đã ghi nhận thanh toán. Còn lại: {amount} đ'

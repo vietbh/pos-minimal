@@ -2,18 +2,19 @@ import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
     static targets = ['form', 'input', 'submit', 'status', 'token'];
+    static values = { chooseRequiredMessage: String, uploadingMessage: String, failedMessage: String, uploadedMessage: String };
 
     async submit(event) {
         event.preventDefault();
 
         const file = this.inputTarget.files[0];
         if (!file) {
-            this.statusTarget.textContent = 'Please choose an image.';
+            this.statusTarget.textContent = this.chooseRequiredMessageValue;
             return;
         }
 
         this.submitTarget.disabled = true;
-        this.statusTarget.textContent = 'Uploading…';
+        this.statusTarget.textContent = this.uploadingMessageValue;
 
         try {
             const formData = new FormData();
@@ -29,10 +30,10 @@ export default class extends Controller {
             const payload = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(payload.message || 'Upload failed.');
+                throw new Error(payload.message || this.failedMessageValue);
             }
 
-            this.statusTarget.textContent = 'Image uploaded. Processing will finish in the background.';
+            this.statusTarget.textContent = this.uploadedMessageValue;
             this.formTarget.reset();
         } catch (error) {
             this.statusTarget.textContent = error.message;

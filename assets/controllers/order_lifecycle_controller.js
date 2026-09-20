@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static values = { url: String, csrf: String, reasonRequiredLabel: String, genericErrorLabel: String, closeLabel: String, confirmLabel: String };
+    static values = { url: String, csrf: String, reasonRequiredMessage: String, failedMessage: String };
     static targets = ['reason', 'submit', 'error', 'modal'];
 
     connect() {
@@ -32,7 +32,7 @@ export default class extends Controller {
 
         const reason = this.reasonTarget.value.trim();
         if (!reason) {
-            this.showError(this.reasonRequiredLabelValue);
+            this.showError(this.reasonRequiredMessageValue);
             return;
         }
 
@@ -64,14 +64,14 @@ export default class extends Controller {
 
             if (!response.ok) {
                 const code = body.errorCode ? ` [${body.errorCode}]` : '';
-                const message = body.message || this.genericErrorLabelValue;
+                const message = body.message || this.failedMessageValue;
                 throw new Error(`${message}${code}`);
             }
 
             this.idempotencyKey = null;
             window.location.reload();
         } catch (error) {
-            this.showError(error instanceof Error ? error.message : this.genericErrorLabelValue);
+            this.showError(error instanceof Error ? error.message : this.failedMessageValue);
         } finally {
             this.inFlight = false;
             this.submitTarget.disabled = false;

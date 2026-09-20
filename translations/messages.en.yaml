@@ -6,8 +6,7 @@ auth:
     subtitle: Access your account to continue.
     form_title: Sign in form
     error_title: Sign-in failed
-    invalid_credentials: Invalid username or password. Check your details and try
-      again.
+    invalid_credentials: Invalid username or password. Check your details and try again.
     username: Username
     username_placeholder: Enter your username
     username_help: Use your Mobile POS account username.
@@ -43,12 +42,11 @@ navigation:
   open_menu: Open menu
   close_menu: Close menu
 app:
-  greeting: 'Hello'
-  customers: 'Customers'
+  greeting: Hello
+  customers: Customers
   home_title: Home · Mobile POS
   application: Application
-  home_subtitle: A quick overview and shortcuts to your work areas. POS is a separate
-    workspace.
+  home_subtitle: A quick overview and shortcuts to your work areas. POS is a separate workspace.
   primary_actions: Account and primary actions
   profile: Profile
   settings: Settings
@@ -93,13 +91,62 @@ app:
   sales_workspace: Sales workspace
   account_settings: Account & settings
   open_account: Open account
+  customize: Customize
+  settings_title: Settings
+  settings_help: Adjust how Mobile POS looks and helps you use it comfortably.
+  font_size: Font size
+  settings_saved: Settings are saved to your account and applied across the app.
+  appearance: Appearance
+  appearance_help: Choose light, dark or follow the device.
+  density: Interface density
+  density_help: Adjust spacing between elements for easier interaction.
+  accessibility: Accessibility
+  accessibility_help: These options prioritize readability and stable interaction.
+  high_contrast: High contrast
+  high_contrast_help: Increase clarity of text, borders and focus states.
+  reduce_motion: Reduce motion
+  reduce_motion_help: Reduce or remove unnecessary animation and transitions.
+  save_settings: Save settings
+  back_profile: Back to profile
+  account: Account
+  profile_title: Profile
+  profile_help: Manage basic information and how the app is displayed on this device.
+  basic_info: Basic information
+  username_help: Your username is used to sign in to Mobile POS.
+  username: Username
+  role: Role
+  status: Status
+  save_info: Save information
+  font_help: Choose the most readable font size. The setting is saved to your account.
+  choose_font: Choose font size
+  save_font: Save font size
+  security: Security
+  remember_help: Remember Me is managed on the login screen. Signing out ends the current session.
+  current_session: Current session
+  logout_help: Signing out will return you to the login screen.
+  logout: Sign out
+  locked: Locked
+  font_small: Smaller
+  font_medium: Balanced
+  font_large: Easier to read
+  appearance_system_help: Respect device settings
+  appearance_light_help: Always use light mode
+  appearance_dark_help: Always use dark mode
+  density_compact_help: More content on one screen
+  density_comfortable_help: More spacing, easier to tap
+  density_standard_help: Balanced
+  appearance_light: Light
+  appearance_dark: Dark
+  appearance_system: System
+  density_comfortable: Comfortable
+  density_standard: Standard
+  density_compact: Compact
 access:
   denied_title: Access denied
   denied_message: You do not have permission to access this page.
   back_home: Back to Home
 session:
   expired: Your session has expired. Please sign in again.
-
 pos:
   page_title: Point of Sale · Mobile POS
   close: Close
@@ -119,7 +166,7 @@ pos:
     pagination: Product pagination
     previous: Previous
     next: Next
-    page_indicator: 'Page %page% / %total%'
+    page_indicator: Page %page% / %total%
   cart:
     title: Current sale
     items: items
@@ -136,6 +183,36 @@ pos:
     remove: Remove
     search_label: Search customers
     search_placeholder: Search customer by name or phone…
+    create_customer: Create customer
+    no_phone: No phone
+    name_or_phone: Name or phone
+    form_edit: Edit customer
+    form_new: New customer
+    back: Back
+    name: Name
+    phone: Phone
+    note: Note
+    pos: POS
+    products: Products
+    new: New customer
+    search: Search customer
+    search_help: Search by name or phone.
+    no_found: No customers found.
+    info_help: Customer information and debt history.
+    edit: Edit customer
+    info: Information
+    no_data: Not available
+    debt: Debt
+    debt_total: Total debt
+    debt_paid: Paid
+    debt_remaining: Remaining to pay
+    debt_history: Debt history
+    no_debt: Customer has no debt records.
+    no_debt_permission: You do not have permission to view debt information.
+    recent_orders: Recent orders
+    total_orders: Total orders
+    no_orders: Customer has no orders.
+    no_orders_permission: You do not have permission to view order history.
   payment:
     title: Payment
     order_total: Order total
@@ -187,141 +264,629 @@ pos:
     eyebrow: Payment received
     title: Payment Received
     message: The bank transfer has been confirmed.
-
-orders:
-  page_title: Orders
-  eyebrow: Sales history
-  title: Orders
-  subtitle: Find transactions and open order details.
-  open_pos: Open POS
-  search_label: Search orders
+  common:
+    back: Back
+    cancel: Cancel
+    clear: Clear
+    search: Search
+    apply: Apply
+    loading: Loading…
+    previous: Previous
+    next: Next
+    edit: Edit
+    active: Active
+    inactive: Inactive
+    disabled: Disabled
+    enable: Enable
+    disable: Disable
+    status: Status
+    reason: Reason
+    date: Date
+    type: Type
+    before: Before
+    change: Change
+    after: After
+    amount: Amount
+    product: Product
+    products: Products
+    customer: Customer
+    customers: Customers
+    payment: Payment
+    payments: Payments
+    debt: Debt
+    stock: Stock
+  admin:
+    catalog: Catalog
+    inventory: Inventory
+    payment_settings: Payment settings
+    products_title: Products
+    products_help: Search, review and manage active products.
+    new_product: New product
+    categories: Categories
+    search_product: Search product
+    name_or_sku: Name or SKU
+    category: Category
+    all_categories: All categories
+    sort: Sort
+    name_az: Name A–Z
+    name_za: Name Z–A
+    apply_filters: Apply filters
+    low_stock: Low stock
+    stock_ok: Stock OK
+    price: Price
+    low_threshold: Low threshold
+    view_product: View product
+    stock_status: Stock status
+    images: Images
+    change_price: Change price
+    update_price: Update price
+    stock_delta: Stock delta
+    adjust_stock: Adjust stock
+    stock_history: Stock history
+    no_stock_movements: No stock movements yet.
+    product_information: Product information
+    keep_product_clear: Keep product information clear and easy to update.
+    name: Name
+    unit: Unit
+    note: Note
+    sku: SKU
+    sku_optional: Optional. Leave empty to generate one automatically.
+    generate_sku: Generate SKU
+    no_category: No category
+    create_category: Create category
+    category_help: Used when no category above is selected.
+    pricing_inventory: Pricing & inventory
+    selling_price: Selling price
+    cost_price: Cost price
+    low_stock_threshold: Low stock threshold
+    product_categories: Product categories
+    categories_help: Manage categories used by the product catalog.
+    new_category: New category
+    no_categories: No categories configured.
+    category_used: Used by the product catalog.
+    category_information: Category information
+    edit_category: Edit category
+    create_category_action: Create category
+    edit_product: Edit product
+    save_changes: Save changes
+    create_product: Create product
+    product_new: New product
+    stock_products: active products.
+    stock_search: Search product
+    no_products_found: No products found.
+    no_active_products: No active products yet.
+    current_stock: Current stock
+    view_stock: View stock
+    stock_pagination: Stock pagination
+    back_to_stock: Back to stock
+    threshold: Threshold
+    threshold_help: Low stock is shown when current stock is at or below this threshold.
+    update_threshold: Update threshold
+    quantity_change: Quantity change
+    adjust_help: Enter a positive number to add stock or a negative number to remove stock.
+    confirm_adjustment: Confirm adjustment
+    no_movements: No movements.
+    receiving_accounts: Receiving bank accounts
+    receiving_accounts_help: Configure the accounts used to receive bank-transfer payments.
+    no_receiving_accounts: No receiving accounts configured.
+    only_payment_info: Only configure information needed for real payment receiving and reconciliation.
+    bank: Bank
+    select_bank: Select a bank
+    bank_name: Bank name
+    bank_bin: Bank BIN
+    account_number: Account number
+    account_name: Account name
+    payment_reference: Payment reference
+    payment_reference_help: Generated per bank-transfer payment. It is not entered here and is used for webhook reconciliation.
+    transfer_template: Transfer content template
+    qr_template: QR template
+    casso_subaccount: Casso sub-account ID
+    account_number_placeholder: Enter bank account number
+    account_name_placeholder: Account holder name
+    transfer_template_help: Use {PAYMENT REFERENCE}; POS replaces it with the unique reference for each payment.
+    add_account: Add account
+    edit_account: Edit receiving account
+    compact2: compact2
+    compact: compact
+    qr_only: qr_only
+    optional: Optional
+  stat:
+    insights: Insights
+    title: Statistics
+    help: Review sales, payments, debt and stock for the selected period.
+    preset: Preset
+    custom: Custom
+    today: Today
+    yesterday: Yesterday
+    week: This Week
+    month: This Month
+    from: From
+    to: To
+    top_n: Top N
+    apply: Apply
+    loading: Loading…
+    gross_sales: Gross Sales
+    net_sales: Net Sales
+    payments_collected: Payments Collected
+    aov: AOV
+    cancelled: Cancelled
+    refunded: Refunded
+    method: Method
+    no_payments: No payments in this period.
+    debts: Debts
+    original: Original
+    collected: Collected
+    outstanding: Outstanding
+    stock_snapshot: Stock Snapshot
+    total_products: Total products
+    active: Active
+    low_stock: Low stock
+    out_of_stock: Out of stock
+    total_quantity: Total quantity
+    top_products: Top Products
+    qty: Qty
+    no_product_sales: No product sales in this period.
+    top_customers: Top Customers
+    spent: Spent
+    no_customer_sales: No customer sales in this period.
+    orders_suffix: orders
+    qualifying_suffix: qualifying orders
+    products_units: units
+  upload:
+    product_image: Product image
+    choose_image: Choose an image
+    upload: Upload
+  app:
+    customize: Customize
+    settings_title: Settings
+    settings_help: Adjust how Mobile POS looks and helps you use it comfortably.
+    font_size: Font size
+    settings_saved: Settings are saved to your account and applied across the app.
+    appearance: Appearance
+    appearance_help: Choose light, dark or follow the device.
+    density: Interface density
+    density_help: Adjust spacing between elements for easier interaction.
+    accessibility: Accessibility
+    accessibility_help: These options prioritize readability and stable interaction.
+    high_contrast: High contrast
+    high_contrast_help: Increase clarity of text, borders and focus states.
+    reduce_motion: Reduce motion
+    reduce_motion_help: Reduce or remove unnecessary animation and transitions.
+    save_settings: Save settings
+    back_profile: Back to profile
+    account: Account
+    profile_title: Profile
+    profile_help: Manage basic information and how the app is displayed on this device.
+    basic_info: Basic information
+    username_help: Your username is used to sign in to Mobile POS.
+    username: Username
+    role: Role
+    status: Status
+    save_info: Save information
+    font_help: Choose the most readable font size. The setting is saved to your account.
+    choose_font: Choose font size
+    save_font: Save font size
+    security: Security
+    remember_help: Remember Me is managed on the login screen. Signing out ends the current session.
+    current_session: Current session
+    logout_help: Signing out will return you to the login screen.
+    logout: Sign out
+    locked: Locked
+  order:
+    title: Orders
+    help: Review transaction history and open individual order details.
+    open_pos: Open POS
+    search: Search
+    status: Status
+    all_status: All statuses
+    from: From date
+    to: To date
+    clear_filters: Clear filters
+    filters_applied: Filters applied
+    not_found: No orders found
+    try_filters: Try changing the keyword, status or date range.
+    summary: Summary
+    created_by: Created by
+    completed: Completed
+    cancelled: Cancelled
+    subtotal: Subtotal
+    total: Total
+    paid: Paid
+    remaining_debt: Remaining debt
+    bank_details: Bank transaction details
+    provider: Provider
+    transaction_id: Transaction ID
+    occurred_at: Transaction time
+    reference: Payment reference
+    description: Description
+    webhook_status: Webhook status
+    webhook_waiting: Waiting
+    webhook_note: The payment has been confirmed. When the real webhook arrives, transaction details will be attached to this order. The confirmed
+      payment reference is not treated as expired during reconciliation.
+    no_payments: No payments recorded.
+    actions: Actions
+    cancel: Cancel order
+    refund: Refund
+    confirm_operation: Confirm operation
+    reason_help: Enter a reason before continuing.
+    close: Close
+    confirm: Confirm
+    debt_status: Status
+    debt_original: Original
+    debt_paid: Paid
+    debt_remaining: Remaining
+  debt:
+    title: Debts
+    help: Outstanding customer balances
+    all_statuses: All statuses
+    search: Search
+    no_found: No debts found.
+    back: ← Debts
+    order: Order
+    original: Original
+    paid: Paid
+    remaining: Remaining
+    pay: Pay debt
+    amount: Amount
+    pay_action: Pay
+    history: Payment history
+    no_payments: No payments recorded.
+  pos:
+    product_category: Product category
+    select_receiving_account: Select receiving account
+    payment_received: Payment received
+    bank_confirmed: The bank has confirmed the payment
+    receiving_account: Receiving account
+    account_name: 'Account name:'
+    transfer_content: 'Transfer content:'
+    qr_waiting: The QR code will appear after payment starts.
+    payment_applied: Payment applied
+    remaining: Remaining
+    complete_sale: Complete sale
+    retry_checkout: Retry checkout
+    returning: Returning to POS in
+  product_category: Product category
+  select_receiving_account: Select receiving account
+  bank_confirmed: The bank has confirmed the payment
+  receiving_account: Receiving account
+  account_name: 'Account name:'
+  transfer_content: 'Transfer content:'
+  qr_waiting: The QR code will appear after payment starts.
+  payment_applied: Payment applied
+  remaining: Remaining
+  complete_sale: Complete sale
+  retry_checkout: Retry checkout
+  returning: Returning to POS in
+  ready: Ready
+  all_categories: All categories
+  no_sku: No SKU
+  unable_load_products: Unable to load products.
+  unable_search_customers: Unable to search customers.
+  add_products: Add products
+  enter_customer_amount: Enter customer amount
+  change_due: Change due
+  debt_will_be_created: Debt will be created
+  select_customer_or_full_payment: Select a customer or enter full payment
+  paid_in_full: Paid in full
+  configure_receiving_account: Configure a receiving account
+  transfer_cannot_exceed: Transfer amount cannot exceed the order total
+  enter_exact_transfer: Enter the exact transfer amount
+  cart_empty: Cart must contain at least one item.
+  payment_invalid: Payment amount must be a valid amount.
+  customer_tendered_zero: Customer tendered amount must be greater than zero.
+  transfer_zero: Transfer amount must be greater than zero.
+  bank_transfer_exact: Bank transfer amount must equal the order total.
+  unable_checkout: Unable to complete checkout.
+  invalid_result: Checkout succeeded without a valid result.
+  timeout_unknown: Checkout timed out. The result is unknown. Retry with the same key.
+  unknown_result: The checkout result is unknown. Retry with the same key.
+  bank_transfer: Bank transfer
+  waiting_payment: Waiting for payment
+  waiting_bank_transfer: Waiting for bank transfer.
+  complete_sale_manually: Complete sale manually
+  missing_reference: Missing payment reference or amount.
+  manual_confirm_failed: Manual bank confirmation failed.
+  payment_not_confirmed: Payment has not been confirmed by the bank yet.
+  sale_completed: Sale completed
+  unable_manual_confirm: Unable to confirm bank payment manually.
+  close_qr: Close QR
+  payment_received_banner: Payment received
+  payment_received_badge: PAYMENT RECEIVED
+  start_bank_payment: Start bank payment
+  complete_sale_button: Complete sale
+  completed: Completed
+  payment_received_auto_fail: Payment received. Automatic completion failed; complete the sale manually.
+  unable_complete_sale: Unable to complete sale.
+  unable_complete_sale_auto: Unable to complete sale automatically.
+  unable_create_reference: Unable to create a new payment reference.
+  checkout_failed_preserved: Checkout failed. Your sale was preserved.
+  invalid_money: Invalid money amount.
+  unit: unit
+  payment_received_label: Payment received
+common:
+  back: Back
+  cancel: Cancel
+  clear: Clear
   search: Search
-  search_placeholder: Order number, customer name or phone
-  status: Status
-  all_statuses: All statuses
-  from: From date
-  to: To date
-  search_action: Search
-  clear: Clear filters
-  count: '%count% orders'
-  filtered: Filters applied
-  empty_title: No orders found
-  empty_message: Try changing your search, status or date range.
-  list_label: Order list
-  walk_in_customer: Walk-in customer
-  remaining_debt: Remaining debt
-  pagination: Order pagination
+  apply: Apply
+  loading: Loading…
   previous: Previous
   next: Next
-  page: 'Page %page% / %total%'
-  detail_title: 'Order #%number%'
-  back: Back to orders
-  summary: Summary
+  edit: Edit
+  active: Active
+  inactive: Inactive
+  disabled: Disabled
+  enable: Enable
+  disable: Disable
+  status: Status
+  reason: Reason
+  date: Date
+  type: Type
+  before: Before
+  change: Change
+  after: Next
+  amount: Amount
+  product: Product
+  products: Products
   customer: Customer
+  customers: Customers
+  payment: Payment
+  payments: Payments
+  debt: Debt
+  stock: Stock
+  search_debts: Search debts
+  filter_status: Filter by status
+admin:
+  catalog: Catalog
+  inventory: Inventory
+  payment_settings: Payment settings
+  products_title: Products
+  products_help: Search, review and manage active products.
+  new_product: New product
+  categories: Categories
+  search_product: Search product
+  name_or_sku: Name or SKU
+  category: Category
+  all_categories: All categories
+  sort: Sort
+  name_az: Name A–Z
+  name_za: Name Z–A
+  apply_filters: Apply filters
+  low_stock: Low stock
+  stock_ok: Stock OK
+  price: Price
+  low_threshold: Low threshold
+  view_product: View product
+  stock_status: Stock status
+  images: Images
+  change_price: Change price
+  update_price: Update price
+  stock_delta: Stock delta
+  adjust_stock: Adjust stock
+  stock_history: Stock history
+  no_stock_movements: No stock movements yet.
+  product_information: Product information
+  keep_product_clear: Keep product information clear and easy to update.
+  name: Name
+  unit: Unit
+  note: Note
+  sku: SKU
+  sku_optional: Optional. Leave empty to generate one automatically.
+  generate_sku: Generate SKU
+  no_category: No category
+  create_category: Create category
+  category_help: Used when no category above is selected.
+  pricing_inventory: Pricing & inventory
+  selling_price: Selling price
+  cost_price: Cost price
+  low_stock_threshold: Low stock threshold
+  product_categories: Product categories
+  categories_help: Manage categories used by the product catalog.
+  new_category: New category
+  no_categories: No categories configured.
+  category_used: Used by the product catalog.
+  category_information: Category information
+  edit_category: Edit category
+  create_category_action: Create category
+  edit_product: Edit product
+  save_changes: Save changes
+  create_product: Create product
+  product_new: New product
+  stock_products: active products.
+  stock_search: Search product
+  no_products_found: No products found.
+  no_active_products: No active products yet.
+  current_stock: Current stock
+  view_stock: View stock
+  stock_pagination: Stock pagination
+  back_to_stock: Back to stock
+  threshold: Threshold
+  threshold_help: Low stock is shown when current stock is at or below this threshold.
+  update_threshold: Update threshold
+  quantity_change: Quantity change
+  adjust_help: Enter a positive number to add stock or a negative number to remove stock.
+  confirm_adjustment: Confirm adjustment
+  no_movements: No movements.
+  receiving_accounts: Receiving bank accounts
+  receiving_accounts_help: Configure the accounts used to receive bank-transfer payments.
+  no_receiving_accounts: No receiving accounts configured.
+  only_payment_info: Only configure information needed for real payment receiving and reconciliation.
+  bank: Bank
+  select_bank: Select a bank
+  bank_name: Bank name
+  bank_bin: Bank BIN
+  account_number: Account number
+  account_name: Account name
+  payment_reference: Payment reference
+  payment_reference_help: Generated per bank-transfer payment. It is not entered here and is used for webhook reconciliation.
+  transfer_template: Transfer content template
+  qr_template: QR template
+  casso_subaccount: Casso sub-account ID
+  account_number_placeholder: Enter bank account number
+  account_name_placeholder: Account holder name
+  transfer_template_help: Use {PAYMENT REFERENCE}; POS replaces it with the unique reference for each payment.
+  add_account: Add account
+  edit_account: Edit receiving account
+  compact2: compact2
+  compact: compact
+  qr_only: qr_only
+  optional: Optional
+stat:
+  insights: Insights
+  title: Statistics
+  help: Review sales, payments, debt and stock for the selected period.
+  preset: Preset
+  custom: Custom
+  today: Today
+  yesterday: Yesterday
+  week: This Week
+  month: This Month
+  from: From
+  to: To
+  top_n: Top N
+  apply: Apply
+  loading: Loading…
+  gross_sales: Gross Sales
+  net_sales: Net Sales
+  payments_collected: Payments Collected
+  aov: AOV
+  cancelled: Cancelled
+  refunded: Refunded
+  method: Method
+  no_payments: No payments in this period.
+  debts: Debts
+  original: Original
+  collected: Collected
+  outstanding: Outstanding
+  stock_snapshot: Stock Snapshot
+  total_products: Total products
+  active: Active
+  low_stock: Low stock
+  out_of_stock: Out of stock
+  total_quantity: Total quantity
+  top_products: Top Products
+  qty: Qty
+  no_product_sales: No product sales in this period.
+  top_customers: Top Customers
+  spent: Spent
+  no_customer_sales: No customer sales in this period.
+  orders_suffix: orders
+  qualifying_suffix: qualifying orders
+  products_units: units
+upload:
+  product_image: Product image
+  choose_image: Choose an image
+  upload: Upload
+  choose_required: Please choose an image.
+  uploading: Uploading…
+  upload_failed: Upload failed.
+  uploaded: Image uploaded. Processing will finish in the background.
+order:
+  title: Orders
+  help: Review transaction history and open individual order details.
+  open_pos: Open POS
+  search: Search
+  status: Status
+  all_status: All statuses
+  from: From date
+  to: To date
+  clear_filters: Clear filters
+  filters_applied: Filters applied
+  not_found: No orders found
+  try_filters: Try changing the keyword, status or date range.
+  summary: Summary
   created_by: Created by
-  completed_at: Completed
-  cancelled_at: Cancelled
+  completed: Completed
+  cancelled: Cancelled
   subtotal: Subtotal
   total: Total
   paid: Paid
-  debt: Debt
-  note: Note
-  items: Products
-  no_sku: No SKU
-  bank_details: Bank transaction
-  transaction_status: Status
+  remaining_debt: Remaining debt
+  bank_details: Bank transaction details
   provider: Provider
   transaction_id: Transaction ID
-  amount: Amount
   occurred_at: Transaction time
-  payment_reference: Payment reference
+  reference: Payment reference
   description: Description
-  bank_waiting: Waiting for the real bank webhook to attach transaction details to this order.
-  payments: Payments
+  webhook_status: Webhook status
+  webhook_waiting: Waiting
+  webhook_note: The payment has been confirmed. When the real webhook arrives, transaction details will be attached to this order. The confirmed
+    payment reference is not treated as expired during reconciliation.
   no_payments: No payments recorded.
   actions: Actions
   cancel: Cancel order
-  refund: Refund order
+  refund: Refund
   confirm_operation: Confirm operation
   reason_help: Enter a reason before continuing.
-  reason: Reason
-  reason_required: Reason is required.
-  operation_error: Unable to complete order operation.
   close: Close
   confirm: Confirm
-  debt_section: Debt
-  original: Original
-  remaining: Remaining
-
-customers:
-  title: Customers
-  eyebrow: Customer management
-  subtitle: Look up customer information, orders and debt.
-  new: New customer
-  search_label: Search customers
-  search: Search
-  search_placeholder: Name or phone
-  search_action: Search
-  search_hint: Search by name or phone.
-  empty_title: No customers found
-  empty_message: Try another name or phone number.
-  list_label: Customer list
-  no_phone: No phone
-  new_title: New customer
-  edit_title: Edit customer
+  debt_status: Status
+  debt_original: Original
+  debt_paid: Paid
+  debt_remaining: Remaining
+  back: ← Orders
+  search_aria: Search orders
+  search_placeholder: Order ID, customer name or phone
+  list_aria: Order list
+  pagination_aria: Order pagination
+  page: Page
+  customer_retail: Walk-in customer
+  debt_prefix: 'Debt:'
+  reason_required: Reason is required.
+  operation_failed: Unable to complete order operation.
+customer:
+  form_edit: Edit customer
+  form_new: New customer
   back: Back
   name: Name
   phone: Phone
   note: Note
-  save: Save changes
-  create: Create customer
-  detail_subtitle: Customer information, orders and debt.
-  list: Customers
+  title: Customers
+  pos: POS
+  products: Products
+  new: New customer
+  search: Search customer
+  search_help: Search by name or phone.
+  no_found: No customers found.
+  info_help: Customer information and debt history.
   edit: Edit customer
   info: Information
-  not_available: Not available
-  updated: 'Updated %date%'
+  no_data: Not available
   debt: Debt
-  debt_original: Original debt
+  debt_total: Total debt
   debt_paid: Paid
-  debt_remaining: Remaining debt
+  debt_remaining: Remaining to pay
   debt_history: Debt history
-  order: 'Order #%number%'
-  remaining: Remaining
-  view_all_debts: 'View all %count% debt records'
-  no_debt: No debt records.
-  no_debt_permission: You do not have permission to view debt.
-  orders: Recent orders
-  order_total: Order total
-  view_all_orders: 'View all %count% orders'
-  no_orders: No orders yet.
-  no_order_permission: You do not have permission to view order history.
-
+  no_debt: Customer has no debt records.
+  no_debt_permission: You do not have permission to view debt information.
+  recent_orders: Recent orders
+  total_orders: Total orders
+  no_orders: Customer has no orders.
+  no_orders_permission: You do not have permission to view order history.
+  create_customer: Create customer
+  name_or_phone: Name or phone
+  no_phone: No phone
+  updated_at: Last updated
+  all_debts: View all {count} debt records
+  all_orders: View all {count} orders
 debt:
   title: Debts
-  eyebrow: Customer debt
-  subtitle: Review and handle outstanding customer balances.
-  search_label: Search debts
-  search: Search
-  search_placeholder: Customer or order
-  status: Status
+  help: Outstanding customer balances
   all_statuses: All statuses
-  search_action: Search
-  list_label: Debt list
-  order: 'Order #%number%'
-  empty: No debts found.
-  pagination: Debt pagination
-  detail_title: 'Debt #%id%'
-  back: Back to debts
+  search: Search
+  no_found: No debts found.
+  back: ← Debts
+  order: Order
   original: Original
   paid: Paid
   remaining: Remaining
-  pay_title: Record payment
-  pay_help: The server validates the amount and remaining balance.
+  pay: Pay debt
   amount: Amount
-  pay: Record payment
-  payment_required: Payment amount is required.
-  payment_error: Unable to complete debt payment.
-  payment_recorded: 'Payment recorded. Remaining:'
+  pay_action: Pay
   history: Payment history
   no_payments: No payments recorded.
+  search_placeholder: Customer or order
+  pages_aria: Debt pages
+  payment_required: Payment amount is required.
+  payment_failed: Unable to complete debt payment.
+  payment_recorded: 'Payment recorded. Remaining: {amount} đ'
