@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static values = { url: String, csrf: String };
+    static values = { url: String, csrf: String, requiredLabel: String, genericErrorLabel: String, recordedLabel: String };
     static targets = ['form', 'submit', 'remaining', 'error', 'success'];
 
     connect() {
@@ -20,7 +20,7 @@ export default class extends Controller {
             .trim();
 
         if (!amount) {
-            this.showError('Payment amount is required.');
+            this.showError(this.requiredLabelValue);
             return;
         }
 
@@ -53,13 +53,13 @@ export default class extends Controller {
 
             if (!response.ok) {
                 const code = body.errorCode ? ` [${body.errorCode}]` : '';
-                const message = body.message || 'Unable to complete debt payment.';
+                const message = body.message || this.genericErrorLabelValue;
                 throw new Error(`${message}${code}`);
             }
 
             this.remainingTarget.textContent = `${body.data.remainingAmount} đ`;
             this.successTarget.textContent =
-                `Payment recorded. Remaining: ${body.data.remainingAmount} đ`;
+                `${this.recordedLabelValue} ${body.data.remainingAmount} đ`;
             this.successTarget.hidden = false;
             this.formTarget.reset();
 
@@ -70,7 +70,7 @@ export default class extends Controller {
                 window.setTimeout(() => window.location.reload(), 400);
             }
         } catch (error) {
-            this.showError(error instanceof Error ? error.message : 'Unable to complete debt payment.');
+            this.showError(error instanceof Error ? error.message : this.genericErrorLabelValue);
         } finally {
             this.inFlight = false;
             this.submitTarget.disabled = false;

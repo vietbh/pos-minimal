@@ -187,3 +187,141 @@ pos:
     eyebrow: Đã nhận thanh toán
     title: Đã nhận thanh toán
     message: Chuyển khoản ngân hàng đã được xác nhận.
+
+orders:
+  page_title: Đơn hàng
+  eyebrow: Lịch sử bán hàng
+  title: Đơn hàng
+  subtitle: Tra cứu giao dịch và mở chi tiết từng đơn.
+  open_pos: Mở POS
+  search_label: Tìm kiếm đơn hàng
+  search: Tìm kiếm
+  search_placeholder: Mã đơn, tên hoặc số điện thoại khách hàng
+  status: Trạng thái
+  all_statuses: Tất cả trạng thái
+  from: Từ ngày
+  to: Đến ngày
+  search_action: Tìm kiếm
+  clear: Xóa bộ lọc
+  count: '%count% đơn hàng'
+  filtered: Đang áp dụng bộ lọc
+  empty_title: Không tìm thấy đơn hàng
+  empty_message: Thử thay đổi từ khóa, trạng thái hoặc khoảng thời gian.
+  list_label: Danh sách đơn hàng
+  walk_in_customer: Khách lẻ
+  remaining_debt: Còn nợ
+  pagination: Phân trang đơn hàng
+  previous: Trước
+  next: Sau
+  page: 'Trang %page% / %total%'
+  detail_title: 'Đơn hàng #%number%'
+  back: Quay lại đơn hàng
+  summary: Tổng quan
+  customer: Khách hàng
+  created_by: Người tạo
+  completed_at: Hoàn tất
+  cancelled_at: Đã hủy
+  subtotal: Tạm tính
+  total: Tổng cộng
+  paid: Đã thanh toán
+  debt: Công nợ
+  note: Ghi chú
+  items: Sản phẩm
+  no_sku: Không có SKU
+  bank_details: Giao dịch ngân hàng
+  transaction_status: Trạng thái
+  provider: Nhà cung cấp
+  transaction_id: Mã giao dịch
+  amount: Số tiền
+  occurred_at: Thời gian giao dịch
+  payment_reference: Mã thanh toán
+  description: Nội dung
+  bank_waiting: Đang chờ webhook thực tế gắn thông tin giao dịch vào đơn hàng này.
+  payments: Thanh toán
+  no_payments: Chưa có thanh toán được ghi nhận.
+  actions: Thao tác
+  cancel: Hủy đơn
+  refund: Hoàn tiền
+  confirm_operation: Xác nhận thao tác
+  reason_help: Nhập lý do trước khi tiếp tục.
+  reason: Lý do
+  reason_required: Vui lòng nhập lý do.
+  operation_error: Không thể hoàn tất thao tác với đơn hàng.
+  close: Đóng
+  confirm: Xác nhận
+  debt_section: Công nợ
+  original: Ban đầu
+  remaining: Còn lại
+
+customers:
+  title: Khách hàng
+  eyebrow: Quản lý khách hàng
+  subtitle: Tra cứu thông tin, đơn hàng và công nợ khách hàng.
+  new: Thêm khách hàng
+  search_label: Tìm kiếm khách hàng
+  search: Tìm kiếm
+  search_placeholder: Tên hoặc số điện thoại
+  search_action: Tìm kiếm
+  search_hint: Tìm theo tên hoặc số điện thoại.
+  empty_title: Không tìm thấy khách hàng
+  empty_message: Thử tên hoặc số điện thoại khác.
+  list_label: Danh sách khách hàng
+  no_phone: Chưa có số điện thoại
+  new_title: Thêm khách hàng
+  edit_title: Sửa khách hàng
+  back: Quay lại
+  name: Tên
+  phone: Số điện thoại
+  note: Ghi chú
+  save: Lưu thay đổi
+  create: Tạo khách hàng
+  detail_subtitle: Thông tin khách hàng, đơn hàng và công nợ.
+  list: Khách hàng
+  edit: Sửa khách hàng
+  info: Thông tin
+  not_available: Chưa có
+  updated: 'Cập nhật %date%'
+  debt: Công nợ
+  debt_original: Tổng công nợ
+  debt_paid: Đã thanh toán
+  debt_remaining: Còn phải trả
+  debt_history: Lịch sử công nợ
+  order: 'Đơn #%number%'
+  remaining: Còn lại
+  view_all_debts: 'Xem toàn bộ %count% khoản công nợ'
+  no_debt: Chưa có khoản công nợ nào.
+  no_debt_permission: Bạn không có quyền xem thông tin công nợ.
+  orders: Đơn hàng gần đây
+  order_total: Tổng đơn
+  view_all_orders: 'Xem toàn bộ %count% đơn hàng'
+  no_orders: Chưa có đơn hàng.
+  no_order_permission: Bạn không có quyền xem lịch sử đơn hàng.
+
+debt:
+  title: Công nợ
+  eyebrow: Công nợ khách hàng
+  subtitle: Tra cứu và xử lý số dư công nợ theo quyền.
+  search_label: Tìm kiếm công nợ
+  search: Tìm kiếm
+  search_placeholder: Khách hàng hoặc đơn hàng
+  status: Trạng thái
+  all_statuses: Tất cả trạng thái
+  search_action: Tìm kiếm
+  list_label: Danh sách công nợ
+  order: 'Đơn #%number%'
+  empty: Không tìm thấy khoản công nợ nào.
+  pagination: Phân trang công nợ
+  detail_title: 'Công nợ #%id%'
+  back: Quay lại công nợ
+  original: Ban đầu
+  paid: Đã trả
+  remaining: Còn lại
+  pay_title: Ghi nhận thanh toán
+  pay_help: Máy chủ sẽ kiểm tra số tiền và số dư còn lại.
+  amount: Số tiền
+  pay: Ghi nhận thanh toán
+  payment_required: Vui lòng nhập số tiền thanh toán.
+  payment_error: Không thể hoàn tất thanh toán công nợ.
+  payment_recorded: 'Đã ghi nhận thanh toán. Còn lại:'
+  history: Lịch sử thanh toán
+  no_payments: Chưa có thanh toán nào được ghi nhận.

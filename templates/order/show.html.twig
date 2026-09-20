@@ -1,105 +1,16 @@
-{% extends 'base.html.twig' %}
-
-{% block title %}Order #{{ order.orderNumber }}{% endblock %}
-
-{% block stylesheets %}
-    <style>
-        .order-page { max-width: 760px; margin: 0 auto; padding: 16px 14px 32px; }
-        .order-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-        .order-head h1 { margin: 0; font-size: 1.35rem; }
-        .order-back { display: inline-block; margin-bottom: 14px; }
-        .order-status { display: inline-block; padding: 5px 9px; border-radius: 999px; background: #f1f5f9; font-size: .8rem; font-weight: 800; }
-        .order-section { margin-top: 16px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; }
-        .order-section h2 { margin: 0 0 12px; font-size: 1rem; }
-        .order-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
-        .order-row:last-child { border-bottom: 0; }
-        .muted { color: #64748b; }
-        .strong { font-weight: 800; }
-        .order-item { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
-        .order-item:last-child { border-bottom: 0; }
-        .order-item-meta { color: #64748b; font-size: .88rem; }
-        .order-payment, .order-debt { padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
-        .order-payment:last-child, .order-debt:last-child { border-bottom: 0; }
-    </style>
-{% endblock %}
-
-{% block body %}
-<main class="order-page">
-    <a class="order-back" href="{{ path('orders_index') }}">← Orders</a>
-    <header class="order-head">
-        <div>
-            <h1>#{{ order.orderNumber }}</h1>
-            <div class="muted">{{ order.createdAt|date('d/m/Y H:i:s') }}</div>
-        </div>
-        <span class="order-status">{{ order.status.value|title }}</span>
-    </header>
-
-    <section class="order-section" aria-labelledby="order-summary">
-        <h2 id="order-summary">Summary</h2>
-        <div class="order-row"><span class="muted">Customer</span><span>{{ order.customerName }}{% if order.customerPhone %}<br><span class="muted">{{ order.customerPhone }}</span>{% endif %}</span></div>
-        <div class="order-row"><span class="muted">Created by</span><span>{{ order.createdBy }}</span></div>
-        <div class="order-row"><span class="muted">Subtotal</span><span>{{ order.subtotal }} đ</span></div>
-        <div class="order-row"><span class="strong">Total</span><span class="strong">{{ order.total }} đ</span></div>
-        <div class="order-row"><span class="muted">Paid</span><span>{{ order.paidAmount }} đ</span></div>
-        <div class="order-row"><span class="muted">Debt</span><span>{{ order.debtAmount }} đ</span></div>
-        {% if order.note %}<div class="order-row"><span class="muted">Note</span><span>{{ order.note }}</span></div>{% endif %}
-    </section>
-
-    <section class="order-section" aria-labelledby="order-items">
-        <h2 id="order-items">Items</h2>
-        {% for item in order.items %}
-            <div class="order-item">
-                <div><div class="strong">{{ item.productName }}</div><div class="order-item-meta">{{ item.sku ?? 'No SKU' }} · {{ item.quantity }} × {{ item.unitPrice }} đ</div></div>
-                <div class="strong">{{ item.subtotal }} đ</div>
-            </div>
-        {% endfor %}
-    </section>
-
-    <section class="order-section" aria-labelledby="order-payments">
-        <h2 id="order-payments">Payments</h2>
-        {% if order.payments is empty %}
-            <div class="muted">No payment recorded.</div>
-        {% else %}
-            {% for payment in order.payments %}
-                <div class="order-payment">
-                    <div class="order-row"><span>{{ payment.method|title }}</span><span class="strong">{{ payment.amount }} đ</span></div>
-                    <div class="order-item-meta">{{ payment.createdAt|date('d/m/Y H:i') }} · {{ payment.username }}{% if payment.reference %} · {{ payment.reference }}{% endif %}</div>
-                </div>
-            {% endfor %}
-        {% endif %}
-    </section>
-
-    {% if order.status.value == 'COMPLETED' and (is_granted('ORDER_CANCEL') or is_granted('ORDER_REFUND')) %}
-        <section class="order-section" aria-labelledby="order-lifecycle">
-            <h2 id="order-lifecycle">Actions</h2>
-            <div data-controller="order-lifecycle" data-order-lifecycle-url-value="" data-order-lifecycle-csrf-value="{{ csrf_token('order_lifecycle') }}">
-                <div class="modal-actions">
-                    {% if is_granted('ORDER_CANCEL') %}<button type="button" data-action="click->order-lifecycle#open" data-url="{{ path('order_cancel',{id:order.id}) }}">Cancel order</button>{% endif %}
-                    {% if is_granted('ORDER_REFUND') %}<button type="button" data-action="click->order-lifecycle#open" data-url="{{ path('order_refund',{id:order.id}) }}">Refund order</button>{% endif %}
-                </div>
-                <div class="modal-backdrop" hidden data-order-lifecycle-target="modal">
-                    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="lifecycle-title">
-                        <h2 id="lifecycle-title">Confirm operation</h2>
-                        <p class="muted">Enter a reason before continuing.</p>
-                        <form data-action="submit->order-lifecycle#submit">
-                            <label>Reason<textarea data-order-lifecycle-target="reason" required maxlength="255" rows="4"></textarea></label>
-                            <p class="error" role="alert" hidden data-order-lifecycle-target="error"></p>
-                            <div class="modal-actions"><button type="button" data-action="click->order-lifecycle#close">Close</button><button type="submit" data-order-lifecycle-target="submit">Confirm</button></div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </section>
-    {% endif %}
-
-    {% if order.debt %}
-        <section class="order-section" aria-labelledby="order-debt">
-            <h2 id="order-debt">Debt</h2>
-            <div class="order-row"><span class="muted">Status</span><span>{{ order.debt.status|title }}</span></div>
-            <div class="order-row"><span class="muted">Original</span><span>{{ order.debt.originalAmount }} đ</span></div>
-            <div class="order-row"><span class="muted">Paid</span><span>{{ order.debt.paidAmount }} đ</span></div>
-            <div class="order-row"><span class="strong">Remaining</span><span class="strong">{{ order.debt.remainingAmount }} đ</span></div>
-        </section>
-    {% endif %}
+{% extends 'layout/authenticated.html.twig' %}
+{% block title %}{{ 'orders.detail_title'|trans({'%number%':order.orderNumber}) }}{% endblock %}
+{% block authenticated_body %}
+<main class="page-shell order-page">
+<a class="button order-back" href="{{ path('orders_index', backQuery) }}">← {{ 'orders.back'|trans }}</a>
+<header class="page-header order-head"><div><p class="page-eyebrow">{{ 'orders.eyebrow'|trans }}</p><h1>#{{ order.orderNumber }}</h1><p class="muted">{{ order.createdAt|date('d/m/Y H:i:s') }}</p></div><span class="status-pill">{{ order.status.value|title }}</span></header>
+<section class="card order-section" aria-labelledby="order-summary"><h2 id="order-summary">{{ 'orders.summary'|trans }}</h2>
+<div class="detail-list"><div><span class="muted">{{ 'orders.customer'|trans }}</span><span>{{ order.customerName }}{% if order.customerPhone %}<br><span class="muted">{{ order.customerPhone }}</span>{% endif %}</span></div><div><span class="muted">{{ 'orders.created_by'|trans }}</span><span>{{ order.createdBy }}</span></div>{% if order.completedAt %}<div><span class="muted">{{ 'orders.completed_at'|trans }}</span><span>{{ order.completedAt|date('d/m/Y H:i:s') }}</span></div>{% endif %}{% if order.cancelledAt %}<div><span class="muted">{{ 'orders.cancelled_at'|trans }}</span><span>{{ order.cancelledAt|date('d/m/Y H:i:s') }}</span></div>{% endif %}<div><span class="muted">{{ 'orders.subtotal'|trans }}</span><span>{{ order.subtotal|money_vnd }}</span></div><div><strong>{{ 'orders.total'|trans }}</strong><strong class="order-money-total">{{ order.total|money_vnd }}</strong></div><div><span class="muted">{{ 'orders.paid'|trans }}</span><span>{{ order.paidAmount|money_vnd }}</span></div><div><span class="muted">{{ 'orders.debt'|trans }}</span><span>{{ order.debtAmount|money_vnd }}</span></div>{% if order.note %}<div><span class="muted">{{ 'orders.note'|trans }}</span><span>{{ order.note }}</span></div>{% endif %}</div></section>
+<section class="card order-section" aria-labelledby="order-items"><h2 id="order-items">{{ 'orders.items'|trans }}</h2>{% for item in order.items %}<div class="order-item"><div><strong>{{ item.productName }}</strong><div class="muted order-item-meta">{{ item.sku ?? 'orders.no_sku'|trans }} · {{ item.quantity }} × {{ item.unitPrice|money_vnd }}</div></div><strong>{{ item.subtotal|money_vnd }}</strong></div>{% endfor %}</section>
+{% set hasBankTransferPayment = false %}{% for payment in order.payments %}{% if payment.method == 'BANK_TRANSFER' %}{% set hasBankTransferPayment = true %}{% endif %}{% endfor %}
+{% if order.externalTransaction %}<section class="card order-section" aria-labelledby="order-bank"><h2 id="order-bank">{{ 'orders.bank_details'|trans }}</h2><div class="detail-list"><div><span class="muted">{{ 'orders.transaction_status'|trans }}</span><strong>{{ order.externalTransaction.status }}</strong></div><div><span class="muted">{{ 'orders.provider'|trans }}</span><span>{{ order.externalTransaction.provider }}</span></div><div><span class="muted">{{ 'orders.transaction_id'|trans }}</span><span>{{ order.externalTransaction.externalTransactionId }}</span></div><div><span class="muted">{{ 'orders.amount'|trans }}</span><strong>{{ order.externalTransaction.amount|money_vnd }}</strong></div><div><span class="muted">{{ 'orders.occurred_at'|trans }}</span><span>{{ order.externalTransaction.occurredAt|date('d/m/Y H:i:s') }}</span></div>{% if order.externalTransaction.reference %}<div><span class="muted">{{ 'orders.payment_reference'|trans }}</span><span>{{ order.externalTransaction.reference }}</span></div>{% endif %}<div><span class="muted">{{ 'orders.description'|trans }}</span><span>{{ order.externalTransaction.description }}</span></div></div></section>{% elseif hasBankTransferPayment %}<section class="card order-section" aria-labelledby="order-bank"><h2 id="order-bank">{{ 'orders.bank_details'|trans }}</h2><p class="muted">{{ 'orders.bank_waiting'|trans }}</p></section>{% endif %}
+<section class="card order-section" aria-labelledby="order-payments"><h2 id="order-payments">{{ 'orders.payments'|trans }}</h2>{% if order.payments is empty %}<p class="muted">{{ 'orders.no_payments'|trans }}</p>{% else %}{% for payment in order.payments %}<div class="order-payment"><div class="detail-list"><div><strong>{{ payment.method|title }}</strong><strong>{{ payment.amount|money_vnd }}</strong></div></div><div class="muted order-item-meta">{{ payment.createdAt|date('d/m/Y H:i') }} · {{ payment.username }}{% if payment.reference %} · {{ payment.reference }}{% endif %}</div></div>{% endfor %}{% endif %}</section>
+{% if order.status.value == 'COMPLETED' and (is_granted('ORDER_CANCEL') or is_granted('ORDER_REFUND')) %}<section class="card order-section" aria-labelledby="order-actions"><h2 id="order-actions">{{ 'orders.actions'|trans }}</h2><div data-controller="order-lifecycle" data-order-lifecycle-url-value="" data-order-lifecycle-csrf-value="{{ csrf_token('order_lifecycle') }}" data-order-lifecycle-reason-required-label-value="{{ 'orders.reason_required'|trans }}" data-order-lifecycle-generic-error-label-value="{{ 'orders.operation_error'|trans }}" data-order-lifecycle-close-label-value="{{ 'orders.close'|trans }}" data-order-lifecycle-confirm-label-value="{{ 'orders.confirm'|trans }}"><div class="modal-actions">{% if is_granted('ORDER_CANCEL') %}<button type="button" class="button" data-action="click->order-lifecycle#open" data-url="{{ path('order_cancel',{id:order.id}) }}">{{ 'orders.cancel'|trans }}</button>{% endif %}{% if is_granted('ORDER_REFUND') %}<button type="button" class="button" data-action="click->order-lifecycle#open" data-url="{{ path('order_refund',{id:order.id}) }}">{{ 'orders.refund'|trans }}</button>{% endif %}</div><div class="modal-backdrop" hidden data-order-lifecycle-target="modal"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="lifecycle-title"><h2 id="lifecycle-title">{{ 'orders.confirm_operation'|trans }}</h2><p class="muted">{{ 'orders.reason_help'|trans }}</p><form data-action="submit->order-lifecycle#submit"><label>{{ 'orders.reason'|trans }}<textarea data-order-lifecycle-target="reason" required maxlength="255" rows="4" aria-describedby="lifecycle-error"></textarea></label><p id="lifecycle-error" class="error" role="alert" hidden data-order-lifecycle-target="error"></p><div class="modal-actions"><button type="button" class="button" data-action="click->order-lifecycle#close">{{ 'orders.close'|trans }}</button><button type="submit" class="button primary" data-order-lifecycle-target="submit">{{ 'orders.confirm'|trans }}</button></div></form></div></div></div></section>{% endif %}
+{% if order.debt %}<section class="card order-section" aria-labelledby="order-debt"><h2 id="order-debt">{{ 'orders.debt_section'|trans }}</h2><div class="detail-list"><div><span class="muted">{{ 'orders.status'|trans }}</span><span>{{ order.debt.status|title }}</span></div><div><span class="muted">{{ 'orders.original'|trans }}</span><span>{{ order.debt.originalAmount|money_vnd }}</span></div><div><span class="muted">{{ 'orders.paid'|trans }}</span><span>{{ order.debt.paidAmount|money_vnd }}</span></div><div><strong>{{ 'orders.remaining'|trans }}</strong><strong>{{ order.debt.remainingAmount|money_vnd }}</strong></div></div></section>{% endif %}
 </main>
 {% endblock %}

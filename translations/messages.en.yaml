@@ -187,3 +187,141 @@ pos:
     eyebrow: Payment received
     title: Payment Received
     message: The bank transfer has been confirmed.
+
+orders:
+  page_title: Orders
+  eyebrow: Sales history
+  title: Orders
+  subtitle: Find transactions and open order details.
+  open_pos: Open POS
+  search_label: Search orders
+  search: Search
+  search_placeholder: Order number, customer name or phone
+  status: Status
+  all_statuses: All statuses
+  from: From date
+  to: To date
+  search_action: Search
+  clear: Clear filters
+  count: '%count% orders'
+  filtered: Filters applied
+  empty_title: No orders found
+  empty_message: Try changing your search, status or date range.
+  list_label: Order list
+  walk_in_customer: Walk-in customer
+  remaining_debt: Remaining debt
+  pagination: Order pagination
+  previous: Previous
+  next: Next
+  page: 'Page %page% / %total%'
+  detail_title: 'Order #%number%'
+  back: Back to orders
+  summary: Summary
+  customer: Customer
+  created_by: Created by
+  completed_at: Completed
+  cancelled_at: Cancelled
+  subtotal: Subtotal
+  total: Total
+  paid: Paid
+  debt: Debt
+  note: Note
+  items: Products
+  no_sku: No SKU
+  bank_details: Bank transaction
+  transaction_status: Status
+  provider: Provider
+  transaction_id: Transaction ID
+  amount: Amount
+  occurred_at: Transaction time
+  payment_reference: Payment reference
+  description: Description
+  bank_waiting: Waiting for the real bank webhook to attach transaction details to this order.
+  payments: Payments
+  no_payments: No payments recorded.
+  actions: Actions
+  cancel: Cancel order
+  refund: Refund order
+  confirm_operation: Confirm operation
+  reason_help: Enter a reason before continuing.
+  reason: Reason
+  reason_required: Reason is required.
+  operation_error: Unable to complete order operation.
+  close: Close
+  confirm: Confirm
+  debt_section: Debt
+  original: Original
+  remaining: Remaining
+
+customers:
+  title: Customers
+  eyebrow: Customer management
+  subtitle: Look up customer information, orders and debt.
+  new: New customer
+  search_label: Search customers
+  search: Search
+  search_placeholder: Name or phone
+  search_action: Search
+  search_hint: Search by name or phone.
+  empty_title: No customers found
+  empty_message: Try another name or phone number.
+  list_label: Customer list
+  no_phone: No phone
+  new_title: New customer
+  edit_title: Edit customer
+  back: Back
+  name: Name
+  phone: Phone
+  note: Note
+  save: Save changes
+  create: Create customer
+  detail_subtitle: Customer information, orders and debt.
+  list: Customers
+  edit: Edit customer
+  info: Information
+  not_available: Not available
+  updated: 'Updated %date%'
+  debt: Debt
+  debt_original: Original debt
+  debt_paid: Paid
+  debt_remaining: Remaining debt
+  debt_history: Debt history
+  order: 'Order #%number%'
+  remaining: Remaining
+  view_all_debts: 'View all %count% debt records'
+  no_debt: No debt records.
+  no_debt_permission: You do not have permission to view debt.
+  orders: Recent orders
+  order_total: Order total
+  view_all_orders: 'View all %count% orders'
+  no_orders: No orders yet.
+  no_order_permission: You do not have permission to view order history.
+
+debt:
+  title: Debts
+  eyebrow: Customer debt
+  subtitle: Review and handle outstanding customer balances.
+  search_label: Search debts
+  search: Search
+  search_placeholder: Customer or order
+  status: Status
+  all_statuses: All statuses
+  search_action: Search
+  list_label: Debt list
+  order: 'Order #%number%'
+  empty: No debts found.
+  pagination: Debt pagination
+  detail_title: 'Debt #%id%'
+  back: Back to debts
+  original: Original
+  paid: Paid
+  remaining: Remaining
+  pay_title: Record payment
+  pay_help: The server validates the amount and remaining balance.
+  amount: Amount
+  pay: Record payment
+  payment_required: Payment amount is required.
+  payment_error: Unable to complete debt payment.
+  payment_recorded: 'Payment recorded. Remaining:'
+  history: Payment history
+  no_payments: No payments recorded.

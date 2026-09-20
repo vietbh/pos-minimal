@@ -1,85 +1,26 @@
-{% extends 'base.html.twig' %}
-
-{% block title %}Orders{% endblock %}
-
-{% block stylesheets %}
-    <style>
-        .orders-page { max-width: 760px; margin: 0 auto; padding: 16px 14px 32px; }
-        .orders-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
-        .orders-header h1 { margin: 0; font-size: 1.35rem; }
-        .orders-filters { display: grid; gap: 10px; margin-bottom: 16px; }
-        .orders-filters input, .orders-filters select, .orders-filters button { width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
-        .orders-filter-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .orders-filters button { background: #111827; color: #fff; border-color: #111827; font-weight: 700; }
-        .order-list { display: grid; gap: 10px; }
-        .order-card { display: block; color: inherit; text-decoration: none; padding: 14px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
-        .order-card-top, .order-card-bottom { display: flex; justify-content: space-between; gap: 10px; }
-        .order-number { font-weight: 800; }
-        .order-customer, .order-meta { color: #64748b; font-size: .9rem; }
-        .order-total { font-weight: 800; }
-        .order-status { font-size: .78rem; font-weight: 700; padding: 4px 8px; border-radius: 999px; background: #f1f5f9; }
-        .order-debt { margin-top: 8px; color: #b45309; font-size: .88rem; font-weight: 700; }
-        .orders-empty { padding: 28px 16px; text-align: center; color: #64748b; border: 1px dashed #cbd5e1; border-radius: 14px; }
-        .orders-pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 10px; }
-        .orders-pagination a { padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; text-decoration: none; color: inherit; }
-        .orders-pagination a[aria-disabled="true"] { opacity: .4; pointer-events: none; }
-        @media (min-width: 640px) { .orders-filters { grid-template-columns: 2fr 1fr; } .orders-filter-row { grid-column: 1 / -1; } .orders-filters button { width: auto; } }
-    </style>
-{% endblock %}
-
-{% block body %}
-<main class="orders-page">
-    <header class="orders-header">
-        <h1>Orders</h1>
-        <a href="{{ path('pos') }}">POS</a>
-    </header>
-
-    <form method="get" class="orders-filters" role="search">
-        <input name="q" value="{{ search }}" placeholder="Order number or customer" autocomplete="off" aria-label="Search orders">
-        <select name="status" aria-label="Filter by status">
-            <option value="">All statuses</option>
-            {% for item in statuses %}
-                <option value="{{ item.value }}" {% if status is same as(item) %}selected{% endif %}>{{ item.value|title }}</option>
-            {% endfor %}
-        </select>
-        <div class="orders-filter-row">
-            <input type="date" name="from" value="{{ from ?? '' }}" aria-label="From date">
-            <input type="date" name="to" value="{{ to ?? '' }}" aria-label="To date">
-        </div>
-        <button type="submit">Search</button>
-    </form>
-
-    {% if orders.items is empty %}
-        <div class="orders-empty">No orders found.</div>
-    {% else %}
-        <section class="order-list" aria-label="Orders">
-            {% for item in orders.items %}
-                <a class="order-card" href="{{ path('orders_show', {id: item.id}) }}">
-                    <div class="order-card-top">
-                        <div>
-                            <div class="order-number">#{{ item.orderNumber }}</div>
-                            <div class="order-customer">{{ item.customerName ?? 'Walk-in customer' }}</div>
-                        </div>
-                        <span class="order-status">{{ item.status.value|title }}</span>
-                    </div>
-                    <div class="order-card-bottom" style="margin-top: 12px">
-                        <div class="order-meta">{{ item.createdAt|date('d/m/Y H:i') }}</div>
-                        <div class="order-total">{{ item.total }} đ</div>
-                    </div>
-                    {% if item.debtAmount != '0.00' %}
-                        <div class="order-debt">Debt: {{ item.debtAmount }} đ</div>
-                    {% endif %}
-                </a>
-            {% endfor %}
-        </section>
-
-        {% set previousPage = orders.page - 1 %}
-        {% set nextPage = orders.page + 1 %}
-        <nav class="orders-pagination" aria-label="Pagination">
-            <a href="{{ path('orders_index', app.request.query.all|merge({page: previousPage})) }}" aria-disabled="{{ orders.page <= 1 ? 'true' : 'false' }}">Previous</a>
-            <span>Page {{ orders.page }} / {{ orders.totalPages() }}</span>
-            <a href="{{ path('orders_index', app.request.query.all|merge({page: nextPage})) }}" aria-disabled="{{ orders.page >= orders.totalPages() ? 'true' : 'false' }}">Next</a>
-        </nav>
-    {% endif %}
+{% extends 'layout/authenticated.html.twig' %}
+{% block title %}{{ 'orders.page_title'|trans }}{% endblock %}
+{% block authenticated_body %}
+<main class="page-shell orders-page">
+  <header class="page-header orders-header">
+    <div><p class="page-eyebrow">{{ 'orders.eyebrow'|trans }}</p><h1>{{ 'orders.title'|trans }}</h1><p class="muted">{{ 'orders.subtitle'|trans }}</p></div>
+    {% if is_granted('POS_ACCESS') %}<a class="button" href="{{ path('pos') }}">{{ 'orders.open_pos'|trans }}</a>{% endif %}
+  </header>
+  <form method="get" class="search-form orders-filters" role="search" aria-label="{{ 'orders.search_label'|trans }}">
+    <label>{{ 'orders.search'|trans }}<input name="q" value="{{ search }}" maxlength="{{ maxSearchLength }}" placeholder="{{ 'orders.search_placeholder'|trans }}" autocomplete="off"></label>
+    <label>{{ 'orders.status'|trans }}<select name="status"><option value="">{{ 'orders.all_statuses'|trans }}</option>{% for item in statuses %}<option value="{{ item.value }}"{% if status is same as(item) %} selected{% endif %}>{{ statusLabels[item.value] }}</option>{% endfor %}</select></label>
+    <div class="orders-date-grid"><label>{{ 'orders.from'|trans }}<input type="date" name="from" value="{{ from ?? '' }}"></label><label>{{ 'orders.to'|trans }}<input type="date" name="to" value="{{ to ?? '' }}"></label></div>
+    <div class="orders-filter-actions"><button class="primary" type="submit">{{ 'orders.search_action'|trans }}</button><a class="button" href="{{ path('orders_index') }}">{{ 'orders.clear'|trans }}</a></div>
+  </form>
+  <div class="orders-summary" role="status" aria-live="polite"><span>{{ 'orders.count'|trans({'%count%': orders.totalItems}) }}</span>{% if search or status or from or to %}<span class="filter-badge">{{ 'orders.filtered'|trans }}</span>{% endif %}</div>
+  {% if orders.items is empty %}<div class="empty-state orders-empty"><strong>{{ 'orders.empty_title'|trans }}</strong><span>{{ 'orders.empty_message'|trans }}</span></div>
+  {% else %}<section class="card-list orders-list" aria-label="{{ 'orders.list_label'|trans }}">{% for item in orders.items %}
+    <a class="card order-card" href="{{ path('orders_show', {id: item.id}|merge(app.request.query.all)) }}">
+      <div class="order-card-top"><div><strong>#{{ item.orderNumber }}</strong><span class="muted">{{ item.customerName ?? 'orders.walk_in_customer'|trans }}</span></div><span class="status-pill">{{ statusLabels[item.status.value] }}</span></div>
+      <div class="order-card-bottom"><span class="muted">{{ item.createdAt|date('d/m/Y H:i') }}</span><strong>{{ item.total|money_vnd }}</strong></div>
+      {% if item.debtAmount != '0.00' %}<div class="order-debt">{{ 'orders.remaining_debt'|trans }}: {{ item.debtAmount|money_vnd }}</div>{% endif %}
+    </a>{% endfor %}</section>
+  {% set previousPage = orders.page - 1 %}{% set nextPage = orders.page + 1 %}
+  <nav class="pagination orders-pagination" aria-label="{{ 'orders.pagination'|trans }}"><a class="button" href="{{ path('orders_index', app.request.query.all|merge({page: previousPage})) }}" aria-disabled="{{ orders.page <= 1 ? 'true' : 'false' }}">{{ 'orders.previous'|trans }}</a><span aria-current="page">{{ 'orders.page'|trans({'%page%':orders.page,'%total%':orders.totalPages()}) }}</span><a class="button" href="{{ path('orders_index', app.request.query.all|merge({page: nextPage})) }}" aria-disabled="{{ orders.page >= orders.totalPages() ? 'true' : 'false' }}">{{ 'orders.next'|trans }}</a></nav>{% endif %}
 </main>
 {% endblock %}
