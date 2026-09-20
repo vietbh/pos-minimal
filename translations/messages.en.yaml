@@ -1,0 +1,101 @@
+auth:
+  login:
+    page_title: Sign in · Mobile POS
+    brand: Mobile POS
+    title: Sign in
+    subtitle: Access your account to continue.
+    form_title: Sign in form
+    error_title: Sign-in failed
+    invalid_credentials: Invalid username or password. Check your details and try
+      again.
+    username: Username
+    username_placeholder: Enter your username
+    username_help: Use your Mobile POS account username.
+    password: Password
+    password_placeholder: Enter your password
+    password_help: Enter your account password.
+    show_password: Show password
+    hide_password: Hide password
+    remember_me: Remember me on this device
+    remember_me_help: Only use this on a device you trust.
+    submit: Sign in
+    submitting: Signing in…
+    footer: Secure sign in · Mobile POS
+  logout: Sign out
+  access_denied: You do not have permission to access this page.
+  session_expired: Your session has expired. Please sign in again.
+navigation:
+  primary: Primary navigation
+  quick: Quick navigation
+  workspace: Workspace
+  operations: Operations
+  management: Management
+  home: Home
+  pos: POS
+  orders: Orders
+  customers: Customers
+  debt: Debt
+  products: Products
+  stock: Stock
+  statistics: Statistics
+  payments: Payments
+  account: Account
+  open_menu: Open menu
+  close_menu: Close menu
+app:
+  greeting: 'Hello'
+  customers: 'Customers'
+  home_title: Home · Mobile POS
+  application: Application
+  home_subtitle: A quick overview and shortcuts to your work areas. POS is a separate
+    workspace.
+  primary_actions: Account and primary actions
+  profile: Profile
+  settings: Settings
+  today: Today
+  overview: Overview
+  view_statistics: View statistics
+  sales_today: Sales today
+  valid_orders: valid orders
+  completed_refunded_orders: Completed / refunded orders
+  outstanding_debt: Outstanding debt
+  debt_records_today: debt records in today’s data
+  stock_alerts: Stock alerts
+  low_stock_separator: low stock ·
+  out_of_stock_suffix: out of stock
+  attention: Needs attention
+  stock_needs_attention: Stock needs attention
+  stock_alert_message_prefix: There are
+  stock_alert_message_and: products low in stock and
+  stock_alert_message_out: products out of stock
+  view_stock: View stock
+  top_products: Top-selling products
+  units: units
+  no_sales_today: No sales data today
+  top_products_empty: Completed transactions will appear here when available.
+  navigation: Navigation
+  quick_access: Quick access
+  sales: Sales
+  start_transaction: Start a new transaction.
+  operations: Operations
+  manage_orders: View and manage created orders.
+  manage_customers: Look up customer information and debt.
+  catalog: Catalog
+  manage_products: Manage the product catalog.
+  inventory: Inventory
+  manage_stock: Check stock and relevant history.
+  finance: Finance
+  manage_debt: Review and handle debt according to your permissions.
+  insights: Insights
+  view_reports: View dashboards and detailed reports.
+  brand: Mobile POS
+  brand_home: Mobile POS home
+  sales_workspace: Sales workspace
+  account_settings: Account & settings
+  open_account: Open account
+access:
+  denied_title: Access denied
+  denied_message: You do not have permission to access this page.
+  back_home: Back to Home
+session:
+  expired: Your session has expired. Please sign in again.

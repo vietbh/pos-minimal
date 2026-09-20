@@ -68,13 +68,71 @@ final class AuthenticationTest extends WebTestCase
         $client->request('GET', '/auth/login');
 
         self::assertResponseIsSuccessful();
+        self::assertSelectorExists('form[action=\"/auth/login\"]');
+        self::assertSelectorExists('input[name=\"_csrf_token\"]');
+        self::assertSelectorExists('input[name=\"_remember_me\"]');
+        self::assertSelectorTextContains('body', 'Access your account to continue.');
 
-        $client->submitForm('Login', [
+        $client->submitForm('Sign in', [
             '_username' => 'cashier',
             '_password' => 'correct-password',
         ]);
 
         self::assertResponseRedirects('/');
+
+        $client->followRedirect();
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Hello, cashier');
+        self::assertSelectorExists('nav[aria-label="Primary navigation"]');
+        self::assertSelectorExists('a[aria-current="page"]');
+        self::assertSelectorExists('form[action="/auth/logout"]');
+    }
+
+    public function testRememberMeCheckboxIsAvailable(): void
+    {
+        $this->createUser(
+            'cashier',
+            'correct-password',
+        );
+
+        $this->client->request('GET', '/auth/login');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('input[name="_remember_me"]');
+        self::assertSelectorTextContains(
+            'body',
+            'Remember me on this device',
+        );
+    }
+
+    public function testRememberMeSetsRememberMeCookieWhenSelected(): void
+    {
+        $this->createUser(
+            'cashier',
+            'correct-password',
+        );
+
+        $client = $this->client;
+        $client->request('GET', '/auth/login');
+        $client->submitForm('Sign in', [
+            '_username' => 'cashier',
+            '_password' => 'correct-password',
+            '_remember_me' => '1',
+        ]);
+
+        self::assertResponseRedirects('/');
+
+        $cookies = $client->getResponse()->headers->getCookies();
+        $rememberCookieNames = array_values(array_filter(
+            array_map(
+                static fn ($cookie): string => $cookie->getName(),
+                $cookies,
+            ),
+            static fn (string $name): bool => str_contains(strtolower($name), 'remember'),
+        ));
+
+        self::assertNotEmpty($rememberCookieNames);
     }
 
     public function testWrongPasswordIsRejected(): void
@@ -88,7 +146,7 @@ final class AuthenticationTest extends WebTestCase
 
         $client->request('GET', '/auth/login');
 
-        $client->submitForm('Login', [
+        $client->submitForm('Sign in', [
             '_username' => 'cashier',
             '_password' => 'wrong-password',
         ]);
@@ -99,7 +157,7 @@ final class AuthenticationTest extends WebTestCase
 
         self::assertSelectorTextContains(
             'body',
-            'Invalid credentials.',
+            'Sign-in failed',
         );
     }
 
@@ -109,7 +167,7 @@ final class AuthenticationTest extends WebTestCase
 
         $client->request('GET', '/auth/login');
 
-        $client->submitForm('Login', [
+        $client->submitForm('Sign in', [
             '_username' => 'does-not-exist',
             '_password' => 'anything',
         ]);
@@ -120,7 +178,7 @@ final class AuthenticationTest extends WebTestCase
 
         self::assertSelectorTextContains(
             'body',
-            'Invalid credentials.',
+            'Sign-in failed',
         );
     }
 
@@ -139,7 +197,7 @@ final class AuthenticationTest extends WebTestCase
 
         $client->request('GET', '/auth/login');
 
-        $client->submitForm('Login', [
+        $client->submitForm('Sign in', [
             '_username' => 'inactive',
             '_password' => 'correct-password',
         ]);
@@ -150,7 +208,7 @@ final class AuthenticationTest extends WebTestCase
 
         self::assertSelectorTextContains(
             'body',
-            'Invalid credentials.',
+            'Sign-in failed',
         );
     }
 
@@ -172,6 +230,49 @@ final class AuthenticationTest extends WebTestCase
             ],
         );
 
+        self::assertResponseRedirects('/auth/login');
+    }
+
+    public function testAnonymousHomeRedirectsToLogin(): void
+    {
+        $this->client->request('GET', '/');
+
+        self::assertResponseRedirects('/auth/login');
+    }
+
+    public function testAuthenticatedHomeDoesNotOpenPosAutomatically(): void
+    {
+        $this->createUser('cashier', 'correct-password');
+        $client = $this->client;
+
+        $client->request('GET', '/auth/login');
+        $client->submitForm('Sign in', [
+            '_username' => 'cashier',
+            '_password' => 'correct-password',
+        ]);
+
+        self::assertResponseRedirects('/');
+        $client->followRedirect();
+        self::assertSelectorTextContains('body', 'Application');
+        self::assertSelectorTextNotContains('body', 'Complete sale');
+    }
+
+    public function testLogoutRedirectsToLogin(): void
+    {
+        $this->createUser('cashier', 'correct-password');
+        $client = $this->client;
+
+        $client->request('GET', '/auth/login');
+        $client->submitForm('Sign in', [
+            '_username' => 'cashier',
+            '_password' => 'correct-password',
+        ]);
+        self::assertResponseRedirects('/');
+
+        $client->request('GET', '/auth/logout');
+        self::assertResponseRedirects('/auth/login');
+
+        $client->request('GET', '/');
         self::assertResponseRedirects('/auth/login');
     }
 

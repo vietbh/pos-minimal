@@ -1,0 +1,101 @@
+auth:
+  login:
+    page_title: Đăng nhập · Mobile POS
+    brand: Mobile POS
+    title: Đăng nhập
+    subtitle: Đăng nhập vào tài khoản để tiếp tục.
+    form_title: Biểu mẫu đăng nhập
+    error_title: Đăng nhập không thành công
+    invalid_credentials: Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng kiểm tra
+      và thử lại.
+    username: Tên đăng nhập
+    username_placeholder: Nhập tên đăng nhập
+    username_help: Sử dụng tên đăng nhập tài khoản Mobile POS của bạn.
+    password: Mật khẩu
+    password_placeholder: Nhập mật khẩu
+    password_help: Nhập mật khẩu tài khoản của bạn.
+    show_password: Hiện mật khẩu
+    hide_password: Ẩn mật khẩu
+    remember_me: Ghi nhớ tôi trên thiết bị này
+    remember_me_help: Chỉ sử dụng tùy chọn này trên thiết bị bạn tin cậy.
+    submit: Đăng nhập
+    submitting: Đang đăng nhập…
+    footer: Đăng nhập an toàn · Mobile POS
+  logout: Đăng xuất
+  access_denied: Bạn không có quyền truy cập trang này.
+  session_expired: Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
+navigation:
+  primary: Điều hướng chính
+  quick: Điều hướng nhanh
+  workspace: Không gian làm việc
+  operations: Vận hành
+  management: Quản lý
+  home: Trang chủ
+  pos: POS
+  orders: Đơn hàng
+  customers: Khách hàng
+  debt: Công nợ
+  products: Sản phẩm
+  stock: Kho
+  statistics: Thống kê
+  payments: Thanh toán
+  account: Tài khoản
+  open_menu: Mở menu
+  close_menu: Đóng menu
+app:
+  greeting: 'Xin chào'
+  customers: 'Khách hàng'
+  home_title: Trang chủ · Mobile POS
+  application: Ứng dụng
+  home_subtitle: Tổng quan nhanh và lối tắt tới các khu vực làm việc. POS là một không
+    gian riêng.
+  primary_actions: Tài khoản và thao tác chính
+  profile: Hồ sơ
+  settings: Cài đặt
+  today: Hôm nay
+  overview: Tổng quan
+  view_statistics: Xem thống kê
+  sales_today: Doanh số hôm nay
+  valid_orders: đơn hợp lệ
+  completed_refunded_orders: Đơn hoàn tất / hoàn tiền
+  outstanding_debt: Công nợ còn lại
+  debt_records_today: khoản trong dữ liệu hôm nay
+  stock_alerts: Cảnh báo tồn kho
+  low_stock_separator: sắp hết ·
+  out_of_stock_suffix: hết hàng
+  attention: Cần chú ý
+  stock_needs_attention: Tồn kho cần kiểm tra
+  stock_alert_message_prefix: Có
+  stock_alert_message_and: sản phẩm sắp hết và
+  stock_alert_message_out: sản phẩm hết hàng
+  view_stock: Xem kho
+  top_products: Sản phẩm bán chạy
+  units: sản phẩm
+  no_sales_today: Chưa có dữ liệu bán hàng hôm nay
+  top_products_empty: Khi có giao dịch hoàn tất, sản phẩm nổi bật sẽ xuất hiện ở đây.
+  navigation: Điều hướng
+  quick_access: Truy cập nhanh
+  sales: Bán hàng
+  start_transaction: Bắt đầu một giao dịch mới.
+  operations: Vận hành
+  manage_orders: Xem và quản lý các đơn đã tạo.
+  manage_customers: Tra cứu thông tin và công nợ khách hàng.
+  catalog: Danh mục
+  manage_products: Quản lý danh mục sản phẩm.
+  inventory: Tồn kho
+  manage_stock: Kiểm tra tồn kho và lịch sử phù hợp quyền.
+  finance: Tài chính
+  manage_debt: Tra cứu và xử lý công nợ theo quyền.
+  insights: Phân tích
+  view_reports: Xem dashboard và báo cáo chi tiết.
+  brand: Mobile POS
+  brand_home: Trang chủ Mobile POS
+  sales_workspace: Không gian bán hàng
+  account_settings: Tài khoản & cài đặt
+  open_account: Mở tài khoản
+access:
+  denied_title: Không có quyền truy cập
+  denied_message: Bạn không có quyền truy cập trang này.
+  back_home: Về trang chủ
+session:
+  expired: Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
