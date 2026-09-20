@@ -10,6 +10,7 @@ final class PosCheckoutUiContractTest extends TestCase
 {
     private string $controllerSource;
     private string $templateSource;
+    private string $compiledControllerSource;
 
     protected function setUp(): void
     {
@@ -23,8 +24,19 @@ final class PosCheckoutUiContractTest extends TestCase
             $root . '/templates/pos/index.html.twig'
         );
 
+        $manifest = json_decode(
+            (string) file_get_contents($root . '/public/assets/manifest.json'),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+        $compiledPath = $manifest['controllers/pos_checkout_controller.js'] ?? null;
+        self::assertIsString($compiledPath);
+        $this->compiledControllerSource = file_get_contents($root . '/public' . $compiledPath);
+
         self::assertNotFalse($this->controllerSource);
         self::assertNotFalse($this->templateSource);
+        self::assertNotFalse($this->compiledControllerSource);
     }
 
     public function testIdempotencyKeyIsRetainedAcrossRetry(): void
@@ -34,6 +46,39 @@ final class PosCheckoutUiContractTest extends TestCase
         self::assertStringContainsString("'Idempotency-Key': this.idempotencyKey", $this->controllerSource);
         self::assertStringContainsString('this.submit();', $this->controllerSource);
         self::assertStringContainsString('this.idempotencyKey = null;', $this->controllerSource);
+    }
+
+    public function testPhase5InteractionLabelsAreProvidedByTranslationValues(): void
+    {
+        foreach ([
+            'cartRemoveLabel: String',
+            'cartIncreaseLabel: String',
+            'cartDecreaseLabel: String',
+            'statusItemAdded: String',
+            'statusSaleCleared: String',
+            'processingLabel: String',
+            'completeSaleLabel: String',
+            'bankPaymentLabel: String',
+            'this.cartRemoveLabelValue',
+            'this.cartIncreaseLabelValue',
+            'this.cartDecreaseLabelValue',
+            'this.processingLabelValue',
+            'this.completeSaleLabelValue',
+            'this.bankPaymentLabelValue',
+        ] as $required) {
+            self::assertStringContainsString($required, $this->controllerSource);
+        }
+
+        foreach ([
+            'data-pos-checkout-cart-remove-label-value',
+            'data-pos-checkout-cart-increase-label-value',
+            'data-pos-checkout-cart-decrease-label-value',
+            'data-pos-checkout-processing-label-value',
+            'data-pos-checkout-complete-sale-label-value',
+            'data-pos-checkout-bank-payment-label-value',
+        ] as $required) {
+            self::assertStringContainsString($required, $this->templateSource);
+        }
     }
 
     public function testDoubleSubmitIsBlockedWhileRequestIsInFlight(): void
@@ -107,6 +152,8 @@ final class PosCheckoutUiContractTest extends TestCase
         self::assertStringContainsString('value >= totalMinor', $this->controllerSource);
         self::assertStringContainsString('sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))', $this->controllerSource);
         self::assertStringContainsString('data-pos-checkout-target="quickCash"', $this->templateSource);
+        self::assertStringContainsString('data-pos-checkout-target="paymentDueRow"', $this->templateSource);
+        self::assertStringContainsString('data-pos-checkout-target="paymentChangeRow"', $this->templateSource);
     }
 
     public function testCashAndBankTransferHaveDistinctUiSemantics(): void
@@ -116,8 +163,94 @@ final class PosCheckoutUiContractTest extends TestCase
         self::assertStringContainsString('Customer gives', $this->templateSource);
         self::assertStringContainsString('Transfer amount', $this->templateSource);
         self::assertStringContainsString("tenderedAmount: isCash ?", $this->controllerSource);
+        self::assertStringContainsString('data-cash-only', $this->templateSource);
+        self::assertStringContainsString('data-transfer-only', $this->templateSource);
+        self::assertStringContainsString('Transfer content: <strong data-pos-checkout-target="transferContent"></strong>', $this->templateSource);
+        self::assertStringNotContainsString('<label hidden data-transfer-only>Transfer content', $this->templateSource);
         self::assertStringContainsString("Bank transfer amount must equal the order total.", $this->controllerSource);
         self::assertStringContainsString("this.paymentMethodsTargets", $this->controllerSource);
+    }
+
+    public function testPaymentStateControlsCompletionButton(): void
+    {
+        self::assertStringContainsString('const canCompleteCash = totalMinor > 0n', $this->controllerSource);
+        self::assertStringContainsString('(enteredMinor >= totalMinor || this.customer !== null)', $this->controllerSource);
+        self::assertStringContainsString('this.submitButtonTarget.disabled = !canCompleteCash;', $this->controllerSource);
+        self::assertStringContainsString('const canCompleteTransfer = totalMinor > 0n && enteredMinor === totalMinor;', $this->controllerSource);
+        self::assertStringContainsString('this.submitButtonTarget.disabled = !canCompleteTransfer;', $this->controllerSource);
+    }
+
+
+    public function testBankTransferCompletionPolicySeparatesPaymentReceiptFromSaleCompletion(): void
+    {
+        self::assertStringContainsString('bankTransferCompletionPolicy', $this->controllerSource);
+        self::assertStringContainsString("this.bankTransferCompletionPolicy === 'MANUAL'", $this->controllerSource);
+        self::assertStringContainsString('completePaidSale', $this->controllerSource);
+        self::assertStringContainsString('data-pos-checkout-target="completePaidSaleButton"', $this->templateSource);
+        self::assertStringContainsString("body.data.paymentReceived === true", $this->controllerSource);
+        self::assertStringContainsString('paymentSessionId', $this->controllerSource);
+        self::assertStringContainsString('/app/payment-sessions/', $this->controllerSource);
+    }
+
+
+    public function testManualBankConfirmationIsExplicitAndPermissionGated(): void
+    {
+        self::assertStringContainsString('manualBankConfirm', $this->controllerSource);
+        self::assertStringContainsString('/manual-confirm', $this->controllerSource);
+        self::assertStringContainsString('X-CSRF-TOKEN', $this->controllerSource);
+        self::assertStringContainsString('window.confirm(', $this->controllerSource);
+        self::assertStringContainsString('PAYMENT_BANK_MANUAL_CONFIRM', file_get_contents(__DIR__ . '/../../src/Application/Security/Permission.php'));
+        self::assertStringContainsString('data-pos-checkout-target="manualBankConfirmButton"', $this->templateSource);
+    }
+
+
+    public function testBankWebhookReceiptAutoCompletesAndHidesActions(): void
+    {
+        self::assertStringContainsString('this.hideAllSuccessActions();', $this->controllerSource);
+        self::assertStringContainsString('void this.completePaidSale();', $this->controllerSource);
+        self::assertStringContainsString("this.setStatus('Payment received. Completing sale…');", $this->controllerSource);
+        self::assertStringContainsString("this.completePaidSaleButtonTarget.textContent = 'Complete sale manually';", $this->controllerSource);
+        self::assertStringContainsString('data-pos-checkout-target="newSaleButton"', $this->templateSource);
+        self::assertStringContainsString('data-pos-checkout-target="resultPaymentReferenceQrButton"', $this->templateSource);
+        self::assertStringContainsString('this.newSaleButtonTarget.hidden = true;', $this->controllerSource);
+    }
+
+
+    public function testQrModalLivesInsideStimulusController(): void
+    {
+        $controllerStart = strpos($this->templateSource, '<div class="pos-page"');
+        $modalStart = strpos($this->templateSource, 'data-pos-checkout-target="qrModal"');
+        $controllerEnd = strrpos($this->templateSource, '</div>');
+
+        self::assertNotFalse($controllerStart);
+        self::assertNotFalse($modalStart);
+        self::assertGreaterThan($controllerStart, $modalStart);
+        self::assertSame(1, substr_count($this->templateSource, 'data-pos-checkout-target="qrModal"'));
+        self::assertStringContainsString('this.qrModalTarget.hidden = false;', $this->controllerSource);
+        self::assertStringContainsString('click->pos-checkout#openQrModal', $this->templateSource);
+    }
+
+    public function testCompiledPosControllerMatchesPhase227Contract(): void
+    {
+        foreach ([
+            'completePaidSale',
+            'bankTransferCompletionPolicy',
+            'currentTime',
+            'paymentSessionId',
+            'qrModal',
+            'openQrModal',
+            'closeQrModal',
+            "body.data.paymentReceived === true",
+        ] as $required) {
+            self::assertStringContainsString($required, $this->compiledControllerSource);
+        }
+    }
+
+    public function testPosShowsLiveCurrentTime(): void
+    {
+        self::assertStringContainsString('currentTime', $this->controllerSource);
+        self::assertStringContainsString('setInterval(() => this.updateCurrentTime(), 1000)', $this->controllerSource);
+        self::assertStringContainsString('data-pos-checkout-target="currentTime"', $this->templateSource);
     }
 
     public function testFrontendDoesNotBecomeBusinessAuthority(): void
@@ -147,4 +280,37 @@ final class PosCheckoutUiContractTest extends TestCase
         self::assertStringContainsString('data.tenderedAmount', $this->controllerSource);
         self::assertStringContainsString('data.changeAmount', $this->controllerSource);
     }
+    public function testExpiredSessionReferenceRegenerationUsesSessionEndpointAndRestartsCountdown(): void
+    {
+        self::assertStringContainsString(
+            "`/app/payment-sessions/${this.paymentSessionId}/payment-reference/regenerate`",
+            $this->controllerSource
+        );
+        self::assertStringContainsString(
+            '(!this.paymentSessionId && !this.paymentReferenceOrderId)',
+            $this->controllerSource
+        );
+        self::assertStringContainsString(
+            'paymentReferenceExpiresAt: body.data.expiresAt',
+            $this->controllerSource
+        );
+        self::assertStringContainsString(
+            'this.paymentReferenceCountdownTimer = globalThis.setInterval(() => this.updatePaymentReferenceCountdown(), 1000);',
+            $this->controllerSource
+        );
+        self::assertStringContainsString(
+            'this.renderPaymentReference({',
+            $this->controllerSource
+        );
+        self::assertStringContainsString(
+            'paymentReferenceQrUrl: body.data.qrUrl',
+            $this->controllerSource
+        );
+        self::assertStringContainsString(
+            'paymentSessionId: body.data.sessionId ?? this.paymentSessionId',
+            $this->controllerSource
+        );
+    }
+
+
 }

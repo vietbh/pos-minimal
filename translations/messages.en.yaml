@@ -103,3 +103,87 @@ session:
 pos:
   page_title: Point of Sale · Mobile POS
   close: Close
+  eyebrow: Point of Sale
+  new_sale: New sale
+  current_time: Current time
+  status:
+    ready: Ready
+    item_added: Item added.
+    sale_cleared: Sale cleared.
+  products:
+    title: Products
+    search_help: Search by product name or SKU.
+    search_label: Search products
+    search_placeholder: Search product or SKU…
+    all_categories: All categories
+    pagination: Product pagination
+    previous: Previous
+    next: Next
+    page_indicator: 'Page %page% / %total%'
+  cart:
+    title: Current sale
+    items: items
+    clear: Clear
+    empty: Add a product to start the sale.
+    total: Total
+    server_total_note: Final total is confirmed by the server at checkout.
+    remove: Remove
+    increase: Increase
+    decrease: Decrease
+  customer:
+    title: Customer
+    optional: Optional
+    remove: Remove
+    search_label: Search customers
+    search_placeholder: Search customer by name or phone…
+  payment:
+    title: Payment
+    order_total: Order total
+    method: Payment method
+    cash: Cash
+    bank_transfer: Bank transfer
+    customer_gives: Customer gives
+    transfer_amount: Transfer amount
+    receiving_account: Receiving account
+    add_products: Add products
+    note: Note
+    manual_confirm: Confirm bank transfer manually
+    scan_to_pay: Scan to pay
+    amount: 'Amount:'
+    expires_in: 'Expires in:'
+  checkout:
+    title: Complete sale
+    complete_sale: Complete sale
+    retry: Retry checkout
+    processing: Processing…
+    start_bank_payment: Start bank payment
+  success:
+    completed: Completed
+    sale_completed: Sale completed
+    order: Order
+    total: Total
+    paid: Paid
+    customer_gave: Customer gave
+    change_due: Change due
+    debt: Debt
+    request: Request
+  payment_reference:
+    title: Payment reference
+    expires: 'Expires:'
+    remaining: 'Remaining:'
+    content: 'Transfer content:'
+    open_qr: Open payment QR full screen
+    qr_alt: VietQR payment QR
+    regenerate: Create new code
+    regenerate_hint: A new code can only be created after the current code expires.
+  webhook:
+    title: Bank transaction details
+    waiting: Waiting for webhook
+    provider: Provider
+    transaction_id: Transaction ID
+    received_at: Received at
+    amount: Amount
+  payment_received:
+    eyebrow: Payment received
+    title: Payment Received
+    message: The bank transfer has been confirmed.

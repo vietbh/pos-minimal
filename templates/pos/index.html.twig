@@ -12,33 +12,41 @@
      data-pos-checkout-customer-search-url-value="{{ path('pos_customers_search') }}"
      data-pos-checkout-payment-reference-regenerate-base-url-value="{{ path('payment_reference_regenerate', {id: 0}) }}"
      data-pos-checkout-complete-order-base-url-value="{{ path('order_complete', {id: 0}) }}"
-     data-pos-checkout-manual-bank-confirm-available-value="{{ manual_bank_confirm_allowed ? 'true' : 'false' }}">
+     data-pos-checkout-manual-bank-confirm-available-value="{{ manual_bank_confirm_allowed ? 'true' : 'false' }}"
+     data-pos-checkout-cart-remove-label-value="{{ 'pos.cart.remove'|trans }}"
+     data-pos-checkout-cart-increase-label-value="{{ 'pos.cart.increase'|trans }}"
+     data-pos-checkout-cart-decrease-label-value="{{ 'pos.cart.decrease'|trans }}"
+     data-pos-checkout-status-item-added-value="{{ 'pos.status.item_added'|trans }}"
+     data-pos-checkout-status-sale-cleared-value="{{ 'pos.status.sale_cleared'|trans }}"
+     data-pos-checkout-processing-label-value="{{ 'pos.checkout.processing'|trans }}"
+     data-pos-checkout-complete-sale-label-value="{{ 'pos.checkout.complete_sale'|trans }}"
+     data-pos-checkout-bank-payment-label-value="{{ 'pos.checkout.start_bank_payment'|trans }}">
 
     <div class="pos-message pos-error" data-pos-checkout-target="message" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
 
     <div data-pos-checkout-target="saleView">
         <header class="pos-header">
             <div>
-                <p class="pos-eyebrow">Point of Sale</p>
-                <h1>New sale</h1>
+                <p class="pos-eyebrow">{{ 'pos.eyebrow'|trans }}</p>
+                <h1>{{ 'pos.new_sale'|trans }}</h1>
             </div>
-            <div class="pos-header-meta"><span class="pos-current-time" data-pos-checkout-target="currentTime" aria-label="Current time"></span><span class="pos-state" data-pos-checkout-target="status" role="status" aria-live="polite">Ready</span></div>
+            <div class="pos-header-meta"><span class="pos-current-time" data-pos-checkout-target="currentTime" aria-label="{{ 'pos.current_time'|trans }}"></span><span class="pos-state" data-pos-checkout-target="status" role="status" aria-live="polite">{{ 'pos.status.ready'|trans }}</span></div>
         </header>
 
         <main class="pos-layout">
             <section class="pos-card pos-products" aria-labelledby="product-search-heading">
                 <div class="pos-section-header">
                     <div>
-                        <h2 id="product-search-heading">Products</h2>
-                        <p class="muted">Search by product name or SKU.</p>
+                        <h2 id="product-search-heading">{{ 'pos.products.title'|trans }}</h2>
+                        <p class="muted">{{ 'pos.products.search_help'|trans }}</p>
                     </div>
                 </div>
                 <div class="pos-product-filters">
-                    <label class="sr-only" for="pos-product-search">Search products</label>
+                    <label class="sr-only" for="pos-product-search">{{ 'pos.products.search_label'|trans }}</label>
                     <input id="pos-product-search"
                            class="pos-search"
                            type="search"
-                           placeholder="Search product or SKU…"
+                           placeholder="{{ 'pos.products.search_placeholder'|trans }}"
                            autocomplete="off"
                            enterkeyhint="search"
                            data-pos-checkout-target="productSearch"
@@ -48,46 +56,46 @@
                             class="pos-search"
                             data-pos-checkout-target="productCategory"
                             data-action="change->pos-checkout#productCategoryChanged">
-                        <option value="">All categories</option>
+                        <option value="">{{ 'pos.products.all_categories'|trans }}</option>
                     </select>
                 </div>
                 <div class="pos-catalog-meta" data-pos-checkout-target="productCatalogMeta" aria-live="polite"></div>
                 <div class="pos-results" data-pos-checkout-target="productResults" aria-live="polite"></div>
-                <nav class="pos-product-pagination" data-pos-checkout-target="productPagination" aria-label="Product pagination" hidden>
-                    <button type="button" class="button" data-pos-checkout-target="productPrevious" data-action="click->pos-checkout#previousProductPage">Trước</button>
-                    <span data-pos-checkout-target="productPageIndicator">Trang 1 / 1</span>
-                    <button type="button" class="button" data-pos-checkout-target="productNext" data-action="click->pos-checkout#nextProductPage">Sau</button>
+                <nav class="pos-product-pagination" data-pos-checkout-target="productPagination" aria-label="{{ 'pos.products.pagination'|trans }}" hidden>
+                    <button type="button" class="button" data-pos-checkout-target="productPrevious" data-action="click->pos-checkout#previousProductPage">{{ 'pos.products.previous'|trans }}</button>
+                    <span data-pos-checkout-target="productPageIndicator">{{ 'pos.products.page_indicator'|trans({page: 1, total: 1}) }}</span>
+                    <button type="button" class="button" data-pos-checkout-target="productNext" data-action="click->pos-checkout#nextProductPage">{{ 'pos.products.next'|trans }}</button>
                 </nav>
             </section>
 
             <section class="pos-card pos-cart" aria-labelledby="cart-heading">
                 <div class="pos-section-header">
                     <div>
-                        <h2 id="cart-heading">Current sale</h2>
-                        <p class="muted"><span data-pos-checkout-target="cartCount">0</span> items</p>
+                        <h2 id="cart-heading">{{ 'pos.cart.title'|trans }}</h2>
+                        <p class="muted"><span data-pos-checkout-target="cartCount">0</span> {{ 'pos.cart.items'|trans }}</p>
                     </div>
-                    <button type="button" class="button" data-action="click->pos-checkout#clearCart">Clear</button>
+                    <button type="button" class="button" data-action="click->pos-checkout#clearCart">{{ 'pos.cart.clear'|trans }}</button>
                 </div>
                 <div class="pos-cart-list" data-pos-checkout-target="cart"></div>
-                <div class="pos-empty" data-pos-checkout-target="cartEmpty">Add a product to start the sale.</div>
-                <div class="pos-cart-total"><span>Total</span><strong data-pos-checkout-target="cartTotal">0</strong></div>
-                <p class="pos-total-note">Final total is confirmed by the server at checkout.</p>
+                <div class="pos-empty" data-pos-checkout-target="cartEmpty">{{ 'pos.cart.empty'|trans }}</div>
+                <div class="pos-cart-total"><span>{{ 'pos.cart.total'|trans }}</span><strong data-pos-checkout-target="cartTotal">0</strong></div>
+                <p class="pos-total-note">{{ 'pos.cart.server_total_note'|trans }}</p>
             </section>
 
             <section class="pos-card" aria-labelledby="customer-heading">
                 <div class="pos-section-header">
                     <div>
-                        <h2 id="customer-heading">Customer</h2>
-                        <p class="muted">Optional</p>
+                        <h2 id="customer-heading">{{ 'pos.customer.title'|trans }}</h2>
+                        <p class="muted">{{ 'pos.customer.optional'|trans }}</p>
                     </div>
-                    <button type="button" class="button" data-pos-checkout-target="clearCustomer" data-action="click->pos-checkout#clearCustomer" hidden>Remove</button>
+                    <button type="button" class="button" data-pos-checkout-target="clearCustomer" data-action="click->pos-checkout#clearCustomer" hidden>{{ 'pos.customer.remove'|trans }}</button>
                 </div>
                 <div class="pos-selected" data-pos-checkout-target="selectedCustomer" hidden></div>
-                <label class="sr-only" for="pos-customer-search">Search customers</label>
+                <label class="sr-only" for="pos-customer-search">{{ 'pos.customer.search_label'|trans }}</label>
                 <input id="pos-customer-search"
                        class="pos-search"
                        type="search"
-                       placeholder="Search customer by name or phone…"
+                       placeholder="{{ 'pos.customer.search_placeholder'|trans }}"
                        autocomplete="off"
                        enterkeyhint="search"
                        data-pos-checkout-target="customerSearch"
@@ -98,24 +106,24 @@
             <section class="pos-card pos-payment-card" aria-labelledby="payment-heading">
                 <div class="pos-section-header">
                     <div>
-                        <p class="pos-eyebrow">Payment</p>
-                        <h2 id="payment-heading">Complete sale</h2>
+                        <p class="pos-eyebrow">{{ 'pos.payment.title'|trans }}</p>
+                        <h2 id="payment-heading">{{ 'pos.checkout.title'|trans }}</h2>
                     </div>
                 </div>
 
                 <div class="pos-payment-total">
-                    <span>Order total</span>
+                    <span>{{ 'pos.payment.order_total'|trans }}</span>
                     <strong data-pos-checkout-target="paymentTotal">0</strong>
                 </div>
 
                 <fieldset class="pos-methods">
-                    <legend>Payment method</legend>
-                    <label class="pos-method"><input type="radio" name="payment-method" value="CASH" checked data-pos-checkout-target="paymentMethods" data-action="change->pos-checkout#paymentMethodChanged"> <span>Cash</span></label>
-                    <label class="pos-method"><input type="radio" name="payment-method" value="BANK_TRANSFER" data-pos-checkout-target="paymentMethods" data-action="change->pos-checkout#paymentMethodChanged"> <span>Bank transfer</span></label>
+                    <legend>{{ 'pos.payment.method'|trans }}</legend>
+                    <label class="pos-method"><input type="radio" name="payment-method" value="CASH" checked data-pos-checkout-target="paymentMethods" data-action="change->pos-checkout#paymentMethodChanged"> <span>{{ 'pos.payment.cash'|trans }}</span></label>
+                    <label class="pos-method"><input type="radio" name="payment-method" value="BANK_TRANSFER" data-pos-checkout-target="paymentMethods" data-action="change->pos-checkout#paymentMethodChanged"> <span>{{ 'pos.payment.bank_transfer'|trans }}</span></label>
                 </fieldset>
 
                 <div class="pos-payment-fields">
-                    <label data-cash-only>Customer gives
+                    <label data-cash-only>{{ 'pos.payment.customer_gives'|trans }}
                         <div class="pos-payment-input-row">
                             <input data-pos-checkout-target="customerTendered"
                                    inputmode="decimal"
@@ -128,10 +136,10 @@
                                     class="button"
                                     data-pos-checkout-target="clearTendered"
                                     data-action="click->pos-checkout#clearCustomerTendered"
-                                    hidden>Clear</button>
+                                    hidden>{{ 'pos.cart.clear'|trans }}</button>
                         </div>
                     </label>
-                    <label hidden style="display:none" data-transfer-only>Transfer amount
+                    <label hidden style="display:none" data-transfer-only>{{ 'pos.payment.transfer_amount'|trans }}
                         <input data-pos-checkout-target="paymentAmount"
                                inputmode="decimal"
                                enterkeyhint="done"
@@ -140,7 +148,7 @@
                                placeholder="0"
                                autocomplete="off">
                     </label>
-                    <label hidden style="display:none" data-transfer-only>Receiving account
+                    <label hidden style="display:none" data-transfer-only>{{ 'pos.payment.receiving_account'|trans }}
                         <select data-pos-checkout-target="bankAccount"
                                 data-action="change->pos-checkout#bankAccountChanged">
 {#                            <option value="">Select receiving account</option>#}
@@ -174,7 +182,7 @@
                     <div class="muted">Account name: <strong data-pos-checkout-target="bankAccountName"></strong></div>
                     <div class="muted">Transfer content: <strong data-pos-checkout-target="transferContent"></strong></div>
                     <div class="pos-bank-qr-placeholder" data-pos-checkout-target="bankQrPlaceholder" aria-live="polite">QR sẽ xuất hiện sau khi bắt đầu thanh toán.</div>
-                    <img data-pos-checkout-target="bankQr" class="pos-bank-qr" alt="VietQR payment QR" hidden style="display:none">
+                    <img data-pos-checkout-target="bankQr" class="pos-bank-qr" alt="{{ 'pos.payment_reference.qr_alt'|trans }}" hidden style="display:none">
                 </div>
 
                 <div class="pos-quick-cash" data-pos-checkout-target="quickCash" aria-label="Quick cash amounts"></div>
@@ -182,11 +190,11 @@
                 <dl class="pos-payment-summary">
                     <div><dt>Payment applied</dt><dd data-pos-checkout-target="paymentApplied">0</dd></div>
                     <div data-pos-checkout-target="paymentDueRow" hidden><dt>Remaining</dt><dd data-pos-checkout-target="paymentDue">0</dd></div>
-                    <div data-cash-only data-pos-checkout-target="paymentChangeRow" hidden><dt>Change due</dt><dd data-pos-checkout-target="paymentChange">0</dd></div>
+                    <div data-cash-only data-pos-checkout-target="paymentChangeRow" hidden><dt>{{ 'pos.success.change_due'|trans }}</dt><dd data-pos-checkout-target="paymentChange">0</dd></div>
                 </dl>
-                <p class="pos-payment-state" data-pos-checkout-target="paymentState" role="status" aria-live="polite">Add products</p>
+                <p class="pos-payment-state" data-pos-checkout-target="paymentState" role="status" aria-live="polite">{{ 'pos.payment.add_products'|trans }}</p>
 
-                <label>Note
+                <label>{{ 'pos.payment.note'|trans }}
                     <input data-pos-checkout-target="note" maxlength="1000" autocomplete="off" enterkeyhint="done">
                 </label>
 
@@ -201,56 +209,56 @@
     </div>
 
     <section class="pos-card pos-success" data-pos-checkout-target="success" hidden aria-live="polite">
-        <div class="pos-current-time pos-success-time" data-pos-checkout-target="currentTime" aria-label="Current time"></div>
+        <div class="pos-current-time pos-success-time" data-pos-checkout-target="currentTime" aria-label="{{ 'pos.current_time'|trans }}"></div>
         <div class="pos-success-icon" aria-hidden="true">✓</div>
-        <p class="pos-eyebrow" data-pos-checkout-target="successEyebrow">Completed</p>
-        <h1 data-pos-checkout-target="successTitle">Sale completed</h1>
-        <p>Order <strong data-pos-checkout-target="resultOrder"></strong></p>
+        <p class="pos-eyebrow" data-pos-checkout-target="successEyebrow">{{ 'pos.success.completed'|trans }}</p>
+        <h1 data-pos-checkout-target="successTitle">{{ 'pos.success.sale_completed'|trans }}</h1>
+        <p>{{ 'pos.success.order'|trans }} <strong data-pos-checkout-target="resultOrder"></strong></p>
         <section class="pos-bank-reference-result" data-pos-checkout-target="paymentReferenceResult" hidden>
-            <div><strong>Mã chuyển khoản</strong></div>
+            <div><strong>{{ 'pos.payment_reference.title'|trans }}</strong></div>
             <div class="pos-payment-reference" data-pos-checkout-target="resultPaymentReference"></div>
-            <div>Hết hạn: <strong data-pos-checkout-target="resultPaymentReferenceExpiresAt"></strong></div>
-            <div>Còn lại: <strong data-pos-checkout-target="resultPaymentReferenceCountdown"></strong></div>
-            <div>Nội dung: <strong data-pos-checkout-target="resultPaymentReferenceTransferContent"></strong></div>
-            <button type="button" class="pos-qr-button" data-pos-checkout-target="resultPaymentReferenceQrButton" data-action="click->pos-checkout#openQrModal" aria-label="Open payment QR full screen"><img data-pos-checkout-target="resultPaymentReferenceQr" class="pos-bank-qr" alt="VietQR payment QR" hidden></button>
-            <button type="button" class="button" data-pos-checkout-target="regeneratePaymentReferenceButton" data-action="click->pos-checkout#regeneratePaymentReference" disabled>Tạo mã mới</button>
-            <p class="muted" data-pos-checkout-target="paymentReferenceHint">Mã mới chỉ được tạo khi mã hiện tại đã hết hạn.</p>
+            <div>{{ 'pos.payment_reference.expires'|trans }} <strong data-pos-checkout-target="resultPaymentReferenceExpiresAt"></strong></div>
+            <div>{{ 'pos.payment_reference.remaining'|trans }} <strong data-pos-checkout-target="resultPaymentReferenceCountdown"></strong></div>
+            <div>{{ 'pos.payment_reference.content'|trans }} <strong data-pos-checkout-target="resultPaymentReferenceTransferContent"></strong></div>
+            <button type="button" class="pos-qr-button" data-pos-checkout-target="resultPaymentReferenceQrButton" data-action="click->pos-checkout#openQrModal" aria-label="{{ 'pos.payment_reference.open_qr'|trans }}"><img data-pos-checkout-target="resultPaymentReferenceQr" class="pos-bank-qr" alt="{{ 'pos.payment_reference.qr_alt'|trans }}" hidden></button>
+            <button type="button" class="button" data-pos-checkout-target="regeneratePaymentReferenceButton" data-action="click->pos-checkout#regeneratePaymentReference" disabled>{{ 'pos.payment_reference.regenerate'|trans }}</button>
+            <p class="muted" data-pos-checkout-target="paymentReferenceHint">{{ 'pos.payment_reference.regenerate_hint'|trans }}</p>
         </section>
         <section class="pos-webhook-enrichment" data-pos-checkout-target="webhookEnrichment" hidden aria-live="polite">
             <div class="pos-webhook-enrichment-head">
-                <strong>Thông tin giao dịch ngân hàng</strong>
-                <span data-pos-checkout-target="webhookEnrichmentState">Đang chờ webhook</span>
+                <strong>{{ 'pos.webhook.title'|trans }}</strong>
+                <span data-pos-checkout-target="webhookEnrichmentState">{{ 'pos.webhook.waiting'|trans }}</span>
             </div>
             <div class="pos-webhook-enrichment-grid">
-                <div><span>Provider</span><strong data-pos-checkout-target="webhookProvider">—</strong></div>
-                <div><span>Mã giao dịch</span><strong data-pos-checkout-target="webhookExternalId">—</strong></div>
-                <div><span>Thời gian nhận</span><strong data-pos-checkout-target="webhookOccurredAt">—</strong></div>
-                <div><span>Số tiền</span><strong data-pos-checkout-target="webhookAmount">—</strong></div>
+                <div><span>{{ 'pos.webhook.provider'|trans }}</span><strong data-pos-checkout-target="webhookProvider">—</strong></div>
+                <div><span>{{ 'pos.webhook.transaction_id'|trans }}</span><strong data-pos-checkout-target="webhookExternalId">—</strong></div>
+                <div><span>{{ 'pos.webhook.received_at'|trans }}</span><strong data-pos-checkout-target="webhookOccurredAt">—</strong></div>
+                <div><span>{{ 'pos.webhook.amount'|trans }}</span><strong data-pos-checkout-target="webhookAmount">—</strong></div>
             </div>
             <p data-pos-checkout-target="webhookDescription"></p>
         </section>
         <dl class="pos-result-grid">
-            <div><dt>Total</dt><dd data-pos-checkout-target="resultTotal"></dd></div>
-            <div><dt>Paid</dt><dd data-pos-checkout-target="resultPaid"></dd></div>
-            <div data-pos-checkout-target="resultTenderedRow"><dt>Customer gave</dt><dd data-pos-checkout-target="resultTendered"></dd></div>
-            <div data-pos-checkout-target="resultChangeRow"><dt>Change due</dt><dd data-pos-checkout-target="resultChange"></dd></div>
-            <div data-pos-checkout-target="resultDebtRow"><dt>Debt</dt><dd data-pos-checkout-target="resultDebt"></dd></div>
+            <div><dt>{{ 'pos.success.total'|trans }}</dt><dd data-pos-checkout-target="resultTotal"></dd></div>
+            <div><dt>{{ 'pos.success.paid'|trans }}</dt><dd data-pos-checkout-target="resultPaid"></dd></div>
+            <div data-pos-checkout-target="resultTenderedRow"><dt>{{ 'pos.success.customer_gave'|trans }}</dt><dd data-pos-checkout-target="resultTendered"></dd></div>
+            <div data-pos-checkout-target="resultChangeRow"><dt>{{ 'pos.success.change_due'|trans }}</dt><dd data-pos-checkout-target="resultChange"></dd></div>
+            <div data-pos-checkout-target="resultDebtRow"><dt>{{ 'pos.success.debt'|trans }}</dt><dd data-pos-checkout-target="resultDebt"></dd></div>
         </dl>
-        <p class="muted">Request <span data-pos-checkout-target="requestId"></span></p>
-        <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="completePaidSaleButton" data-action="click->pos-checkout#completePaidSale" hidden>Complete sale</button>
-                <button type="button" class="button warning" data-pos-checkout-target="manualBankConfirmButton" data-action="click->pos-checkout#manualBankConfirm" hidden>Confirm bank transfer manually</button>
-        <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="newSaleButton" data-action="click->pos-checkout#newSale">New sale</button>
+        <p class="muted">{{ 'pos.success.request'|trans }} <span data-pos-checkout-target="requestId"></span></p>
+        <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="completePaidSaleButton" data-action="click->pos-checkout#completePaidSale" hidden>{{ 'pos.checkout.complete_sale'|trans }}</button>
+                <button type="button" class="button warning" data-pos-checkout-target="manualBankConfirmButton" data-action="click->pos-checkout#manualBankConfirm" hidden>{{ 'pos.payment.manual_confirm'|trans }}</button>
+        <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="newSaleButton" data-action="click->pos-checkout#newSale">{{ 'pos.new_sale'|trans }}</button>
     </section>
     <div class="pos-payment-received-modal" data-pos-checkout-target="paymentReceivedModal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pos-payment-received-title" aria-describedby="pos-payment-received-description">
         <div class="pos-payment-received-backdrop" aria-hidden="true"></div>
         <section class="pos-payment-received-card">
             <div class="pos-payment-received-check" aria-hidden="true"><span>✓</span></div>
-            <p class="pos-eyebrow">Payment received</p>
-            <h2 id="pos-payment-received-title">Payment Received</h2>
-            <p id="pos-payment-received-description" class="pos-payment-received-message">The bank transfer has been confirmed.</p>
+            <p class="pos-eyebrow">{{ 'pos.payment_received.eyebrow'|trans }}</p>
+            <h2 id="pos-payment-received-title">{{ 'pos.payment_received.title'|trans }}</h2>
+            <p id="pos-payment-received-description" class="pos-payment-received-message">{{ 'pos.payment_received.message'|trans }}</p>
             <strong class="pos-payment-received-amount" data-pos-checkout-target="paymentReceivedModalAmount">0</strong>
             <div class="pos-payment-received-reference" data-pos-checkout-target="paymentReceivedModalReference"></div>
-            <button type="button" class="button primary pos-payment-received-new-sale" data-action="click->pos-checkout#newSale">New Sale</button>
+            <button type="button" class="button primary pos-payment-received-new-sale" data-action="click->pos-checkout#newSale">{{ 'pos.new_sale'|trans }}</button>
             <p class="pos-payment-received-countdown" role="status" aria-live="polite">Returning to POS in <strong data-pos-checkout-target="paymentReceivedCountdown">5</strong>…</p>
         </section>
     </div>
@@ -259,12 +267,12 @@
         <div class="pos-qr-modal-backdrop" data-action="click->pos-checkout#closeQrModal"></div>
         <section class="pos-qr-modal-card">
             <button type="button" class="button pos-qr-modal-close" data-pos-checkout-target="qrModalClose" data-action="click->pos-checkout#closeQrModal" aria-label="Close QR">×</button>
-            <p class="pos-eyebrow">Bank transfer</p>
-            <h2 id="pos-qr-modal-title">Scan to pay</h2>
-            <img data-pos-checkout-target="qrModalImage" class="pos-qr-modal-image" alt="Large VietQR payment QR">
+            <p class="pos-eyebrow">{{ 'pos.payment.bank_transfer'|trans }}</p>
+            <h2 id="pos-qr-modal-title">{{ 'pos.payment.scan_to_pay'|trans }}</h2>
+            <img data-pos-checkout-target="qrModalImage" class="pos-qr-modal-image" alt="{{ 'pos.payment_reference.qr_alt'|trans }}">
             <p class="pos-payment-reference" data-pos-checkout-target="qrModalReference"></p>
-            <p>Amount: <strong data-pos-checkout-target="qrModalAmount"></strong></p>
-            <p>Expires in: <strong data-pos-checkout-target="qrModalCountdown"></strong></p>
+            <p>{{ 'pos.payment.amount'|trans }} <strong data-pos-checkout-target="qrModalAmount"></strong></p>
+            <p>{{ 'pos.payment.expires_in'|trans }} <strong data-pos-checkout-target="qrModalCountdown"></strong></p>
         </section>
     </div>
 </div>

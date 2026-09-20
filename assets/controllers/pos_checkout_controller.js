@@ -7,22 +7,34 @@ const MINOR_SCALE = 100n;
 
 export default class extends Controller {
     static targets = [
-        'productSearch', 'productResults', 'customerSearch', 'customerResults',
+        'productSearch', 'productResults', 'productCategory', 'productCatalogMeta', 'productPagination', 'productPrevious', 'productNext', 'productPageIndicator', 'webhookEnrichment', 'webhookEnrichmentState', 'webhookProvider', 'webhookExternalId', 'webhookOccurredAt', 'webhookAmount', 'webhookDescription', 'customerSearch', 'customerResults',
         'selectedCustomer', 'clearCustomer', 'cart', 'cartEmpty', 'cartCount',
         'cartTotal', 'submitButton', 'message', 'success', 'requestId', 'status',
         'retryButton', 'paymentMethods', 'paymentAmount', 'customerTendered',
         'paymentTotal', 'paymentApplied', 'paymentDue', 'paymentChange',
-        'paymentState', 'quickCash', 'note', 'resultTotal', 'resultPaid',
+        'paymentState', 'paymentDueRow', 'clearTendered', 'bankAccount', 'bankDetails', 'bankName', 'bankNumber', 'bankAccountName', 'transferContent', 'bankQr', 'paymentChangeRow', 'quickCash', 'note', 'resultTotal', 'resultPaid',
         'resultDebt', 'resultTendered', 'resultChange', 'resultOrder',
-        'resultTenderedRow', 'resultChangeRow', 'resultDebtRow', 'saleView',
+        'resultTenderedRow', 'resultChangeRow', 'resultDebtRow', 'saleView', 'paymentReferenceResult', 'resultPaymentReference', 'resultPaymentReferenceExpiresAt', 'resultPaymentReferenceCountdown', 'regeneratePaymentReferenceButton', 'paymentReferenceHint', 'manualBankConfirmButton', 'resultPaymentReferenceTransferContent', 'resultPaymentReferenceQr', 'bankQrPlaceholder', 'completePaidSaleButton', 'paymentReceivedBanner', 'paymentReceivedBannerAmount', 'paymentReceivedModal', 'paymentReceivedModalAmount', 'paymentReceivedModalReference', 'paymentReceivedCountdown', 'currentTime', 'qrModal', 'qrModalImage', 'qrModalReference', 'qrModalAmount', 'qrModalCountdown', 'qrModalClose',
     ];
 
     static values = {
         csrfToken: String,
         endpoint: String,
         productSearchUrl: String,
+        productCatalogUrl: String,
         customerSearchUrl: String,
         timeout: { type: Number, default: DEFAULT_TIMEOUT_MS },
+        paymentReferenceRegenerateBaseUrl: String,
+        completeOrderBaseUrl: String,
+        manualBankConfirmAvailable: Boolean,
+        cartRemoveLabel: String,
+        cartIncreaseLabel: String,
+        cartDecreaseLabel: String,
+        statusItemAdded: String,
+        statusSaleCleared: String,
+        processingLabel: String,
+        completeSaleLabel: String,
+        bankPaymentLabel: String,
     };
 
     connect() {
@@ -31,62 +43,167 @@ export default class extends Controller {
         this.idempotencyKey = null;
         this.cartItems = this.loadCart();
         this.customer = null;
+        this.customerTenderedAuto = true;
         this.products = new Map();
         this.customers = new Map();
+        this.renderBankAccount();
         this.productSearchTimer = null;
         this.customerSearchTimer = null;
         this.productSearchSequence = 0;
+        this.productCatalogSequence = 0;
+        this.productCatalogPage = 1;
+        this.productCatalogTotalPages = 1;
+        this.productCatalogCategory = '';
         this.customerSearchSequence = 0;
+        this.paymentReferenceCountdownTimer = null;
+        this.paymentReferenceOrderId = null;
+        this.paymentSessionId = null;
+        this.paymentReferenceExpiresAt = null;
+        this.paymentReferenceAmount = null;
+        this.paymentStatusTimer = null;
+        this.currentTimeTimer = null;
+        this.paymentReceivedResetTimer = null;
+        this.paymentReceivedCountdownTimer = null;
+        this.bankTransferCompletionPolicy = null;
+        this.updateCurrentTime();
+        this.currentTimeTimer = globalThis.setInterval(() => this.updateCurrentTime(), 1000);
 
         this.renderCart();
         this.paymentMethodChanged();
+        this.loadProductCatalog(1);
         this.setStatus('Ready');
     }
 
     disconnect() {
         globalThis.clearTimeout(this.productSearchTimer);
         globalThis.clearTimeout(this.customerSearchTimer);
+        this.stopPaymentReferenceCountdown();
+        this.stopPaymentStatusPolling();
+        this.stopPaymentReceivedCelebration();
+        if (this.currentTimeTimer !== null) {
+            globalThis.clearInterval(this.currentTimeTimer);
+            this.currentTimeTimer = null;
+        this.paymentReceivedResetTimer = null;
+        this.paymentReceivedCountdownTimer = null;
+        }
     }
 
     searchProducts() {
         globalThis.clearTimeout(this.productSearchTimer);
-        const query = this.productSearchTarget.value.trim();
-        if (query === '') {
-            this.productResultsTarget.replaceChildren();
-            return;
-        }
-
         this.productSearchTimer = globalThis.setTimeout(
-            () => this.fetchProducts(query),
+            () => this.loadProductCatalog(1),
             SEARCH_DEBOUNCE_MS,
         );
     }
 
     productSearchKeydown(event) {
-        if (event.key === 'Enter') event.preventDefault();
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            globalThis.clearTimeout(this.productSearchTimer);
+            this.loadProductCatalog(1);
+        }
     }
 
-    async fetchProducts(query) {
-        const sequence = ++this.productSearchSequence;
-        try {
-            const response = await fetch(
-                `${this.productSearchUrlValue}?q=${encodeURIComponent(query)}&limit=20`,
-                { headers: { Accept: 'application/json' }, credentials: 'same-origin' },
-            );
-            const body = await response.json().catch(() => ({}));
-            if (sequence !== this.productSearchSequence) return;
-            if (!response.ok) return new Error(body.message || 'Unable to search products.');
+    productCategoryChanged() {
+        this.productCatalogCategory = this.productCategoryTarget.value || '';
+        this.loadProductCatalog(1);
+    }
 
-            this.renderProducts(Array.isArray(body.data) ? body.data : []);
+    async loadProductCatalog(page = 1) {
+        const sequence = ++this.productCatalogSequence;
+        const query = this.productSearchTarget.value.trim();
+        const category = this.productCategoryTarget.value || '';
+        const url = new URL(this.productCatalogUrlValue, window.location.origin);
+        url.searchParams.set('q', query);
+        url.searchParams.set('page', String(Math.max(1, page)));
+        url.searchParams.set('limit', '5');
+        if (category) url.searchParams.set('category', category);
+
+        this.productResultsTarget.setAttribute('aria-busy', 'true');
+        try {
+            const response = await fetch(url.toString(), {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            const body = await response.json().catch(() => ({}));
+            if (sequence !== this.productCatalogSequence) return;
+            if (!response.ok) throw new Error(body.message || 'Unable to load products.');
+
+            const products = Array.isArray(body.data) ? body.data : [];
+            const pagination = body.pagination || {};
+            this.productCatalogPage = Number(pagination.page || 1);
+            this.productCatalogTotalPages = Math.max(1, Number(pagination.totalPages || 1));
+
+            this.renderProductCategories(Array.isArray(body.categories) ? body.categories : []);
+            this.renderProducts(products);
+            this.renderProductPagination(pagination);
         } catch (error) {
-            if (sequence === this.productSearchSequence) {
-                this.productResultsTarget.textContent = error.message;
+            if (sequence === this.productCatalogSequence) {
+                this.productResultsTarget.textContent = error?.message || 'Unable to load products.';
+                this.renderProductPagination({ page: 1, totalPages: 1, total: 0 });
             }
+        } finally {
+            if (sequence === this.productCatalogSequence) {
+                this.productResultsTarget.removeAttribute('aria-busy');
+            }
+        }
+    }
+
+    renderProductCategories(categories) {
+        const selected = this.productCategoryTarget.value || this.productCatalogCategory || '';
+        const options = [new Option('All categories', '')];
+        for (const category of categories) {
+            if (!category?.id) continue;
+            options.push(new Option(String(category.name || `Category #${category.id}`), String(category.id)));
+        }
+        this.productCategoryTarget.replaceChildren(...options);
+        this.productCategoryTarget.value = selected;
+        if (this.productCategoryTarget.value !== selected) {
+            this.productCategoryTarget.value = '';
+            this.productCatalogCategory = '';
+        }
+    }
+
+    renderProductPagination(pagination) {
+        const page = Math.max(1, Number(pagination.page || this.productCatalogPage || 1));
+        const totalPages = Math.max(1, Number(pagination.totalPages || this.productCatalogTotalPages || 1));
+        const total = Math.max(0, Number(pagination.total || 0));
+        this.productCatalogPage = page;
+        this.productCatalogTotalPages = totalPages;
+
+        if (this.hasProductCatalogMetaTarget) {
+            this.productCatalogMetaTarget.textContent = total === 0
+                ? 'Không có sản phẩm phù hợp.'
+                : `${total} sản phẩm · Hiển thị 5 sản phẩm mỗi trang`;
+        }
+        if (!this.hasProductPaginationTarget) return;
+
+        const visible = totalPages > 1;
+        this.productPaginationTarget.hidden = !visible;
+        this.productPreviousTarget.disabled = page <= 1;
+        this.productNextTarget.disabled = page >= totalPages;
+        this.productPageIndicatorTarget.textContent = `Trang ${page} / ${totalPages}`;
+    }
+
+    previousProductPage() {
+        if (this.productCatalogPage > 1) {
+            this.loadProductCatalog(this.productCatalogPage - 1);
+        }
+    }
+
+    nextProductPage() {
+        if (this.productCatalogPage < this.productCatalogTotalPages) {
+            this.loadProductCatalog(this.productCatalogPage + 1);
         }
     }
 
     renderProducts(products) {
         this.products.clear();
+        if (products.length === 0) {
+            this.productResultsTarget.textContent = 'Không tìm thấy sản phẩm.';
+            return;
+        }
+
         this.productResultsTarget.replaceChildren(...products.map((product) => {
             this.products.set(String(product.id), product);
 
@@ -101,6 +218,7 @@ export default class extends Controller {
 
             const meta = document.createElement('small');
             meta.textContent = [
+                product.categoryName || 'Chưa phân loại',
                 product.sku || 'No SKU',
                 `${this.formatMajor(product.sellingPrice)} / ${product.unit || 'unit'}`,
                 `Stock ${product.stockQuantity}`,
@@ -143,7 +261,7 @@ export default class extends Controller {
 
         this.persistCart();
         this.renderCart();
-        this.setStatus('Item added.');
+        this.setStatus(this.statusItemAddedValue);
         this.productSearchTarget.focus();
     }
 
@@ -175,11 +293,22 @@ export default class extends Controller {
     }
 
     clearCart() {
-        if (this.cartItems.length === 0) return;
         this.cartItems = [];
         this.persistCart();
+
+        // Clear all cart-derived payment totals/amounts immediately.
+        if (this.hasPaymentTotalTarget) this.paymentTotalTarget.textContent = '0';
+        if (this.hasPaymentAmountTarget) this.paymentAmountTarget.value = '';
+        if (this.hasCustomerTenderedTarget) {
+            this.customerTenderedTarget.value = '';
+            this.customerTenderedAuto = true;
+        }
+        if (this.hasPaymentAppliedTarget) this.paymentAppliedTarget.textContent = '0';
+        if (this.hasPaymentDueTarget) this.paymentDueTarget.textContent = '0';
+        if (this.hasPaymentChangeTarget) this.paymentChangeTarget.textContent = '0';
+
         this.renderCart();
-        this.setStatus('Sale cleared.');
+        this.setStatus(this.statusSaleClearedValue);
     }
 
     renderCart() {
@@ -208,19 +337,19 @@ export default class extends Controller {
             const controls = document.createElement('div');
             controls.className = 'pos-cart-controls';
 
-            const minus = this.quantityButton('−', 'Decrease', item, -1);
+            const minus = this.quantityButton('−', this.cartDecreaseLabelValue, item, -1);
             const count = document.createElement('strong');
             count.textContent = String(item.quantity);
             count.className = 'pos-quantity';
-            const plus = this.quantityButton('+', 'Increase', item, 1);
+            const plus = this.quantityButton('+', this.cartIncreaseLabelValue, item, 1);
 
             const remove = document.createElement('button');
             remove.type = 'button';
             remove.className = 'button pos-remove-button';
-            remove.textContent = 'Remove';
+            remove.textContent = this.cartRemoveLabelValue;
             remove.dataset.action = 'click->pos-checkout#removeItem';
             remove.dataset.productId = String(item.productId);
-            remove.setAttribute('aria-label', `Remove ${name.textContent}`);
+            remove.setAttribute('aria-label', `${this.cartRemoveLabelValue} ${name.textContent}`);
 
             controls.append(minus, count, plus, line, remove);
             row.append(main, controls);
@@ -257,6 +386,7 @@ export default class extends Controller {
 
     searchCustomers() {
         globalThis.clearTimeout(this.customerSearchTimer);
+        this.stopPaymentReferenceCountdown();
         const query = this.customerSearchTarget.value.trim();
         if (query === '') {
             this.customerResultsTarget.replaceChildren();
@@ -278,7 +408,7 @@ export default class extends Controller {
             );
             const body = await response.json().catch(() => ({}));
             if (sequence !== this.customerSearchSequence) return;
-            if (!response.ok) return new Error(body.message || 'Unable to search customers.');
+            if (!response.ok) throw new Error(body.message || 'Unable to search customers.');
 
             const customers = Array.isArray(body.data) ? body.data : [];
             this.customers = new Map(customers.map((customer) => [String(customer.id), customer]));
@@ -315,6 +445,7 @@ export default class extends Controller {
             : customer.name;
         this.clearCustomerTarget.hidden = false;
         this.customerSearchTarget.value = '';
+        this.updatePaymentState(this.cartTotalMinor());
         this.customerResultsTarget.replaceChildren();
     }
 
@@ -322,6 +453,7 @@ export default class extends Controller {
         this.customer = null;
         this.selectedCustomerTarget.hidden = true;
         this.clearCustomerTarget.hidden = true;
+        this.updatePaymentState(this.cartTotalMinor());
     }
 
     paymentMethodValue() {
@@ -329,17 +461,107 @@ export default class extends Controller {
         return selected?.value || 'CASH';
     }
 
+    setElementDisplay(element, visible, display = 'grid') {
+        if (!element) return;
+        element.style.display = visible ? display : 'none';
+        element.hidden = !visible;
+    }
+
     paymentMethodChanged() {
         const isCash = this.paymentMethodValue() === 'CASH';
-        this.customerTenderedTarget.closest('label').hidden = !isCash;
-        this.paymentAmountTarget.closest('label').hidden = isCash;
-        this.quickCashTarget.hidden = !isCash;
+        this.setElementDisplay(this.customerTenderedTarget.closest('label'), isCash);
+        this.setElementDisplay(this.paymentAmountTarget.closest('label'), !isCash);
+        this.setElementDisplay(this.quickCashTarget, isCash, 'flex');
+        this.setElementDisplay(this.bankAccountTarget.closest('label'), !isCash);
 
+        if (isCash) {
+            this.hideBankTransferDetails();
+        } else {
+            this.renderBankAccount();
+        }
+
+        this.updatePaymentState(this.cartTotalMinor());
+        this.updateSubmitButtonLabel();
+    }
+
+    updateSubmitButtonLabel() {
+        if (!this.hasSubmitButtonTarget || this.inFlight) return;
+        this.submitButtonTarget.textContent = this.paymentMethodValue() === 'BANK_TRANSFER'
+            ? 'Start bank payment'
+            : 'Complete sale';
+    }
+
+    bankAccountChanged() {
+        if (this.paymentMethodValue() !== 'BANK_TRANSFER') {
+            this.hideBankTransferDetails();
+            return;
+        }
+        this.renderBankAccount();
         this.updatePaymentState(this.cartTotalMinor());
     }
 
+    hideBankTransferDetails() {
+        if (this.hasBankDetailsTarget) this.setElementDisplay(this.bankDetailsTarget, false);
+        if (this.hasBankQrTarget) {
+            this.bankQrTarget.style.display = 'none';
+            this.bankQrTarget.hidden = true;
+            this.bankQrTarget.removeAttribute('src');
+        }
+        if (this.hasTransferContentTarget) this.transferContentTarget.textContent = '';
+        if (this.hasBankNameTarget) this.bankNameTarget.textContent = '';
+        if (this.hasBankNumberTarget) this.bankNumberTarget.textContent = '';
+        if (this.hasBankAccountNameTarget) this.bankAccountNameTarget.textContent = '';
+    }
+
+    renderBankAccount() {
+        if (
+            this.paymentMethodValue() !== 'BANK_TRANSFER'
+            || !this.hasBankAccountTarget
+            || this.bankAccountTarget.value === ''
+            || this.bankAccountTarget.selectedOptions.length === 0
+        ) {
+            this.hideBankTransferDetails();
+            return;
+        }
+
+        const option = this.bankAccountTarget.selectedOptions[0];
+        this.setElementDisplay(this.bankDetailsTarget, true);
+        this.bankNameTarget.textContent = option.dataset.bankName || '';
+        this.bankNumberTarget.textContent = option.dataset.accountNumber || '';
+        this.bankAccountNameTarget.textContent = option.dataset.accountName || '';
+
+        this.transferContentTarget.textContent = 'Nội dung chuyển khoản sẽ được tạo khi bắt đầu thanh toán.';
+        // QR is authoritative backend data and is rendered after Start payment.
+        // Do not manufacture or clear it while the cashier edits the cart.
+        if (!this.paymentReference) {
+            this.bankQrTarget.style.display = 'none';
+            this.bankQrTarget.hidden = true;
+            this.bankQrTarget.removeAttribute('src');
+        }
+    }
+
+    buildBankQr(totalMinor) {
+        // The backend creates the payment session/reference/QR. Never derive
+        // payment QR data from the client-side cart total.
+        if (!this.hasBankQrTarget || this.paymentReference) return;
+        this.bankQrTarget.style.display = 'none';
+        this.bankQrTarget.hidden = true;
+        this.bankQrTarget.removeAttribute('src');
+    }
+
     customerTenderedChanged() {
+        const totalMinor = this.cartTotalMinor();
+        const enteredMinor = this.safeParseMinor(this.customerTenderedTarget.value);
+        this.customerTenderedAuto = this.customerTenderedTarget.value.trim() !== '' && enteredMinor === totalMinor;
+        this.updatePaymentState(totalMinor);
+    }
+
+    clearCustomerTendered(event) {
+        event?.preventDefault();
+        this.customerTenderedAuto = false;
+        this.customerTenderedTarget.value = '';
         this.updatePaymentState(this.cartTotalMinor());
+        this.customerTenderedTarget.focus();
     }
 
     paymentAmountChanged() {
@@ -348,6 +570,19 @@ export default class extends Controller {
 
     updatePaymentState(totalMinor) {
         const isCash = this.paymentMethodValue() === 'CASH';
+        if (isCash) {
+            if (totalMinor > 0n && this.customerTenderedAuto) {
+                this.customerTenderedTarget.value = this.formatMinor(totalMinor);
+            }
+            const currentTendered = this.safeParseMinor(this.customerTenderedTarget.value);
+            this.clearTenderedTarget.hidden = totalMinor <= 0n || currentTendered === totalMinor;
+        } else {
+            // Transfer amount always follows the current cart total.
+            // A cart change (add/remove/quantity) must never leave a stale amount.
+            this.paymentAmountTarget.value = totalMinor > 0n
+                ? this.formatMinor(totalMinor)
+                : '';
+        }
         const enteredMinor = this.safeParseMinor(
             isCash ? this.customerTenderedTarget.value : this.paymentAmountTarget.value,
         );
@@ -362,6 +597,13 @@ export default class extends Controller {
             this.paymentAppliedTarget.textContent = this.formatMinor(applied);
             this.paymentDueTarget.textContent = this.formatMinor(due);
             this.paymentChangeTarget.textContent = this.formatMinor(change);
+
+            const canCompleteCash = totalMinor > 0n
+                && enteredMinor > 0n
+                && (enteredMinor >= totalMinor || this.customer !== null);
+
+            this.paymentDueRowTarget.hidden = due === 0n;
+            this.paymentChangeRowTarget.hidden = change === 0n;
             this.paymentStateTarget.textContent = totalMinor === 0n
                 ? 'Add products'
                 : enteredMinor <= 0n
@@ -369,20 +611,36 @@ export default class extends Controller {
                     : change > 0n
                         ? 'Change due'
                         : due > 0n
-                            ? 'Amount remaining'
-                            : 'Ready to complete';
+                            ? this.customer !== null
+                                ? 'Debt will be created'
+                                : 'Select a customer or enter full payment'
+                            : 'Paid in full';
+            this.submitButtonTarget.disabled = !canCompleteCash;
             this.renderQuickCash(totalMinor);
             return;
         }
 
+        this.renderBankAccount();
+        this.buildBankQr(totalMinor);
+        const transferDue = totalMinor > enteredMinor ? totalMinor - enteredMinor : 0n;
         this.paymentAppliedTarget.textContent = this.formatMinor(enteredMinor);
-        this.paymentDueTarget.textContent = '';
-        this.paymentChangeTarget.textContent = '';
+        this.paymentDueTarget.textContent = this.formatMinor(transferDue);
+        this.paymentChangeTarget.textContent = this.formatMinor(0n);
+        this.paymentDueRowTarget.hidden = transferDue === 0n;
+        this.paymentChangeRowTarget.hidden = true;
+        const canCompleteTransfer = totalMinor > 0n
+            && this.bankAccountTarget.value !== ''
+            && enteredMinor === totalMinor;
         this.paymentStateTarget.textContent = totalMinor === 0n
             ? 'Add products'
-            : enteredMinor === totalMinor
-                ? 'Ready to complete'
-                : 'Enter the exact transfer amount';
+            : this.bankAccountTarget.value === ''
+                ? 'Configure a receiving account'
+                : canCompleteTransfer
+                    ? 'Paid in full'
+                    : enteredMinor > totalMinor
+                        ? 'Transfer amount cannot exceed the order total'
+                        : 'Enter the exact transfer amount';
+        this.submitButtonTarget.disabled = !canCompleteTransfer;
         this.quickCashTarget.replaceChildren();
     }
 
@@ -437,6 +695,7 @@ export default class extends Controller {
     setCustomerTendered(event) {
         event.preventDefault();
         this.customerTenderedTarget.value = event.currentTarget.dataset.amount || '';
+        this.customerTenderedAuto = false;
         this.updatePaymentState(this.cartTotalMinor());
         this.customerTenderedTarget.focus();
     }
@@ -494,10 +753,15 @@ export default class extends Controller {
         if (this.idempotencyKey === null) this.idempotencyKey = this.newIdempotencyKey();
 
         const appliedMinor = isCash && enteredMinor > totalMinor ? totalMinor : enteredMinor;
+
         const payment = {
             method: this.paymentMethodValue(),
-            amount: this.formatMinor(appliedMinor),
-            tenderedAmount: isCash ? this.formatMinor(enteredMinor) : null,
+            amount: this.formatMinorApi(appliedMinor),
+            tenderedAmount: isCash ? this.formatMinorApi(enteredMinor) : null,
+            bankAccountId: isCash ? null : Number(this.bankAccountTarget.value),
+            // Bank-transfer PaymentReference is generated by the backend
+            // together with the persisted payment instruction/QR.
+            paymentReference: null,
         };
 
         const payload = {
@@ -569,6 +833,7 @@ export default class extends Controller {
     }
 
     newSale() {
+        this.stopPaymentReceivedCelebration();
         this.state = 'IDLE';
         this.clearMessage();
         this.successTarget.hidden = true;
@@ -577,10 +842,21 @@ export default class extends Controller {
         this.persistCart();
         this.customer = null;
         this.customerTenderedTarget.value = '';
+        this.customerTenderedAuto = true;
         this.paymentAmountTarget.value = '';
         this.noteTarget.value = '';
         this.clearCustomer();
         this.idempotencyKey = null;
+        this.paymentReference = null;
+        this.paymentReferenceOrderId = null;
+        this.paymentSessionId = null;
+        this.paymentReferenceExpiresAt = null;
+        this.stopPaymentReferenceCountdown();
+        this.stopPaymentStatusPolling();
+        if (this.hasPaymentReceivedBannerTarget) this.paymentReceivedBannerTarget.hidden = true;
+        this.bankTransferCompletionPolicy = null;
+        if (this.hasCompletePaidSaleButtonTarget) this.completePaidSaleButtonTarget.hidden = true;
+        if (this.hasPaymentReferenceResultTarget) this.paymentReferenceResultTarget.hidden = true;
         this.inFlight = false;
         this.productSearchTarget.value = '';
         this.productResultsTarget.replaceChildren();
@@ -594,20 +870,27 @@ export default class extends Controller {
         this.inFlight = submitting;
         if (submitting) this.state = 'SUBMITTING';
         this.submitButtonTarget.disabled = submitting;
-        this.submitButtonTarget.textContent = submitting ? 'Processing…' : 'Complete sale';
+        if (!submitting) this.updatePaymentState(this.cartTotalMinor());
+        this.submitButtonTarget.textContent = submitting
+            ? this.processingLabelValue
+            : (this.paymentMethodValue() === 'BANK_TRANSFER' ? this.bankPaymentLabelValue : this.completeSaleLabelValue);
         this.retryButtonTarget.disabled = submitting;
     }
 
     handleSuccess(data, requestId) {
-        this.state = 'SUCCESS';
+        const isBankPending = Boolean(data.paymentReference) && data.status !== 'COMPLETED';
+        this.bankTransferCompletionPolicy = data.bankTransferCompletionPolicy || null;
+
+        this.state = isBankPending ? 'PENDING_PAYMENT' : 'SUCCESS';
         this.saleViewTarget.hidden = true;
 
         this.resultOrderTarget.textContent = String(data.orderNumber ?? '');
-        this.resultTotalTarget.textContent = String(data.total ?? '0.00');
-        this.resultPaidTarget.textContent = String(data.paidAmount ?? '0.00');
-        this.resultDebtTarget.textContent = String(data.debtAmount ?? '0.00');
-        this.resultTenderedTarget.textContent = String(data.tenderedAmount ?? data.paidAmount ?? '0.00');
-        this.resultChangeTarget.textContent = String(data.changeAmount ?? '0.00');
+        this.renderPaymentReference(data);
+        this.resultTotalTarget.textContent = this.formatMajor(data.total ?? '0');
+        this.resultPaidTarget.textContent = this.formatMajor(data.paidAmount ?? '0');
+        this.resultDebtTarget.textContent = this.formatMajor(data.debtAmount ?? '0');
+        this.resultTenderedTarget.textContent = this.formatMajor(data.tenderedAmount ?? data.paidAmount ?? '0');
+        this.resultChangeTarget.textContent = this.formatMajor(data.changeAmount ?? '0');
         this.requestIdTarget.textContent = String(requestId ?? '');
 
         const isCash = this.paymentMethodValue() === 'CASH';
@@ -616,6 +899,30 @@ export default class extends Controller {
         this.resultDebtRowTarget.hidden = !this.isPositiveMoney(data.debtAmount);
 
         this.successTarget.hidden = false;
+        this.renderWebhookEnrichment(data.externalTransaction || null, isBankPending);
+
+        if (isBankPending) {
+            if (this.hasManualBankConfirmButtonTarget && this.manualBankConfirmAvailableValue) {
+                this.manualBankConfirmButtonTarget.hidden = false;
+                this.manualBankConfirmButtonTarget.disabled = false;
+            }
+            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Bank transfer'));
+            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Waiting for payment'));
+            this.setStatus('Waiting for bank transfer.');
+            if (this.hasCompletePaidSaleButtonTarget) {
+                this.completePaidSaleButtonTarget.hidden = false;
+                this.completePaidSaleButtonTarget.disabled = false;
+                this.completePaidSaleButtonTarget.textContent = 'Complete sale manually';
+            }
+            this.startPaymentStatusPolling();
+            this.idempotencyKey = null;
+            this.retryButtonTarget.hidden = true;
+            this.messageTarget.hidden = true;
+            return;
+        }
+
+        this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Completed'));
+        this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Sale completed'));
         this.cartItems = [];
         this.persistCart();
         this.renderCart();
@@ -623,7 +930,501 @@ export default class extends Controller {
         this.retryButtonTarget.hidden = true;
         this.messageTarget.hidden = true;
         this.messageTarget.textContent = '';
+        if (this.hasPaymentReceivedBannerTarget) {
+            this.paymentReceivedBannerTarget.hidden = true;
+        }
         this.setStatus('Sale completed.');
+    }
+
+    updateCurrentTime() {
+        if (!this.hasCurrentTimeTarget) return;
+        const formatted = new Intl.DateTimeFormat('vi-VN', {
+            dateStyle: 'short',
+            timeStyle: 'medium',
+            hour12: false,
+        }).format(new Date());
+        this.currentTimeTargets.forEach((target) => {
+            target.textContent = formatted;
+        });
+    }
+
+    async manualBankConfirm(event) {
+        event?.preventDefault();
+        if (this.inFlight || !this.paymentSessionId || !this.hasManualBankConfirmButtonTarget) return;
+
+        const reference = String(this.paymentReference ?? '').trim();
+        const amount = this.paymentReferenceAmount ?? '';
+        if (!reference || !amount) {
+            this.setStatus('Missing payment reference or amount.');
+            return;
+        }
+        if (!window.confirm('Xác nhận bạn đã kiểm tra giao dịch chuyển khoản thực tế và số tiền đúng với đơn?')) return;
+
+        this.inFlight = true;
+        this.manualBankConfirmButtonTarget.disabled = true;
+        this.hideAllSuccessActions();
+        this.setStatus('Recording manual bank confirmation…');
+        try {
+            const response = await fetch(`/app/payment-sessions/${this.paymentSessionId}/manual-confirm`, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': this.csrfTokenValue,
+                    'X-Request-ID': this.newRequestId(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ paymentReference: reference, amount: String(amount) }),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(body.message || 'Unable to confirm bank payment manually.');
+            this.paymentReferenceOrderId = Number(body.data?.orderId ?? 0) || null;
+            this.renderWebhookEnrichment(body.data?.externalTransaction || null, body.data?.webhookEnrichmentPending !== false);
+            this.state = 'SUCCESS';
+            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Completed'));
+            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Sale completed'));
+            this.resultOrderTarget.textContent = String(body.data?.orderNumber ?? '');
+            this.resultPaidTarget.textContent = this.formatMajor(body.data?.paidAmount ?? amount);
+            this.resultDebtTarget.textContent = this.formatMajor(body.data?.debtAmount ?? '0');
+            this.hideAllSuccessActions();
+            this.cartItems = [];
+            this.persistCart();
+            this.renderCart();
+            this.setStatus('Payment received. Đang chờ webhook bổ sung thông tin giao dịch.');
+            this.startPaymentStatusPolling();
+            this.showPaymentReceivedCelebration({
+                paidAmount: body.data?.paidAmount ?? amount,
+                paymentReference: this.paymentReference,
+            });
+        } catch (error) {
+            this.manualBankConfirmButtonTarget.hidden = false;
+            this.manualBankConfirmButtonTarget.disabled = false;
+            this.setStatus(error?.message || 'Manual bank confirmation failed.');
+        } finally {
+            this.inFlight = false;
+        }
+    }
+
+    async completePaidSale(event) {
+        event?.preventDefault();
+        if (this.inFlight || !this.hasCompletePaidSaleButtonTarget) return;
+
+        this.inFlight = true;
+        this.state = 'COMPLETING_SALE';
+        // During authoritative completion hide every success-screen action.
+        // If completion fails, the catch block restores only the manual recovery action.
+        this.hideAllSuccessActions();
+        if (this.hasManualBankConfirmButtonTarget) this.manualBankConfirmButtonTarget.hidden = true;
+        this.clearMessage();
+        this.setStatus('Checking payment confirmation…');
+
+        try {
+            // Recovery path: if the browser missed the webhook update, re-read
+            // the authoritative payment-session status before attempting sale completion.
+            if (!this.paymentReferenceOrderId && this.paymentSessionId) {
+                const statusResponse = await fetch(
+                    `/app/payment-sessions/${this.paymentSessionId}/status`,
+                    { headers: { Accept: 'application/json' }, credentials: 'same-origin' },
+                );
+                const statusBody = await statusResponse.json().catch(() => ({}));
+                if (statusResponse.ok && statusBody?.data) {
+                    if (statusBody.data.orderId) {
+                        this.paymentReferenceOrderId = Number(statusBody.data.orderId);
+                    }
+                    if (statusBody.data.orderNumber) {
+                        this.resultOrderTarget.textContent = String(statusBody.data.orderNumber);
+                    }
+                    if (statusBody.data.paidAmount !== undefined) {
+                        this.resultPaidTarget.textContent = this.formatMajor(statusBody.data.paidAmount);
+                    }
+                    if (statusBody.data.debtAmount !== undefined) {
+                        this.resultDebtTarget.textContent = this.formatMajor(statusBody.data.debtAmount);
+                    }
+                    this.renderWebhookEnrichment(statusBody.data.externalTransaction || null, !statusBody.data.externalTransaction);
+                    if (statusBody.data.status !== 'PAID' && statusBody.data.paymentReceived !== true) {
+                        throw new Error('Payment has not been confirmed by the bank yet.');
+                    }
+                }
+            }
+
+            if (!this.paymentReferenceOrderId) {
+                throw new Error('Payment has not been confirmed by the bank yet.');
+            }
+
+            // Manual recovery is intentionally independent of QR/reference
+            // expiry. Expiry only blocks reuse of the old reference for a new
+            // transfer; it must never block completion of an already reconciled
+            // payment.
+            const endpoint = this.completeOrderBaseUrlValue.replace(/\/0\/complete$/, `/${this.paymentReferenceOrderId}/complete`);
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': this.csrfTokenValue,
+                    'X-Request-ID': this.newRequestId(),
+                },
+                credentials: 'same-origin',
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(body.message || 'Unable to complete sale.');
+            }
+
+            this.stopPaymentStatusPolling();
+            this.state = 'SUCCESS';
+            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Completed'));
+            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Sale completed'));
+            this.resultPaidTarget.textContent = this.formatMajor(body.data?.paidAmount ?? '0');
+            this.resultDebtTarget.textContent = this.formatMajor(body.data?.debtAmount ?? '0');
+            this.resultTenderedRowTarget.hidden = true;
+            this.resultChangeRowTarget.hidden = true;
+            this.hideAllSuccessActions();
+            this.cartItems = [];
+            this.persistCart();
+            this.renderCart();
+            this.setStatus('Payment received.');
+            this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Payment received'));
+            this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Payment received'));
+            this.showPaymentReceivedCelebration({
+                paidAmount: body.data?.paidAmount ?? this.resultPaidTarget.textContent,
+                paymentReference: this.paymentReference,
+            });
+        } catch (error) {
+            this.state = 'PAYMENT_RECEIVED';
+            // Manual recovery remains available when the browser/device missed
+            // the successful webhook or automatic completion failed.
+            if (this.hasCompletePaidSaleButtonTarget) {
+                this.completePaidSaleButtonTarget.hidden = false;
+                this.completePaidSaleButtonTarget.disabled = false;
+                this.completePaidSaleButtonTarget.textContent = 'Complete sale manually';
+            }
+            if (this.hasNewSaleButtonTarget) {
+                this.newSaleButtonTarget.hidden = true;
+                this.newSaleButtonTarget.disabled = true;
+            }
+            this.setStatus('Payment received. Automatic completion failed; complete the sale manually.');
+            this.handleError({
+                status: 422,
+                errorCode: 'ORDER_COMPLETION_FAILED',
+                message: error?.message || 'Unable to complete sale automatically.',
+            });
+        } finally {
+            this.inFlight = false;
+        }
+    }
+
+    showPaymentReceivedCelebration(data = {}) {
+        if (!this.hasPaymentReceivedModalTarget) return;
+
+        this.stopPaymentReceivedCelebration();
+        const amount = data.paidAmount ?? '0';
+        const reference = String(data.paymentReference ?? this.paymentReference ?? '').trim();
+        if (this.hasPaymentReceivedModalAmountTarget) {
+            this.paymentReceivedModalAmountTarget.textContent = this.formatMajor(amount);
+        }
+        if (this.hasPaymentReceivedModalReferenceTarget) {
+            this.paymentReceivedModalReferenceTarget.textContent = reference;
+        }
+        if (this.hasPaymentReceivedCountdownTarget) {
+            this.paymentReceivedCountdownTarget.textContent = '5';
+        }
+
+        this.paymentReceivedModalTarget.hidden = false;
+        this.paymentReceivedModalTarget.setAttribute('aria-hidden', 'false');
+
+        let remaining = 5;
+        this.paymentReceivedCountdownTimer = globalThis.setInterval(() => {
+            remaining -= 1;
+            if (remaining <= 0) return;
+            if (this.hasPaymentReceivedCountdownTarget) {
+                this.paymentReceivedCountdownTarget.textContent = String(remaining);
+            }
+        }, 1000);
+
+        this.paymentReceivedResetTimer = globalThis.setTimeout(() => {
+            this.newSale();
+        }, 5000);
+
+        const newSaleButton = this.paymentReceivedModalTarget.querySelector('[data-action*="pos-checkout#newSale"]');
+        newSaleButton?.focus();
+    }
+
+    stopPaymentReceivedCelebration() {
+        if (this.paymentReceivedResetTimer !== null) {
+            globalThis.clearTimeout(this.paymentReceivedResetTimer);
+            this.paymentReceivedResetTimer = null;
+        }
+        if (this.paymentReceivedCountdownTimer !== null) {
+            globalThis.clearInterval(this.paymentReceivedCountdownTimer);
+            this.paymentReceivedCountdownTimer = null;
+        }
+        if (this.hasPaymentReceivedModalTarget) {
+            this.paymentReceivedModalTarget.hidden = true;
+            this.paymentReceivedModalTarget.setAttribute('aria-hidden', 'true');
+        }
+    }
+
+    hideSuccessActions() {
+        if (this.hasCompletePaidSaleButtonTarget) {
+            this.completePaidSaleButtonTarget.hidden = true;
+            this.completePaidSaleButtonTarget.disabled = true;
+        }
+        if (this.hasRetryButtonTarget) this.retryButtonTarget.hidden = true;
+        if (this.hasRegeneratePaymentReferenceButtonTarget) {
+            this.regeneratePaymentReferenceButtonTarget.hidden = true;
+            this.regeneratePaymentReferenceButtonTarget.disabled = true;
+        }
+    }
+
+    hideAllSuccessActions() {
+        this.hideSuccessActions();
+        if (this.hasNewSaleButtonTarget) {
+            this.newSaleButtonTarget.hidden = true;
+            this.newSaleButtonTarget.disabled = true;
+        }
+        if (this.hasResultPaymentReferenceQrButtonTarget) {
+            this.resultPaymentReferenceQrButtonTarget.hidden = true;
+            this.resultPaymentReferenceQrButtonTarget.disabled = true;
+        }
+    }
+
+    startPaymentStatusPolling() {
+        this.stopPaymentStatusPolling();
+        if (!this.paymentSessionId && !this.paymentReferenceOrderId) return;
+
+        this.paymentStatusTimer = globalThis.setInterval(async () => {
+            try {
+                const endpoint = this.paymentSessionId
+                    ? `/app/payment-sessions/${this.paymentSessionId}/status`
+                    : `/app/orders/${this.paymentReferenceOrderId}/payment-status`;
+                const response = await fetch(endpoint, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                });
+                const body = await response.json().catch(() => ({}));
+                if (!response.ok || !body?.data) return;
+
+                if (body.data.orderId) this.paymentReferenceOrderId = Number(body.data.orderId);
+                if (body.data.orderNumber) this.resultOrderTarget.textContent = String(body.data.orderNumber);
+                if (body.data.externalTransaction) {
+                    this.renderWebhookEnrichment(body.data.externalTransaction, false);
+                    if (this.hasPaymentReferenceHintTarget) {
+                        this.paymentReferenceHintTarget.textContent = 'Webhook đã về và đã cập nhật thông tin giao dịch vào đơn.';
+                    }
+                    if (this.state === 'SUCCESS' || this.state === 'PAYMENT_RECEIVED') {
+                        this.stopPaymentStatusPolling();
+                    }
+                }
+
+                if (body.data.status === 'PAID' || body.data.paymentReceived === true) {
+                    if (body.data.orderId) this.paymentReferenceOrderId = Number(body.data.orderId);
+                    this.state = 'PAYMENT_RECEIVED';
+                    this.showPaymentReceivedNotification(body.data);
+                    this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode('Payment received'));
+                    this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode('Payment received'));
+                    this.resultPaidTarget.textContent = this.formatMajor(body.data.paidAmount ?? '0');
+                    this.resultDebtTarget.textContent = this.formatMajor(body.data.debtAmount ?? '0');
+                    this.paymentReferenceHintTarget.textContent = 'Bank transfer received. Completing sale automatically…';
+                    this.paymentReferenceResultTarget.hidden = false;
+
+                    // Once the webhook is confirmed, there must be no competing
+                    // cashier actions while the authoritative completion runs.
+                    this.hideAllSuccessActions();
+                    if (this.hasManualBankConfirmButtonTarget) this.manualBankConfirmButtonTarget.hidden = true;
+                    this.setStatus('Payment received. Completing sale…');
+                    this.stopPaymentStatusPolling();
+                    void this.completePaidSale();
+                }
+            } catch {
+                // Polling is best-effort; backend remains authoritative.
+            }
+        }, 2000);
+    }
+
+    showPaymentReceivedNotification(data = {}) {
+        if (!this.hasPaymentReceivedBannerTarget) return;
+        const amount = data.paidAmount ?? data.amount ?? '0';
+        if (this.hasPaymentReceivedBannerAmountTarget) {
+            this.paymentReceivedBannerAmountTarget.textContent = this.formatMajor(amount);
+        }
+        this.paymentReceivedBannerTarget.hidden = false;
+        this.paymentReceivedBannerTarget.setAttribute('role', 'alert');
+        this.paymentReceivedBannerTarget.setAttribute('aria-live', 'assertive');
+    }
+
+    stopPaymentStatusPolling() {
+        if (this.paymentStatusTimer !== null) {
+            globalThis.clearInterval(this.paymentStatusTimer);
+            this.paymentStatusTimer = null;
+        }
+    }
+
+    renderWebhookEnrichment(transaction = null, pending = false) {
+        if (!this.hasWebhookEnrichmentTarget) return;
+
+        if (!transaction) {
+            this.webhookEnrichmentTarget.hidden = !pending;
+            if (pending) {
+                this.webhookEnrichmentStateTarget.textContent = 'Đang chờ webhook bổ sung thông tin giao dịch.';
+                this.webhookProviderTarget.textContent = '—';
+                this.webhookExternalIdTarget.textContent = '—';
+                this.webhookOccurredAtTarget.textContent = '—';
+                this.webhookAmountTarget.textContent = '—';
+                this.webhookDescriptionTarget.textContent = 'Đơn đã được xác nhận thủ công. Khi webhook thực tế gửi về, thông tin giao dịch sẽ được gắn vào chính đơn này.';
+            }
+            return;
+        }
+
+        this.webhookEnrichmentTarget.hidden = false;
+        this.webhookEnrichmentStateTarget.textContent = 'Đã nhận webhook · đã cập nhật đơn';
+        this.webhookProviderTarget.textContent = String(transaction.provider || '—');
+        this.webhookExternalIdTarget.textContent = String(transaction.externalTransactionId || '—');
+        this.webhookOccurredAtTarget.textContent = transaction.occurredAt
+            ? new Date(transaction.occurredAt).toLocaleString('vi-VN')
+            : '—';
+        this.webhookAmountTarget.textContent = this.formatMajor(transaction.amount ?? '0');
+        this.webhookDescriptionTarget.textContent = String(transaction.description || '');
+    }
+
+    renderPaymentReference(data) {
+        this.stopPaymentReferenceCountdown();
+        this.paymentReferenceOrderId = data.orderId ? Number(data.orderId) : null;
+        this.paymentSessionId = data.paymentSessionId ? Number(data.paymentSessionId) : (this.paymentSessionId ?? null);
+        this.paymentReferenceExpiresAt = data.paymentReferenceExpiresAt ? new Date(data.paymentReferenceExpiresAt) : null;
+        this.paymentReferenceAmount = String(data.total ?? data.amount ?? '');
+
+        const reference = String(data.paymentReference ?? '');
+        if (!reference || !this.paymentReferenceExpiresAt || Number.isNaN(this.paymentReferenceExpiresAt.getTime())) {
+            this.paymentReferenceResultTarget.hidden = true;
+            return;
+        }
+
+        this.paymentReferenceResultTarget.hidden = false;
+        this.paymentReference = reference;
+        this.resultPaymentReferenceTarget.textContent = reference;
+        this.resultPaymentReferenceExpiresAtTarget.textContent = this.paymentReferenceExpiresAt.toLocaleString('vi-VN');
+        this.resultPaymentReferenceTransferContentTarget.textContent = String(data.paymentReferenceTransferContent ?? data.transferContent ?? '');
+        if (data.paymentReferenceQrUrl || data.qrUrl) {
+            const qrUrl = String(data.paymentReferenceQrUrl ?? data.qrUrl);
+            this.resultPaymentReferenceQrTarget.src = qrUrl;
+            this.resultPaymentReferenceQrTarget.hidden = false;
+            if (this.hasBankQrTarget) {
+                this.bankQrTarget.src = qrUrl;
+                this.bankQrTarget.hidden = false;
+                this.bankQrTarget.style.display = '';
+            }
+            if (this.hasBankQrPlaceholderTarget) this.bankQrPlaceholderTarget.hidden = true;
+        } else {
+            this.resultPaymentReferenceQrTarget.hidden = true;
+            this.resultPaymentReferenceQrTarget.removeAttribute('src');
+            if (this.hasBankQrTarget) {
+                this.bankQrTarget.hidden = true;
+                this.bankQrTarget.style.display = 'none';
+                this.bankQrTarget.removeAttribute('src');
+            }
+        }
+        this.updatePaymentReferenceCountdown();
+        this.paymentReferenceCountdownTimer = globalThis.setInterval(() => this.updatePaymentReferenceCountdown(), 1000);
+        if (this.hasQrModalImageTarget) {
+            this.qrModalImageTarget.src = String(data.paymentReferenceQrUrl ?? data.qrUrl ?? '');
+            this.qrModalReferenceTarget.textContent = reference;
+            this.qrModalAmountTarget.textContent = this.formatMajor(data.amount ?? '0');
+        }
+    }
+
+    openQrModal(event) {
+        event?.preventDefault();
+        if (!this.hasQrModalTarget || !this.hasResultPaymentReferenceQrTarget || this.resultPaymentReferenceQrTarget.hidden) return;
+        this.qrModalTarget.hidden = false;
+        document.body.classList.add('pos-qr-modal-open');
+        this.qrModalCloseTarget?.focus();
+    }
+
+    closeQrModal(event) {
+        event?.preventDefault();
+        if (!this.hasQrModalTarget) return;
+        this.qrModalTarget.hidden = true;
+        document.body.classList.remove('pos-qr-modal-open');
+    }
+
+    handleQrModalKeydown(event) {
+        if (event.key === 'Escape') this.closeQrModal(event);
+    }
+
+    updatePaymentReferenceCountdown() {
+        if (!this.paymentReferenceExpiresAt) return;
+        const remaining = Math.max(0, this.paymentReferenceExpiresAt.getTime() - Date.now());
+        const totalSeconds = Math.floor(remaining / 1000);
+        const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+        const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+        this.resultPaymentReferenceCountdownTarget.textContent = `${minutes}:${seconds}`;
+        if (this.hasQrModalCountdownTarget) this.qrModalCountdownTarget.textContent = `${minutes}:${seconds}`;
+
+        const expired = remaining <= 0;
+        this.regeneratePaymentReferenceButtonTarget.disabled = !expired || this.inFlight;
+        if (expired) {
+            this.resultPaymentReferenceCountdownTarget.textContent = 'Đã hết hạn';
+            if (this.hasQrModalCountdownTarget) this.qrModalCountdownTarget.textContent = 'Đã hết hạn';
+            this.paymentReferenceHintTarget.textContent = 'Mã đã hết hạn. Bạn có thể tạo mã mới.';
+            this.stopPaymentReferenceCountdown();
+        }
+    }
+
+    stopPaymentReferenceCountdown() {
+        if (this.paymentReferenceCountdownTimer !== null) {
+            globalThis.clearInterval(this.paymentReferenceCountdownTimer);
+            this.paymentReferenceCountdownTimer = null;
+        }
+    }
+
+    async regeneratePaymentReference(event) {
+        event?.preventDefault();
+        if (
+            this.inFlight
+            || (!this.paymentSessionId && !this.paymentReferenceOrderId)
+            || !this.paymentReferenceExpiresAt
+            || Date.now() < this.paymentReferenceExpiresAt.getTime()
+        ) return;
+
+        this.regeneratePaymentReferenceButtonTarget.disabled = true;
+        this.clearMessage();
+
+        const endpoint = this.paymentSessionId
+            ? `/app/payment-sessions/${this.paymentSessionId}/payment-reference/regenerate`
+            : this.paymentReferenceRegenerateBaseUrlValue.replace(/\/0\/payment-reference\/regenerate$/, `/${this.paymentReferenceOrderId}/payment-reference/regenerate`);
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': this.csrfTokenValue,
+                    'X-Request-ID': this.newRequestId(),
+                },
+                credentials: 'same-origin',
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok || !body?.data) {
+                throw new Error(body.message || 'Không thể tạo mã thanh toán mới.');
+            }
+
+            this.renderPaymentReference({
+                orderId: body.data.orderId ?? this.paymentReferenceOrderId,
+                paymentSessionId: body.data.sessionId ?? this.paymentSessionId,
+                paymentReference: body.data.reference,
+                paymentReferenceExpiresAt: body.data.expiresAt,
+                paymentReferenceTransferContent: body.data.transferContent,
+                paymentReferenceQrUrl: body.data.qrUrl,
+                bankName: body.data.bankName,
+                accountNumber: body.data.accountNumber,
+                accountName: body.data.accountName,
+                amount: body.data.amount,
+            });
+            this.setStatus('Đã tạo mã chuyển khoản mới.');
+        } catch (error) {
+            this.showError('PAYMENT_REFERENCE_INVALID', error?.message || 'Không thể tạo mã thanh toán mới.');
+            this.regeneratePaymentReferenceButtonTarget.disabled = true;
+        }
     }
 
     handleError({ status, errorCode, message, requestId }) {
@@ -671,7 +1472,7 @@ export default class extends Controller {
     }
 
     parseMajorToMinor(value) {
-        const raw = String(value ?? '').trim();
+        const raw = String(value ?? '').trim().replace(/,/g, '');
         if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) throw new Error('Invalid money amount.');
         const [whole, fraction = ''] = raw.split('.');
         return BigInt(whole) * MINOR_SCALE + BigInt(fraction.padEnd(2, '0') || '0');
@@ -679,14 +1480,21 @@ export default class extends Controller {
 
     formatMinor(value) {
         const minor = typeof value === 'bigint' ? value : BigInt(value);
+        if (minor < 0n) return '0';
+        const whole = minor / MINOR_SCALE;
+        return whole.toLocaleString('en-US');
+    }
+
+    formatMajor(value) {
+        try { return this.formatMinor(this.parseMajorToMinor(value)); } catch { return '0'; }
+    }
+
+    formatMinorApi(value) {
+        const minor = typeof value === 'bigint' ? value : BigInt(value);
         if (minor < 0n) return '0.00';
         const whole = minor / MINOR_SCALE;
         const fraction = (minor % MINOR_SCALE).toString().padStart(2, '0');
         return `${whole}.${fraction}`;
-    }
-
-    formatMajor(value) {
-        try { return this.formatMinor(this.parseMajorToMinor(value)); } catch { return '0.00'; }
     }
 
     isPositiveMoney(value) {

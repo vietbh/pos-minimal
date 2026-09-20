@@ -103,3 +103,87 @@ session:
 pos:
   page_title: Điểm bán hàng · Mobile POS
   close: Đóng
+  eyebrow: Điểm bán hàng
+  new_sale: Đơn hàng mới
+  current_time: Thời gian hiện tại
+  status:
+    ready: Sẵn sàng
+    item_added: Đã thêm sản phẩm.
+    sale_cleared: Đã xóa giao dịch.
+  products:
+    title: Sản phẩm
+    search_help: Tìm theo tên sản phẩm hoặc SKU.
+    search_label: Tìm sản phẩm
+    search_placeholder: Tìm sản phẩm hoặc SKU…
+    all_categories: Tất cả danh mục
+    pagination: Phân trang sản phẩm
+    previous: Trước
+    next: Sau
+    page_indicator: 'Trang %page% / %total%'
+  cart:
+    title: Giao dịch hiện tại
+    items: sản phẩm
+    clear: Xóa
+    empty: Thêm sản phẩm để bắt đầu giao dịch.
+    total: Tổng cộng
+    server_total_note: Tổng cuối cùng được máy chủ xác nhận khi thanh toán.
+    remove: Xóa
+    increase: Tăng
+    decrease: Giảm
+  customer:
+    title: Khách hàng
+    optional: Không bắt buộc
+    remove: Bỏ chọn
+    search_label: Tìm khách hàng
+    search_placeholder: Tìm khách hàng theo tên hoặc số điện thoại…
+  payment:
+    title: Thanh toán
+    order_total: Tổng đơn hàng
+    method: Phương thức thanh toán
+    cash: Tiền mặt
+    bank_transfer: Chuyển khoản
+    customer_gives: Khách đưa
+    transfer_amount: Số tiền chuyển khoản
+    receiving_account: Tài khoản nhận
+    add_products: Thêm sản phẩm
+    note: Ghi chú
+    manual_confirm: Xác nhận chuyển khoản thủ công
+    scan_to_pay: Quét để thanh toán
+    amount: 'Số tiền:'
+    expires_in: 'Hết hạn sau:'
+  checkout:
+    title: Hoàn tất giao dịch
+    complete_sale: Hoàn tất giao dịch
+    retry: Thử lại thanh toán
+    processing: Đang xử lý…
+    start_bank_payment: Bắt đầu thanh toán chuyển khoản
+  success:
+    completed: Đã hoàn tất
+    sale_completed: Giao dịch đã hoàn tất
+    order: Đơn hàng
+    total: Tổng cộng
+    paid: Đã thanh toán
+    customer_gave: Khách đưa
+    change_due: Tiền thừa
+    debt: Công nợ
+    request: Request
+  payment_reference:
+    title: Mã thanh toán
+    expires: 'Hết hạn:'
+    remaining: 'Còn lại:'
+    content: 'Nội dung chuyển khoản:'
+    open_qr: Mở QR thanh toán toàn màn hình
+    qr_alt: Mã QR VietQR thanh toán
+    regenerate: Tạo mã mới
+    regenerate_hint: Chỉ có thể tạo mã mới sau khi mã hiện tại hết hạn.
+  webhook:
+    title: Thông tin giao dịch ngân hàng
+    waiting: Đang chờ webhook
+    provider: Nhà cung cấp
+    transaction_id: Mã giao dịch
+    received_at: Thời gian nhận
+    amount: Số tiền
+  payment_received:
+    eyebrow: Đã nhận thanh toán
+    title: Đã nhận thanh toán
+    message: Chuyển khoản ngân hàng đã được xác nhận.
