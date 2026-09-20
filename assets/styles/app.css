@@ -1778,3 +1778,199 @@ body {
 @media(prefers-reduced-motion:reduce){.login-spinner{animation:none}}
 @media(max-width:480px){.login-page{padding:18px 12px;align-items:flex-start}.login-shell{padding-top:6vh}.login-card{padding:20px}.login-title{font-size:26px}}
 @media(min-width:768px){.login-page{padding:32px 20px}}
+
+/* ============================================================================
+   PHASE UI/UX 4.1 — RESPONSIVE SHELL VISUAL FIX
+   Active stylesheet hardening. Presentation only.
+   ============================================================================ */
+
+/* Keep the authenticated mobile menu usable: this is the stylesheet imported by
+   assets/app.js, so the navigation presentation must live here rather than in
+   the legacy assets/app.css file. */
+.mobile-nav-toggle {
+    min-width: 48px;
+    width: 48px;
+    min-height: 48px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid var(--shell-border);
+    border-radius: 10px;
+    background: var(--shell-surface);
+    color: var(--shell-text);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.mobile-navigation {
+    position: sticky;
+    top: 58px;
+    z-index: 75;
+    display: block;
+    max-height: min(70dvh, 560px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 8px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+    background: var(--shell-surface);
+    border-bottom: 1px solid var(--shell-border);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, .08);
+}
+
+.mobile-navigation nav {
+    display: grid;
+    gap: 4px;
+    width: min(100%, 560px);
+    margin-inline: auto;
+}
+
+.mobile-navigation a,
+.mobile-navigation button {
+    min-height: 48px;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    padding: 9px 12px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--shell-text);
+    text-decoration: none;
+    text-align: left;
+    font: inherit;
+    font-weight: 700;
+}
+
+.mobile-navigation a:hover,
+.mobile-navigation button:hover,
+.mobile-navigation a[aria-current="page"] {
+    background: var(--shell-primary-soft);
+    color: #3730a3;
+}
+
+.mobile-navigation a[aria-current="page"] {
+    box-shadow: inset 3px 0 0 var(--shell-primary);
+}
+
+.mobile-navigation form { margin: 0; }
+.mobile-navigation form button { color: #b91c1c; cursor: pointer; }
+
+.mobile-navigation[hidden] { display: none !important; }
+
+.mobile-topbar .app-brand {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.mobile-topbar .app-brand > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mobile-topbar-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mobile-topbar .sidebar-avatar {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+}
+
+.mobile-navigation a:focus-visible,
+.mobile-navigation button:focus-visible,
+.mobile-nav-toggle:focus-visible,
+.mobile-topbar-user:focus-visible,
+.mobile-bottom-nav a:focus-visible,
+.sidebar-nav a:focus-visible,
+.sidebar-footer a:focus-visible,
+.sidebar-logout:focus-visible {
+    outline: 3px solid rgba(79, 70, 229, .32);
+    outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+    .app-content-shell {
+        padding-bottom: calc(78px + env(safe-area-inset-bottom));
+    }
+
+    .app-main {
+        width: 100%;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .pos-frame .pos-page {
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    .mobile-navigation {
+        top: 58px;
+    }
+}
+
+@media (max-width: 600px) {
+    .mobile-navigation {
+        max-height: min(68dvh, 520px);
+    }
+
+    .mobile-navigation nav {
+        width: 100%;
+    }
+
+    .pos-frame .pos-page {
+        padding-top: 10px;
+        padding-bottom: 28px;
+    }
+}
+
+@media (max-width: 430px) {
+    .mobile-navigation {
+        top: 54px;
+        padding-top: 6px;
+    }
+
+    .mobile-nav-toggle {
+        min-width: 48px;
+        width: 48px;
+    }
+
+    .mobile-topbar-actions {
+        gap: 4px;
+    }
+}
+
+@media (orientation: landscape) and (max-width: 900px) {
+    .mobile-topbar {
+        min-height: 52px;
+    }
+
+    .mobile-navigation {
+        top: 52px;
+        max-height: min(58dvh, 360px);
+    }
+
+    .app-main {
+        padding-top: 12px;
+    }
+
+    .mobile-bottom-nav a {
+        min-height: 48px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mobile-navigation,
+    .mobile-nav-toggle,
+    .mobile-navigation a,
+    .mobile-navigation button {
+        scroll-behavior: auto;
+        transition: none !important;
+    }
+}
