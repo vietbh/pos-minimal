@@ -15,6 +15,11 @@ final readonly class ProductSearchResult
         public ?string $unit,
         public int $sellingPrice,
         public int $stockQuantity,
+        public int $lowStockThreshold = 0,
+        public ?int $categoryId = null,
+        public ?string $categoryName = null,
+        public ?int $imageId = null,
+        public bool $isActive = true,
     ) {
     }
 
@@ -35,6 +40,11 @@ final readonly class ProductSearchResult
             unit: $product->getUnit(),
             sellingPrice: $product->getSellingPrice()->minorUnits(),
             stockQuantity: $product->getStockQuantity(),
+            lowStockThreshold: $product->getLowStockThreshold(),
+            categoryId: $product->getCategory()?->getId(),
+            categoryName: $product->getCategory()?->getName(),
+            imageId: null,
+            isActive: $product->isActive(),
         );
     }
 }

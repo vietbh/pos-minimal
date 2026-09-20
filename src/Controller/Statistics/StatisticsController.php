@@ -6,6 +6,7 @@ namespace App\Controller\Statistics;
 
 use App\Application\Security\Permission;
 use App\Application\Statistics\Query\GetDashboardHandler;
+use App\Application\Statistics\Query\Period\StatisticsPeriodResolver;
 use App\Application\Statistics\Query\StatisticsQueryInput;
 use App\Domain\User\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class StatisticsController extends AbstractController
 {
-    public function __construct(private readonly string $appTimezone = 'UTC') {}
+    public function __construct(private readonly StatisticsPeriodResolver $periodResolver) {}
 
     #[Route('/app/statistics', name: 'statistics_index', methods: ['GET'])]
     public function index(Request $request, GetDashboardHandler $handler): Response
@@ -26,17 +27,16 @@ final class StatisticsController extends AbstractController
         }
         $this->denyAccessUnlessGranted(Permission::STATISTICS_VIEW->value);
 
-        $timezone = new \DateTimeZone($this->appTimezone);
-        $today = new \DateTimeImmutable('today', $timezone);
-        $fromValue = trim((string) $request->query->get('from', $today->format('Y-m-d')));
-        $toValue = trim((string) $request->query->get('to', $today->format('Y-m-d')));
+        $preset = trim((string) $request->query->get('preset', 'custom'));
         $limit = $request->query->has('limit') ? $request->query->getInt('limit') : 10;
 
         try {
-            $from = $this->parseDate($fromValue, $timezone);
-            $to = $this->parseDate($toValue, $timezone);
-            $toExclusive = $to->modify('+1 day');
-            $input = new StatisticsQueryInput($from, $toExclusive, $limit);
+            $period = $this->periodResolver->resolve(
+                $preset,
+                $request->query->get('from'),
+                $request->query->get('to'),
+            );
+            $input = new StatisticsQueryInput($period->from, $period->toExclusive, $limit);
             $result = $handler($input);
         } catch (\InvalidArgumentException $e) {
             throw new BadRequestHttpException($e->getMessage(), $e);
@@ -44,23 +44,11 @@ final class StatisticsController extends AbstractController
 
         return $this->render('statistics/index.html.twig', [
             'dashboard' => $result,
-            'from' => $fromValue,
-            'to' => $toValue,
+            'from' => $period->fromValue,
+            'to' => $period->toValue,
             'limit' => $limit,
-            'timezone' => $timezone->getName(),
+            'preset' => $period->preset,
+            'timezone' => $period->from->getTimezone()->getName(),
         ]);
-    }
-
-    private function parseDate(string $value, \DateTimeZone $timezone): \DateTimeImmutable
-    {
-        if ($value === '') {
-            throw new \InvalidArgumentException('Statistics date is required.');
-        }
-        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value, $timezone);
-        $errors = \DateTimeImmutable::getLastErrors();
-        if ($date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) || $date->format('Y-m-d') !== $value) {
-            throw new \InvalidArgumentException('Invalid statistics date.');
-        }
-        return $date;
     }
 }

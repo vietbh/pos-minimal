@@ -20,8 +20,12 @@ final readonly class ListOrdersInput
             throw new \InvalidArgumentException('Page must be greater than zero.');
         }
 
-        if ($this->perPage <= 0 || $this->perPage > 100) {
-            throw new \InvalidArgumentException('Per-page value must be between 1 and 100.');
+        if ($this->perPage <= 0 || $this->perPage > 50) {
+            throw new \InvalidArgumentException('Per-page value must be between 1 and 50.');
+        }
+
+        if (preg_match('/^.{101,}$/us', $this->search) === 1) {
+            throw new \InvalidArgumentException('Search query cannot exceed 100 characters.');
         }
 
         if ($this->from !== null && $this->to !== null && $this->from > $this->to) {

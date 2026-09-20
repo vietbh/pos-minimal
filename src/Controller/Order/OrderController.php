@@ -18,6 +18,10 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class OrderController extends AbstractController
 {
+    private const MAX_SEARCH_LENGTH = 100;
+    private const MAX_DATE_RANGE_DAYS = 366;
+    private const ALLOWED_LIST_QUERY = ['q', 'status', 'from', 'to', 'page', 'perPage'];
+
     #[Route('/app/orders', name: 'orders_index', methods: ['GET'])]
     public function index(Request $request, ListOrdersHandler $handler): Response
     {
@@ -30,15 +34,23 @@ final class OrderController extends AbstractController
         $page = max(1, $request->query->getInt('page', 1));
         $perPage = min(50, max(1, $request->query->getInt('perPage', 20)));
         $search = trim((string) $request->query->get('q', ''));
+        if (preg_match('/^.{101,}$/us', $search) === 1) {
+            throw $this->createBadRequestException('Search query is too long.');
+        }
+
         $statusValue = trim((string) $request->query->get('status', ''));
         $status = $statusValue === '' ? null : OrderStatus::tryFrom($statusValue);
 
         if ($statusValue !== '' && $status === null) {
-            throw $this->createNotFoundException('Unknown order status.');
+            throw $this->createBadRequestException('Unknown order status.');
         }
 
         $from = $this->parseDate($request->query->get('from'));
         $to = $this->parseDate($request->query->get('to'));
+
+        if ($from !== null && $to !== null && $from->diff($to)->days > self::MAX_DATE_RANGE_DAYS) {
+            throw $this->createBadRequestException('Order date range cannot exceed 366 days.');
+        }
 
         $result = $handler(new ListOrdersInput(
             search: $search,
@@ -56,11 +68,44 @@ final class OrderController extends AbstractController
             'from' => $from?->format('Y-m-d'),
             'to' => $to?->format('Y-m-d'),
             'statuses' => OrderStatus::cases(),
+            'statusLabels' => [
+                OrderStatus::DRAFT->value => 'Nháp',
+                OrderStatus::COMPLETED->value => 'Hoàn tất',
+                OrderStatus::CANCELLED->value => 'Đã hủy',
+                OrderStatus::REFUNDED->value => 'Đã hoàn tiền',
+            ],
+            'maxSearchLength' => self::MAX_SEARCH_LENGTH,
+        ]);
+    }
+
+    #[Route('/app/orders/{id<\\d+>}/payment-status', name: 'order_payment_status', methods: ['GET'], format: 'json')]
+    public function paymentStatus(int $id, GetOrderHandler $handler): Response
+    {
+        if (!$this->getUser() instanceof User) {
+            return $this->json(['errorCode' => 'AUTHENTICATION_REQUIRED', 'message' => 'Authentication is required.'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $this->denyAccessUnlessGranted(Permission::POS_CHECKOUT->value);
+
+        $order = $handler(new GetOrderInput($id));
+        if ($order === null) {
+            return $this->json(['errorCode' => 'RESOURCE_NOT_FOUND', 'message' => 'Order not found.'], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json([
+            'data' => [
+                'orderId' => $order->id,
+                'orderNumber' => $order->orderNumber,
+                'status' => $order->status->value,
+                'paidAmount' => $order->paidAmount,
+                'debtAmount' => $order->debtAmount,
+                'paymentReceived' => $order->status->value !== 'CANCELLED' && $order->debtAmount === '0.00' && $order->paidAmount === $order->total,
+            ],
         ]);
     }
 
     #[Route('/app/orders/{id<\\d+>}', name: 'orders_show', methods: ['GET'])]
-    public function show(int $id, GetOrderHandler $handler): Response
+    public function show(Request $request, int $id, GetOrderHandler $handler): Response
     {
         if (!$this->getUser() instanceof User) {
             return $this->redirectToRoute('login');
@@ -73,8 +118,17 @@ final class OrderController extends AbstractController
             throw $this->createNotFoundException('Order not found.');
         }
 
+        $backQuery = [];
+        foreach (self::ALLOWED_LIST_QUERY as $key) {
+            $value = $request->query->get($key);
+            if ($value !== null && $value !== '') {
+                $backQuery[$key] = $value;
+            }
+        }
+
         return $this->render('order/show.html.twig', [
             'order' => $order,
+            'backQuery' => $backQuery,
         ]);
     }
 
@@ -87,7 +141,7 @@ final class OrderController extends AbstractController
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', trim($value));
         $errors = \DateTimeImmutable::getLastErrors();
         if ($date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
-            throw $this->createNotFoundException('Invalid date filter.');
+            throw $this->createBadRequestException('Invalid date filter.');
         }
 
         return $date;

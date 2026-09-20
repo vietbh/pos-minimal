@@ -10,6 +10,7 @@ use App\Application\Order\Query\GetDraftOrder\DraftOrderResult;
 use App\Application\Order\Query\GetOrder\OrderDebtResult;
 use App\Application\Order\Query\GetOrder\OrderDetailResult;
 use App\Application\Order\Query\GetOrder\OrderItemResult;
+use App\Application\Order\Query\GetOrder\OrderExternalTransactionResult;
 use App\Application\Order\Query\GetOrder\OrderPaymentResult;
 use App\Application\Order\Query\ListOrders\ListOrdersInput;
 use App\Application\Order\Query\ListOrders\OrderListItemResult;
@@ -20,6 +21,7 @@ use App\Domain\Order\Enum\OrderStatus;
 use App\Domain\Order\Order;
 use App\Domain\Order\OrderItem;
 use App\Domain\Order\Payment;
+use App\Domain\Payment\ExternalPaymentTransaction;
 use App\Domain\Shared\ValueObject\Money;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -140,9 +142,11 @@ final class OrderQueryRepository implements OrderQueryRepositoryInterface
             ->resetDQLPart('groupBy')
             ->select('COUNT(DISTINCT o.id)');
         $totalItems = (int) $countQb->getQuery()->getSingleScalarResult();
+        $totalPages = max(1, (int) ceil($totalItems / $input->perPage));
+        $page = min($input->page, $totalPages);
 
         $rows = $qb
-            ->setFirstResult(($input->page - 1) * $input->perPage)
+            ->setFirstResult(($page - 1) * $input->perPage)
             ->setMaxResults($input->perPage)
             ->getQuery()
             ->getArrayResult();
@@ -166,7 +170,7 @@ final class OrderQueryRepository implements OrderQueryRepositoryInterface
             );
         }
 
-        return new OrderListResult($items, $input->page, $input->perPage, $totalItems);
+        return new OrderListResult($items, $page, $input->perPage, $totalItems);
     }
 
     public function findOrderById(int $orderId): ?OrderDetailResult
@@ -223,6 +227,30 @@ final class OrderQueryRepository implements OrderQueryRepositoryInterface
             );
         }
 
+        $externalTransaction = $this->entityManager->createQueryBuilder()
+            ->select('t')
+            ->from(ExternalPaymentTransaction::class, 't')
+            ->where('IDENTITY(t.matchedOrder) = :orderId')
+            ->setParameter('orderId', $order->getId())
+            ->orderBy('t.occurredAt', 'DESC')
+            ->addOrderBy('t.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        $externalTransactionResult = $externalTransaction instanceof ExternalPaymentTransaction && $externalTransaction->getId() !== null
+            ? new OrderExternalTransactionResult(
+                id: $externalTransaction->getId(),
+                provider: $externalTransaction->getProvider(),
+                externalTransactionId: $externalTransaction->getExternalTransactionId(),
+                amount: $externalTransaction->getAmount()->toDecimal(),
+                description: $externalTransaction->getDescription(),
+                reference: $externalTransaction->getTransactionReference(),
+                occurredAt: $externalTransaction->getOccurredAt(),
+                status: $externalTransaction->getStatus(),
+            )
+            : null;
+
         $debt = $this->findDebtForOrder($order);
 
         return new OrderDetailResult(
@@ -242,6 +270,7 @@ final class OrderQueryRepository implements OrderQueryRepositoryInterface
             cancelledAt: $order->getCancelledAt(),
             items: $items,
             payments: $payments,
+            externalTransaction: $externalTransactionResult,
             debt: $debt,
         );
     }

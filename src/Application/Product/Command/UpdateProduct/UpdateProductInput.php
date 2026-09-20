@@ -17,6 +17,7 @@ final readonly class UpdateProductInput
         public ?Money $costPrice,
         public int $lowStockThreshold,
         public ?string $note,
+        public ?int $categoryId = null,
     ) {
     }
 }

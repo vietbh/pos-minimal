@@ -1,6 +1,6 @@
-{% extends 'base.html.twig' %}
+{% extends 'layout/authenticated.html.twig' %}
 
-{% block title %}Statistics{% endblock %}
+{% block title %}{{ 'stat.title'|trans }}{% endblock %}
 
 {% block stylesheets %}
 <style>
@@ -10,6 +10,7 @@
 .statistics-card h2 { margin:0 0 8px; font-size:1rem; }
 .statistics-value { font-size:1.45rem; font-weight:700; }
 .statistics-muted { color:#666; font-size:.85rem; }
+.statistics-card table { min-width: auto }
 .statistics-table { width:100%; border-collapse:collapse; font-size:.9rem; }
 .statistics-table th,.statistics-table td { padding:8px 4px; border-bottom:1px solid #eee; text-align:left; }
 .statistics-table th:last-child,.statistics-table td:last-child { text-align:right; }
@@ -20,51 +21,51 @@
 </style>
 {% endblock %}
 
-{% block body %}
-<div class="statistics" data-controller="statistics-filter">
-    <h1>Statistics</h1>
+{% block authenticated_body %}
+<div class="statistics statistics-ux admin-workspace" data-controller="statistics-filter">
+    <header class="admin-toolbar"><div><p class="eyebrow">{{ 'stat.insights'|trans }}</p><h1>{{ 'stat.title'|trans }}</h1><p>{{ 'stat.help'|trans }}</p></div></header>
     <p class="statistics-muted">Range: {{ from }} → {{ to }} · timezone {{ timezone }}</p>
 
-    <form method="get" class="statistics-filter" data-action="submit->statistics-filter#loading">
+    <form method="get" class="statistics-filter admin-filter" data-action="submit->statistics-filter#loading">
         <div>
-            <label for="preset">Preset</label>
+            <label for="preset">{{ 'stat.preset'|trans }}</label>
             <select id="preset" name="preset" data-action="change->statistics-filter#preset">
-                <option value="custom" data-statistics-preset-value="custom">Custom</option>
-                <option value="today">Today</option>
-                <option value="yesterday">Yesterday</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
+                <option value="custom"{% if preset == 'custom' %} selected{% endif %}>{{ 'stat.custom'|trans }}</option>
+                <option value="today"{% if preset == 'today' %} selected{% endif %}>{{ 'stat.today'|trans }}</option>
+                <option value="yesterday"{% if preset == 'yesterday' %} selected{% endif %}>{{ 'stat.yesterday'|trans }}</option>
+                <option value="week"{% if preset == 'week' %} selected{% endif %}>{{ 'stat.week'|trans }}</option>
+                <option value="month"{% if preset == 'month' %} selected{% endif %}>{{ 'stat.month'|trans }}</option>
             </select>
         </div>
         <div class="fields" data-statistics-filter-target="custom">
-            <div><label for="from">From</label><input id="from" type="date" name="from" value="{{ from }}" required></div>
-            <div><label for="to">To</label><input id="to" type="date" name="to" value="{{ to }}" required></div>
+            <div><label for="from">{{ 'stat.from'|trans }}</label><input id="from" type="date" name="from" value="{{ from }}" required></div>
+            <div><label for="to">{{ 'stat.to'|trans }}</label><input id="to" type="date" name="to" value="{{ to }}" required></div>
         </div>
-        <div><label for="limit">Top N</label><input id="limit" type="number" name="limit" min="1" max="100" value="{{ limit }}"></div>
-        <button type="submit">Apply</button>
-        <span hidden data-statistics-filter-target="loading">Loading…</span>
+        <div><label for="limit">{{ 'stat.top_n'|trans }}</label><input id="limit" type="number" name="limit" min="1" max="100" value="{{ limit }}"></div>
+        <button type="submit">{{ 'common.apply'|trans }}</button>
+        <span hidden data-statistics-filter-target="loading">{{ 'common.loading'|trans }}</span>
     </form>
 
-    <div class="statistics-grid">
-        <section class="statistics-card"><h2>Gross Sales</h2><div class="statistics-value">{{ dashboard.sales.grossSales }}</div></section>
-        <section class="statistics-card"><h2>Net Sales</h2><div class="statistics-value">{{ dashboard.sales.netSales }}</div></section>
-        <section class="statistics-card"><h2>Payments Collected</h2><div class="statistics-value">{{ dashboard.sales.paymentsCollected }}</div></section>
-        <section class="statistics-card"><h2>AOV</h2><div class="statistics-value">{{ dashboard.sales.averageOrderValue }}</div><div class="statistics-muted">{{ dashboard.sales.qualifyingOrders }} qualifying orders</div></section>
-        <section class="statistics-card"><h2>Cancelled</h2><div class="statistics-value">{{ dashboard.sales.cancelledAmount }}</div><div class="statistics-muted">{{ dashboard.sales.cancelledOrders }} orders</div></section>
-        <section class="statistics-card"><h2>Refunded</h2><div class="statistics-value">{{ dashboard.sales.refundedAmount }}</div><div class="statistics-muted">{{ dashboard.sales.refundedOrders }} orders</div></section>
+    <div class="statistics-grid admin-card-grid">
+        <section class="statistics-card"><h2>{{ 'stat.gross_sales'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.grossSales }}</div></section>
+        <section class="statistics-card"><h2>{{ 'stat.net_sales'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.netSales }}</div></section>
+        <section class="statistics-card"><h2>{{ 'stat.payments_collected'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.paymentsCollected }}</div></section>
+        <section class="statistics-card"><h2>{{ 'stat.aov'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.averageOrderValue }}</div><div class="statistics-muted">{{ dashboard.sales.qualifyingOrders }} qualifying orders</div></section>
+        <section class="statistics-card"><h2>{{ 'stat.cancelled'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.cancelledAmount }}</div><div class="statistics-muted">{{ dashboard.sales.cancelledOrders }} orders</div></section>
+        <section class="statistics-card"><h2>{{ 'stat.refunded'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.refundedAmount }}</div><div class="statistics-muted">{{ dashboard.sales.refundedOrders }} orders</div></section>
     </div>
 
-    <div class="statistics-grid" style="margin-top:12px">
-        <section class="statistics-card"><h2>Payments</h2>
-            {% if dashboard.payments %}<table class="statistics-table"><tr><th>Method</th><th>Amount</th></tr>{% for p in dashboard.payments %}<tr><td>{{ p.paymentMethod }}</td><td>{{ p.amount }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">No payments in this period.</p>{% endif %}
+    <div class="statistics-grid admin-card-grid">
+        <section class="statistics-card"><h2>{{ 'common.payments'|trans }}</h2>
+            {% if dashboard.payments %}<table class="statistics-table"><tr><th>{{ 'stat.method'|trans }}</th><th>{{ 'common.amount'|trans }}</th></tr>{% for p in dashboard.payments %}<tr><td>{{ p.paymentMethod }}</td><td>{{ p.amount }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">{{ 'stat.no_payments'|trans }}</p>{% endif %}
         </section>
-        <section class="statistics-card"><h2>Debt</h2><table class="statistics-table"><tr><th>Debts</th><td>{{ dashboard.debt.debtCount }}</td></tr><tr><th>Original</th><td>{{ dashboard.debt.originalAmount }}</td></tr><tr><th>Collected</th><td>{{ dashboard.debt.collectedAmount }}</td></tr><tr><th>Outstanding</th><td>{{ dashboard.debt.outstandingAmount }}</td></tr></table></section>
-        <section class="statistics-card"><h2>Stock Snapshot</h2><table class="statistics-table"><tr><th>Total products</th><td>{{ dashboard.stock.totalProducts }}</td></tr><tr><th>Active</th><td>{{ dashboard.stock.activeProducts }}</td></tr><tr><th>Low stock</th><td>{{ dashboard.stock.lowStockProducts }}</td></tr><tr><th>Out of stock</th><td>{{ dashboard.stock.outOfStockProducts }}</td></tr><tr><th>Total quantity</th><td>{{ dashboard.stock.totalStockQuantity }}</td></tr></table></section>
+        <section class="statistics-card"><h2>{{ 'common.debt'|trans }}</h2><table class="statistics-table"><tr><th>{{ 'stat.debts'|trans }}</th><td>{{ dashboard.debt.debtCount }}</td></tr><tr><th>{{ 'stat.original'|trans }}</th><td>{{ dashboard.debt.originalAmount }}</td></tr><tr><th>{{ 'stat.collected'|trans }}</th><td>{{ dashboard.debt.collectedAmount }}</td></tr><tr><th>{{ 'stat.outstanding'|trans }}</th><td>{{ dashboard.debt.outstandingAmount }}</td></tr></table></section>
+        <section class="statistics-card"><h2>{{ 'stat.stock_snapshot'|trans }}</h2><table class="statistics-table"><tr><th>{{ 'stat.total_products'|trans }}</th><td>{{ dashboard.stock.totalProducts }}</td></tr><tr><th>{{ 'common.active'|trans }}</th><td>{{ dashboard.stock.activeProducts }}</td></tr><tr><th>{{ 'admin.low_stock'|trans }}</th><td>{{ dashboard.stock.lowStockProducts }}</td></tr><tr><th>{{ 'stat.out_of_stock'|trans }}</th><td>{{ dashboard.stock.outOfStockProducts }}</td></tr><tr><th>{{ 'stat.total_quantity'|trans }}</th><td>{{ dashboard.stock.totalStockQuantity }}</td></tr></table></section>
     </div>
 
-    <div class="statistics-grid" style="margin-top:12px">
-        <section class="statistics-card"><h2>Top Products</h2>{% if dashboard.topProducts %}<table class="statistics-table"><tr><th>Product</th><th>Qty</th></tr>{% for p in dashboard.topProducts %}<tr><td>{{ p.name }}</td><td>{{ p.quantity }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">No product sales in this period.</p>{% endif %}</section>
-        <section class="statistics-card"><h2>Top Customers</h2>{% if dashboard.topCustomers %}<table class="statistics-table"><tr><th>Customer</th><th>Spent</th></tr>{% for c in dashboard.topCustomers %}<tr><td>{{ c.name }}</td><td>{{ c.totalSpent }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">No customer sales in this period.</p>{% endif %}</section>
+    <div class="statistics-grid admin-card-grid">
+        <section class="statistics-card"><h2>{{ 'stat.top_products'|trans }}</h2>{% if dashboard.topProducts %}<table class="statistics-table"><tr><th>{{ 'common.product'|trans }}</th><th>{{ 'stat.qty'|trans }}</th></tr>{% for p in dashboard.topProducts %}<tr><td>{{ p.name }}</td><td>{{ p.quantity }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">{{ 'stat.no_product_sales'|trans }}</p>{% endif %}</section>
+        <section class="statistics-card"><h2>{{ 'stat.top_customers'|trans }}</h2>{% if dashboard.topCustomers %}<table class="statistics-table"><tr><th>{{ 'common.customer'|trans }}</th><th>{{ 'stat.spent'|trans }}</th></tr>{% for c in dashboard.topCustomers %}<tr><td>{{ c.name }}</td><td>{{ c.totalSpent }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">{{ 'stat.no_customer_sales'|trans }}</p>{% endif %}</section>
     </div>
 </div>
 {% endblock %}

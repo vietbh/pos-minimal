@@ -1,0 +1,101 @@
+{% extends 'layout/authenticated.html.twig' %}
+
+{% block title %}{{ 'app.profile_title'|trans }} · Mobile POS{% endblock %}
+
+{% block authenticated_body %}
+    <section class="app-header" aria-labelledby="profile-title">
+        <div>
+            <p class="eyebrow">{{ 'app.account'|trans }}</p>
+            <h1 id="profile-title">{{ 'app.profile_title'|trans }}</h1>
+            <p class="muted">{{ 'app.profile_help'|trans }}</p>
+        </div>
+        <nav class="button-row" aria-label="{{ 'app.account'|trans }}">
+            <a class="button primary" href="{{ path('app_settings') }}">{{ 'app.settings_title'|trans }}</a>
+        </nav>
+    </section>
+
+    <div class="profile-layout">
+        <section class="form-card profile-card" aria-labelledby="profile-info-title">
+            <div class="section-heading">
+                <h2 id="profile-info-title">{{ 'app.basic_info'|trans }}</h2>
+                <p class="muted">{{ 'app.username_help'|trans }}</p>
+            </div>
+
+            <form method="post" action="{{ path('app_profile') }}" class="profile-form">
+                <input type="hidden" name="_token" value="{{ csrf_token('profile_settings') }}">
+
+                <label for="profile-username">
+                    {{ 'app.username'|trans }}
+                    <input
+                        id="profile-username"
+                        name="username"
+                        type="text"
+                        value="{{ user.username }}"
+                        autocomplete="username"
+                        maxlength="180"
+                        required
+                    >
+                </label>
+
+                <div class="profile-readonly-grid">
+                    <div>
+                        <span class="profile-label">{{ 'app.role'|trans }}</span>
+                        <strong>{{ user.roles|join(', ') }}</strong>
+                    </div>
+                    <div>
+                        <span class="profile-label">{{ 'common.status'|trans }}</span>
+                        <strong>{{ user.active ? 'common.active'|trans : 'app.locked'|trans }}</strong>
+                    </div>
+                </div>
+
+                <button class="button primary" type="submit">{{ 'app.save_info'|trans }}</button>
+            </form>
+        </section>
+
+        <section class="form-card profile-card" aria-labelledby="display-title">
+            <div class="section-heading">
+                <h2 id="display-title">{{ 'app.font_size'|trans }}</h2>
+                <p class="muted">{{ 'app.font_help'|trans }}</p>
+            </div>
+
+            <form method="post" action="{{ path('app_profile') }}" class="profile-form">
+                <input type="hidden" name="_token" value="{{ csrf_token('profile_settings') }}">
+                <input type="hidden" name="username" value="{{ user.username }}">
+
+                <fieldset class="font-size-options">
+                    <legend class="sr-only">{{ 'app.choose_font'|trans }}</legend>
+                    {% set font_labels = {'small': 'app.font_small'|trans, 'medium': 'app.font_medium'|trans, 'large': 'app.font_large'|trans} %}
+                    {% for size in font_sizes %}
+                        <label class="font-size-option{% if user.fontSize == size %} is-selected{% endif %}">
+                            <input
+                                type="radio"
+                                name="font_size"
+                                value="{{ size }}"
+                                {% if user.fontSize == size %}checked{% endif %}
+                            >
+                            <span class="font-size-preview font-size-preview-{{ size }}">Aa</span>
+                            <span>
+                                <strong>{{ font_labels[size] }}</strong>
+                                <small>{{ size == 'small' ? ('app.font_small'|trans) : (size == 'large' ? ('app.font_large'|trans) : ('app.font_medium'|trans)) }}</small>
+                            </span>
+                        </label>
+                    {% endfor %}
+                </fieldset>
+
+                <button class="button primary" type="submit">{{ 'app.save_font'|trans }}</button>
+            </form>
+        </section>
+    </div>
+
+    <section class="form-card profile-card" aria-labelledby="security-title">
+        <div class="section-heading">
+            <h2 id="security-title">{{ 'app.security'|trans }}</h2>
+            <p class="muted">{{ 'app.remember_help'|trans }}</p>
+        </div>
+        <div class="profile-security-note">
+            <strong>{{ 'app.current_session'|trans }}</strong>
+            <span>{{ 'app.logout_help'|trans }}</span>
+        </div>
+        <a class="button" href="{{ path('logout') }}">{{ 'app.logout'|trans }}</a>
+    </section>
+{% endblock %}

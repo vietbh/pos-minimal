@@ -10,14 +10,20 @@ use App\Domain\Shared\ValueObject\Money;
 final readonly class CheckoutResult
 {
     public function __construct(
-        public int $orderId,
-        public string $orderNumber,
+        public ?int $orderId,
+        public ?string $orderNumber,
         public Money $total,
         public Money $paidAmount,
         public Money $debtAmount,
         public Money $tenderedAmount,
         public Money $changeAmount,
-        public OrderStatus $status,
+        public ?OrderStatus $status,
+        public ?string $paymentReference = null,
+        public ?string $paymentReferenceExpiresAt = null,
+        public ?string $paymentReferenceTransferContent = null,
+        public ?string $paymentReferenceQrUrl = null,
+        public ?string $bankTransferCompletionPolicy = null,
+        public ?int $paymentSessionId = null,
     ) {
     }
 }

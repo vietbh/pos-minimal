@@ -1,0 +1,94 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="app-frame" data-controller="mobile-ux navigation" data-navigation-open-value="false" data-navigation-open-label-value="{{ 'navigation.open_menu'|trans }}" data-navigation-close-label-value="{{ 'navigation.close_menu'|trans }}">
+        <aside class="desktop-sidebar" aria-label="{{ 'navigation.primary'|trans }}">
+            <a class="sidebar-brand" href="{{ path('app_home') }}" aria-label="{{ 'app.brand_home'|trans }}">
+                <span class="app-brand-mark" aria-hidden="true">{{ 'customer.pos'|trans }}</span>
+                <span><strong>{{ 'app.brand'|trans }}</strong><small>{{ 'app.sales_workspace'|trans }}</small></span>
+            </a>
+
+            <nav class="sidebar-nav" aria-label="{{ 'navigation.primary'|trans }}">
+                <p class="sidebar-label">{{ 'navigation.workspace'|trans }}</p>
+                <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}>
+                    <span aria-hidden="true">⌂</span><span>{{ 'navigation.home'|trans }}</span>
+                </a>
+                {% if is_granted('POS_ACCESS') %}<a class="sidebar-pos" href="{{ path('pos') }}"{% if app.request.attributes.get('_route') starts with 'pos' %} aria-current="page"{% endif %}>
+                    <span aria-hidden="true">＋</span><span>{{ 'navigation.pos'|trans }}</span>
+                </a>{% endif %}
+
+                <p class="sidebar-label">{{ 'navigation.operations'|trans }}</p>
+                {% if is_granted('ORDER_VIEW') %}<a href="{{ path('orders_index') }}"{% if app.request.attributes.get('_route') starts with 'orders_' %} aria-current="page"{% endif %}><span aria-hidden="true">▤</span><span>{{ 'navigation.orders'|trans }}</span></a>{% endif %}
+                {% if is_granted('CUSTOMER_VIEW') %}<a href="{{ path('customers_index') }}"{% if app.request.attributes.get('_route') starts with 'customers_' %} aria-current="page"{% endif %}><span aria-hidden="true">♙</span><span>{{ 'navigation.customers'|trans }}</span></a>{% endif %}
+                {% if is_granted('DEBT_VIEW') %}<a href="{{ path('debts_index') }}"{% if app.request.attributes.get('_route') starts with 'debts_' %} aria-current="page"{% endif %}><span aria-hidden="true">₫</span><span>{{ 'navigation.debt'|trans }}</span></a>{% endif %}
+                {% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_products_' %} aria-current="page"{% endif %}><span aria-hidden="true">□</span><span>{{ 'navigation.products'|trans }}</span></a>{% endif %}
+                {% if is_granted('STOCK_VIEW') %}<a href="{{ path('admin_stock_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_stock_' %} aria-current="page"{% endif %}><span aria-hidden="true">▥</span><span>{{ 'navigation.stock'|trans }}</span></a>{% endif %}
+
+                {% if is_granted('STATISTICS_VIEW') or is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}
+                    <p class="sidebar-label">{{ 'navigation.management'|trans }}</p>
+                    {% if is_granted('STATISTICS_VIEW') %}<a href="{{ path('statistics_index') }}"{% if app.request.attributes.get('_route') starts with 'statistics_' %} aria-current="page"{% endif %}><span aria-hidden="true">▥</span><span>{{ 'navigation.statistics'|trans }}</span></a>{% endif %}
+                    {% if is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}<a href="{{ path('admin_payment_accounts') }}"{% if app.request.attributes.get('_route') == 'admin_payment_accounts' %} aria-current="page"{% endif %}><span aria-hidden="true">₿</span><span>{{ 'navigation.payments'|trans }}</span></a>{% endif %}
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{{ path('app_profile') }}"{% if app.request.attributes.get('_route') == 'app_profile' %} aria-current="page"{% endif %}>
+                    <span class="sidebar-avatar" aria-hidden="true">{{ app.user.username|default('U')|slice(0,1)|upper }}</span>
+                    <span class="sidebar-user"><strong>{{ app.user.username|default('User') }}</strong><small>{{ 'app.account_settings'|trans }}</small></span>
+                </a>
+                <form method="post" action="{{ path('logout') }}" class="sidebar-logout-form">
+                    <button class="sidebar-logout" type="submit">{{ 'auth.logout'|trans }}</button>
+                </form>
+            </div>
+        </aside>
+
+        <div class="app-content-shell">
+            <header class="mobile-topbar">
+                <a class="app-brand" href="{{ path('app_home') }}" aria-label="{{ 'app.brand_home'|trans }}">
+                    <span class="app-brand-mark" aria-hidden="true">{{ 'customer.pos'|trans }}</span>
+                    <span>{{ 'app.brand'|trans }}</span>
+                </a>
+                <div class="mobile-topbar-actions">
+                    <a class="mobile-topbar-user" href="{{ path('app_profile') }}" aria-label="{{ 'app.open_account'|trans }}">
+                        <span class="sidebar-avatar" aria-hidden="true">{{ app.user.username|default('U')|slice(0,1)|upper }}</span>
+                    </a>
+                    <button class="mobile-nav-toggle" type="button" data-action="navigation#toggle" data-navigation-target="toggle" aria-expanded="false" aria-controls="app-navigation" aria-label="{{ 'navigation.open_menu'|trans }}">
+                        <span aria-hidden="true">☰</span>
+                    </button>
+                </div>
+            </header>
+
+            <div id="app-navigation" class="mobile-navigation" data-navigation-target="menu" hidden>
+                <nav aria-label="{{ 'navigation.primary'|trans }}">
+                    <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}>{{ 'navigation.home'|trans }}</a>
+                    {% if is_granted('POS_ACCESS') %}<a href="{{ path('pos') }}"{% if app.request.attributes.get('_route') starts with 'pos' %} aria-current="page"{% endif %}>{{ 'navigation.pos'|trans }}</a>{% endif %}
+                    {% if is_granted('ORDER_VIEW') %}<a href="{{ path('orders_index') }}"{% if app.request.attributes.get('_route') starts with 'orders_' %} aria-current="page"{% endif %}>{{ 'navigation.orders'|trans }}</a>{% endif %}
+                    {% if is_granted('CUSTOMER_VIEW') %}<a href="{{ path('customers_index') }}"{% if app.request.attributes.get('_route') starts with 'customers_' %} aria-current="page"{% endif %}>{{ 'navigation.customers'|trans }}</a>{% endif %}
+                    {% if is_granted('DEBT_VIEW') %}<a href="{{ path('debts_index') }}"{% if app.request.attributes.get('_route') starts with 'debts_' %} aria-current="page"{% endif %}>{{ 'navigation.debt'|trans }}</a>{% endif %}
+                    {% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_products_' %} aria-current="page"{% endif %}>{{ 'navigation.products'|trans }}</a>{% endif %}
+                    {% if is_granted('STOCK_VIEW') %}<a href="{{ path('admin_stock_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_stock_' %} aria-current="page"{% endif %}>{{ 'navigation.stock'|trans }}</a>{% endif %}
+                    {% if is_granted('STATISTICS_VIEW') %}<a href="{{ path('statistics_index') }}"{% if app.request.attributes.get('_route') starts with 'statistics_' %} aria-current="page"{% endif %}>{{ 'navigation.statistics'|trans }}</a>{% endif %}
+                    {% if is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}<a href="{{ path('admin_payment_accounts') }}"{% if app.request.attributes.get('_route') == 'admin_payment_accounts' %} aria-current="page"{% endif %}>{{ 'navigation.payments'|trans }}</a>{% endif %}
+                    <a href="{{ path('app_profile') }}"{% if app.request.attributes.get('_route') == 'app_profile' %} aria-current="page"{% endif %}>{{ 'navigation.account'|trans }}</a>
+                    <form method="post" action="{{ path('logout') }}">
+                        <button type="submit">{{ 'auth.logout'|trans }}</button>
+                    </form>
+                </nav>
+            </div>
+
+            {% include 'shared/_flashes.html.twig' %}
+
+            <main class="app-main" id="main-content" tabindex="-1">
+                {% block authenticated_body %}{% endblock %}
+            </main>
+        </div>
+
+        <nav class="mobile-bottom-nav" aria-label="{{ 'navigation.quick'|trans }}">
+            <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}><span aria-hidden="true">⌂</span><small>{{ 'navigation.home'|trans }}</small></a>
+            {% if is_granted('ORDER_VIEW') %}<a href="{{ path('orders_index') }}"{% if app.request.attributes.get('_route') starts with 'orders_' %} aria-current="page"{% endif %}><span aria-hidden="true">▤</span><small>{{ 'navigation.orders'|trans }}</small></a>{% endif %}
+            {% if is_granted('POS_ACCESS') %}<a class="mobile-bottom-nav-primary" href="{{ path('pos') }}"{% if app.request.attributes.get('_route') starts with 'pos' %} aria-current="page"{% endif %}><span aria-hidden="true">＋</span><small>{{ 'navigation.pos'|trans }}</small></a>{% endif %}
+            {% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_products_' %} aria-current="page"{% endif %}><span aria-hidden="true">□</span><small>{{ 'navigation.products'|trans }}</small></a>{% endif %}
+            <a href="{{ path('app_profile') }}"{% if app.request.attributes.get('_route') == 'app_profile' %} aria-current="page"{% endif %}><span aria-hidden="true">●</span><small>{{ 'navigation.account'|trans }}</small></a>
+        </nav>
+    </div>
+{% endblock %}

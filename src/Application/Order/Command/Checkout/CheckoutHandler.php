@@ -25,6 +25,11 @@ use App\Domain\Order\Payment;
 use App\Domain\Order\Repository\OrderRepositoryInterface;
 use App\Domain\Order\Repository\PaymentRepositoryInterface;
 use App\Domain\Order\ValueObject\OrderNumber;
+use App\Domain\Payment\Enum\PaymentMethod;
+use App\Domain\Payment\PaymentBankAccount;
+use App\Domain\Payment\Repository\PaymentBankAccountRepositoryInterface;
+use App\Application\Payment\Reference\CheckoutPaymentSessionService;
+use App\Application\Payment\Enum\BankTransferCompletionPolicy;
 use App\Domain\Product\Product;
 use App\Domain\Shared\ValueObject\Money;
 use App\Domain\Stock\Enum\StockMovementType;
@@ -51,6 +56,9 @@ final readonly class CheckoutHandler
         private CustomerRepositoryInterface $customerRepository,
         private OrderRepositoryInterface $orderRepository,
         private PaymentRepositoryInterface $paymentRepository,
+        private PaymentBankAccountRepositoryInterface $paymentBankAccountRepository,
+        private CheckoutPaymentSessionService $checkoutPaymentSessionService,
+        private string $bankTransferCompletionPolicy,
         private DebtRepositoryInterface $debtRepository,
         private StockMovementRepositoryInterface $stockMovementRepository,
         private AuditLogRepositoryInterface $auditLogRepository,
@@ -134,32 +142,24 @@ final readonly class CheckoutHandler
                 },
             );
         } catch (\Throwable $exception) {
-            /*
-             * Transaction #2 has already rolled back.
-             *
-             * Transaction #3
-             *
-             * Persist PROCESSING -> FAILED independently from
-             * the failed business transaction.
-             */
-            $this->transactionManager->run(
-                function () use (
-                    $decision,
-                    $exception,
-                ): void {
-                    $this->idempotency->fail(
-                        decision: $decision,
-                        responseStatus: $this->resolveFailureStatus(
-                            $exception,
-                        ),
-                        responseBody: [
-                            'error' => $exception->getMessage(),
-                        ],
-                    );
-                },
-            );
-
-            throw $exception;
+            // A different idempotency key may concurrently create the same
+            // active bank-payment session. The DB unique key is authoritative;
+            // recover its committed session instead of creating a duplicate.
+            if ($input->payment->method === PaymentMethod::BANK_TRANSFER
+                && $exception instanceof \Doctrine\DBAL\Exception\UniqueConstraintViolationException) {
+                $recovered = $this->transactionManager->run(
+                    fn (): ?CheckoutResult => $this->recoverConcurrentBankSession($input),
+                );
+                if ($recovered !== null) {
+                    $result = $recovered;
+                } else {
+                    $this->transactionManager->run(fn () => $this->idempotency->fail($decision, $this->resolveFailureStatus($exception), ['error' => $exception->getMessage()]));
+                    throw $exception;
+                }
+            } else {
+                $this->transactionManager->run(fn () => $this->idempotency->fail($decision, $this->resolveFailureStatus($exception), ['error' => $exception->getMessage()]));
+                throw $exception;
+            }
         }
 
         /*
@@ -185,15 +185,46 @@ final readonly class CheckoutHandler
         return $result;
     }
 
+    private function recoverConcurrentBankSession(CheckoutInput $input): ?CheckoutResult
+    {
+        $result = $this->checkoutPaymentSessionService->reuseActive($this->buildRequestFingerprint($input));
+        if ($result === null) return null;
+        $total = Money::fromDecimal($result['amount']);
+        return new CheckoutResult(
+            orderId: $result['orderId'],
+            orderNumber: null,
+            total: $total,
+            paidAmount: Money::zero(),
+            debtAmount: $total,
+            tenderedAmount: Money::zero(),
+            changeAmount: Money::zero(),
+            status: null,
+            paymentReference: $result['reference'],
+            paymentReferenceExpiresAt: $result['expiresAt'],
+            paymentReferenceTransferContent: $result['transferContent'],
+            paymentReferenceQrUrl: $result['qrUrl'],
+            bankTransferCompletionPolicy: BankTransferCompletionPolicy::MANUAL->value,
+            paymentSessionId: $result['sessionId'],
+        );
+    }
+
     private function execute(
         CheckoutInput $input,
         IdempotencyDecision $decision,
         TransactionContextInterface $transaction,
         ActorContext $actorContext,
     ): CheckoutResult {
+        $completionPolicy = BankTransferCompletionPolicy::tryFrom(strtoupper(trim($this->bankTransferCompletionPolicy)));
+        if ($completionPolicy === null) {
+            throw new \LogicException('Invalid bank transfer completion policy.');
+        }
+
         $user = $this->resolveUser($actorContext);
         $session = $this->resolveSession($actorContext);
         $customer = $this->resolveCustomer($input->customerId);
+        $bankAccount = $this->resolveBankAccount($input);
+        $isBankTransfer = $input->payment->method === PaymentMethod::BANK_TRANSFER;
+        $paymentReferenceResult = null;
 
         $quantities = $this->aggregateQuantities(
             $input->items,
@@ -211,6 +242,58 @@ final readonly class CheckoutHandler
             );
         }
 
+        if ($isBankTransfer) {
+            if ($bankAccount === null) {
+                throw new \DomainException('Receiving bank account is required for bank transfer.');
+            }
+
+            $snapshot = [];
+            $calculatedTotal = Money::zero();
+            foreach ($productIds as $productId) {
+                $product = $products[$productId];
+                $quantity = $quantities[$productId];
+                $this->assertProductCanBeSold($product, $quantity);
+                $unitPrice = $product->getSellingPrice();
+                $snapshot[] = [
+                    'productId' => $productId,
+                    'quantity' => $quantity,
+                    'unitPrice' => $unitPrice->toDecimal(),
+                ];
+                $calculatedTotal = $calculatedTotal->add($unitPrice->multiply($quantity));
+            }
+
+            if (!$input->payment->amount->equals($calculatedTotal)) {
+                throw new \DomainException('Bank transfer amount must equal the order total.');
+            }
+
+            $sessionResult = $this->checkoutPaymentSessionService->createOrReuse(
+                user: $user,
+                customer: $customer,
+                bankAccount: $bankAccount,
+                snapshot: $snapshot,
+                amount: $calculatedTotal,
+                note: $input->note,
+                activeKey: $this->buildRequestFingerprint($input),
+            );
+
+            return new CheckoutResult(
+                orderId: $sessionResult['orderId'],
+                orderNumber: null,
+                total: $calculatedTotal,
+                paidAmount: Money::zero(),
+                debtAmount: $calculatedTotal,
+                tenderedAmount: Money::zero(),
+                changeAmount: Money::zero(),
+                status: null,
+                paymentReference: $sessionResult['reference'],
+                paymentReferenceExpiresAt: $sessionResult['expiresAt'],
+                paymentReferenceTransferContent: $sessionResult['transferContent'],
+                paymentReferenceQrUrl: $sessionResult['qrUrl'],
+                bankTransferCompletionPolicy: BankTransferCompletionPolicy::MANUAL->value,
+                paymentSessionId: $sessionResult['sessionId'],
+            );
+        }
+
         $order = new Order(
             orderNumber: $this->generateOrderNumber(),
             user: $user,
@@ -221,44 +304,21 @@ final readonly class CheckoutHandler
         foreach ($productIds as $productId) {
             $product = $products[$productId];
             $quantity = $quantities[$productId];
-
-            $this->assertProductCanBeSold(
-                $product,
-                $quantity,
-            );
-
-            $order->addItem(
-                new OrderItem(
-                    product: $product,
-                    quantity: $quantity,
-                    unitPrice: $product->getSellingPrice(),
-                ),
-            );
+            $this->assertProductCanBeSold($product, $quantity);
+            $order->addItem(new OrderItem(
+                product: $product,
+                quantity: $quantity,
+                unitPrice: $product->getSellingPrice(),
+            ));
         }
-
-        /*
-         * The Order calculates its total from authoritative
-         * OrderItem values. Client supplied totals are never trusted.
-         */
         $order->recalculateTotals();
 
         $paymentAmount = $input->payment->amount;
         $tenderedAmount = $input->payment->tenderedAmount ?? $paymentAmount;
-
-        if ($input->payment->method === \App\Domain\Payment\Enum\PaymentMethod::BANK_TRANSFER
-            && !$paymentAmount->equals($order->getTotal())
-        ) {
-            throw new \DomainException(
-                'Bank transfer amount must equal the order total.',
-            );
-        }
-
-        if ($input->payment->method === \App\Domain\Payment\Enum\PaymentMethod::CASH) {
-            if ($tenderedAmount->isLessThanOrEqual($order->getTotal())) {
-                $paymentAmount = $tenderedAmount;
-            } else {
-                $paymentAmount = $order->getTotal();
-            }
+        if ($tenderedAmount->isLessThanOrEqual($order->getTotal())) {
+            $paymentAmount = $tenderedAmount;
+        } else {
+            $paymentAmount = $order->getTotal();
         }
 
         if ($paymentAmount->isPositive()) {
@@ -266,35 +326,20 @@ final readonly class CheckoutHandler
                 amount: $paymentAmount,
                 method: $input->payment->method,
                 user: $user,
+                reference: $input->paymentReference,
+                bankAccount: $bankAccount,
             );
-
             $order->addPayment($payment);
             $this->paymentRepository->save($payment);
+            $order->complete();
         }
 
-        /*
-         * Domain validates payment <= total and performs the
-         * final Order state transition.
-         */
-        $order->complete();
-
         $this->orderRepository->save($order);
-
-        /*
-         * The Order ID is generated by Doctrine.
-         *
-         * Flush while the transaction is still open so the
-         * application can safely construct the result and audit
-         * record using the database identity.
-         */
         $transaction->flush();
 
         $orderId = $order->getId();
-
         if ($orderId === null) {
-            throw new \LogicException(
-                'Order ID was not generated after transaction flush.',
-            );
+            throw new \LogicException('Order ID was not generated after transaction flush.');
         }
 
         /*
@@ -350,21 +395,11 @@ final readonly class CheckoutHandler
                 entityType: 'Order',
                 entityId: (string) $orderId,
                 newValues: [
-                    'orderNumber' => $order
-                        ->getOrderNumber()
-                        ->value(),
-                    'status' => $order
-                        ->getStatus()
-                        ->value,
-                    'total' => $order
-                        ->getTotal()
-                        ->toDecimal(),
-                    'paidAmount' => $order
-                        ->getPaidAmount()
-                        ->toDecimal(),
-                    'debtAmount' => $order
-                        ->getDebtAmount()
-                        ->toDecimal(),
+                    'orderNumber' => $order->getOrderNumber()->value(),
+                    'status' => $order->getStatus()->value,
+                    'total' => $order->getTotal()->toDecimal(),
+                    'paidAmount' => $order->getPaidAmount()->toDecimal(),
+                    'debtAmount' => $order->getDebtAmount()->toDecimal(),
                     'tenderedAmount' => $tenderedAmount->toDecimal(),
                     'changeAmount' => $this->calculateChange(
                         $input,
@@ -398,6 +433,8 @@ final readonly class CheckoutHandler
                 $tenderedAmount,
             ),
             status: $order->getStatus(),
+            paymentReference: $paymentReferenceResult['reference'] ?? null,
+            paymentReferenceExpiresAt: $paymentReferenceResult['expiresAt'] ?? null,
         );
     }
 
@@ -530,11 +567,33 @@ final readonly class CheckoutHandler
             );
         }
 
+        if ($input->payment->method === PaymentMethod::BANK_TRANSFER && $input->bankAccountId === null) {
+            throw new \InvalidArgumentException('Receiving bank account is required for bank transfer.');
+        }
+
         if (trim($input->idempotencyKey) === '') {
             throw new \InvalidArgumentException(
                 'Idempotency key cannot be empty.',
             );
         }
+    }
+
+    private function resolveBankAccount(CheckoutInput $input): ?PaymentBankAccount
+    {
+        if ($input->payment->method !== PaymentMethod::BANK_TRANSFER) {
+            return null;
+        }
+
+        if ($input->bankAccountId === null) {
+            throw new \InvalidArgumentException('Receiving bank account is required for bank transfer.');
+        }
+
+        $account = $this->paymentBankAccountRepository->findById($input->bankAccountId);
+        if (!$account instanceof PaymentBankAccount || !$account->isActive()) {
+            throw new \DomainException('Receiving bank account is not found or inactive.');
+        }
+
+        return $account;
     }
 
     private function buildRequestFingerprint(
@@ -564,6 +623,7 @@ final readonly class CheckoutHandler
                 'method' => $input->payment->method->value,
                 'amount' => $input->payment->amount->toDecimal(),
                 'tenderedAmount' => $input->payment->tenderedAmount?->toDecimal(),
+                'bankAccountId' => $input->bankAccountId,
             ],
             'note' => $input->note,
         ];
@@ -605,14 +665,20 @@ final readonly class CheckoutHandler
         }
 
         return new CheckoutResult(
-            orderId: (int) $body['orderId'],
-            orderNumber: (string) $body['orderNumber'],
+            orderId: isset($body['orderId']) ? (int) $body['orderId'] : null,
+            orderNumber: isset($body['orderNumber']) ? (string) $body['orderNumber'] : null,
             total: Money::fromDecimal((string) $body['total']),
             paidAmount: Money::fromDecimal((string) $body['paidAmount']),
             debtAmount: Money::fromDecimal((string) $body['debtAmount']),
             tenderedAmount: Money::fromDecimal((string) ($body['tenderedAmount'] ?? $body['paidAmount'])),
             changeAmount: Money::fromDecimal((string) ($body['changeAmount'] ?? '0.00')),
-            status: OrderStatus::from((string) $body['status']),
+            status: isset($body['status']) && $body['status'] !== null ? OrderStatus::from((string) $body['status']) : null,
+            paymentReference: $body['paymentReference'] ?? null,
+            paymentReferenceExpiresAt: $body['paymentReferenceExpiresAt'] ?? null,
+            paymentReferenceTransferContent: $body['paymentReferenceTransferContent'] ?? null,
+            paymentReferenceQrUrl: $body['paymentReferenceQrUrl'] ?? null,
+            bankTransferCompletionPolicy: $body['bankTransferCompletionPolicy'] ?? null,
+            paymentSessionId: isset($body['paymentSessionId']) ? (int) $body['paymentSessionId'] : null,
         );
     }
 
@@ -630,7 +696,13 @@ final readonly class CheckoutHandler
             'debtAmount' => $result->debtAmount->toDecimal(),
             'tenderedAmount' => $result->tenderedAmount->toDecimal(),
             'changeAmount' => $result->changeAmount->toDecimal(),
-            'status' => $result->status->value,
+            'status' => $result->status?->value,
+            'paymentReference' => $result->paymentReference,
+            'paymentReferenceExpiresAt' => $result->paymentReferenceExpiresAt,
+            'paymentReferenceTransferContent' => $result->paymentReferenceTransferContent,
+            'paymentReferenceQrUrl' => $result->paymentReferenceQrUrl,
+            'bankTransferCompletionPolicy' => $result->bankTransferCompletionPolicy,
+            'paymentSessionId' => $result->paymentSessionId,
         ];
     }
 
@@ -640,7 +712,7 @@ final readonly class CheckoutHandler
         Money $tenderedAmount,
     ): Money {
         if (
-            $input->payment->method !== \App\Domain\Payment\Enum\PaymentMethod::CASH
+            $input->payment->method !== PaymentMethod::CASH
             || !$tenderedAmount->isGreaterThan($total)
         ) {
             return Money::zero();

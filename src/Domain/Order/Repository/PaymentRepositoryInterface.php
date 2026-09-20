@@ -12,6 +12,8 @@ interface PaymentRepositoryInterface
 
     public function findById(int $id): ?Payment;
 
+    public function findByReference(string $reference): ?Payment;
+
     /**
      * @return list<Payment>
      */

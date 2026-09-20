@@ -12,10 +12,22 @@ use App\Application\Product\Query\SearchProducts\SearchProductsInput;
 use App\Application\Order\Command\Checkout\CheckoutInput;
 use App\Application\Order\Command\Checkout\CheckoutItemInput;
 use App\Application\Order\Command\Checkout\CheckoutPaymentInput;
+use App\Application\Payment\Reference\PaymentReferenceService;
+use App\Application\Payment\Reference\CheckoutPaymentSessionService;
+use App\Application\Payment\ManualBankPaymentConfirmationService;
+use App\Domain\Payment\Repository\CheckoutPaymentSessionRepositoryInterface;
+use App\Domain\Payment\Repository\PaymentReferenceRepositoryInterface;
+use App\Application\Order\Command\CompleteOrder\CompleteOrderHandler;
+use App\Application\Common\Transaction\TransactionManagerInterface;
 use App\Application\Security\ActorContext;
 use App\Application\Security\Permission;
 use App\Application\Security\RuntimeActorContextProvider;
 use App\Domain\Payment\Enum\PaymentMethod;
+use App\Domain\Payment\Repository\PaymentBankAccountRepositoryInterface;
+use App\Domain\Payment\Repository\ExternalPaymentTransactionRepositoryInterface;
+use App\Application\Product\Query\ProductCatalogHandler;
+use App\Application\Product\Query\ProductCatalogInput;
+use App\Domain\Product\Repository\ProductCategoryRepositoryInterface;
 use App\Domain\Shared\ValueObject\Money;
 use App\Domain\User\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,7 +43,7 @@ final class CheckoutController extends AbstractController
     private const CSRF_TOKEN_ID = 'pos_checkout';
 
     #[Route('/app/pos', name: 'pos', methods: ['GET'])]
-    public function pos(CsrfTokenManagerInterface $csrfTokenManager): Response
+    public function pos(CsrfTokenManagerInterface $csrfTokenManager, PaymentBankAccountRepositoryInterface $bankAccounts): Response
     {
         if (!$this->getUser() instanceof User) {
             return $this->redirectToRoute('login');
@@ -43,6 +55,8 @@ final class CheckoutController extends AbstractController
 
         return $this->render('pos/index.html.twig', [
             'checkout_csrf_token' => $csrfTokenManager->getToken(self::CSRF_TOKEN_ID)->getValue(),
+            'payment_bank_accounts' => $bankAccounts->findActive(),
+            'manual_bank_confirm_allowed' => $this->isGranted(Permission::PAYMENT_BANK_MANUAL_CONFIRM->value),
         ]);
     }
 
@@ -66,6 +80,62 @@ final class CheckoutController extends AbstractController
         ]);
     }
 
+    #[Route('/app/pos/products/catalog', name: 'pos_products_catalog', methods: ['GET'], format: 'json')]
+    public function catalogProducts(
+        Request $request,
+        ProductCatalogHandler $handler,
+        ProductCategoryRepositoryInterface $categories,
+    ): JsonResponse {
+        $this->requirePosAccess(Permission::PRODUCT_VIEW);
+
+        $query = trim((string) $request->query->get('q', ''));
+        $categoryRaw = $request->query->get('category');
+        $categoryId = is_numeric($categoryRaw) && (int) $categoryRaw > 0 ? (int) $categoryRaw : null;
+        $page = max(1, $request->query->getInt('page', 1));
+        $limit = min(5, max(1, $request->query->getInt('limit', 5)));
+
+        $result = $handler(new ProductCatalogInput(
+            query: $query,
+            categoryId: $categoryId,
+            sort: 'name_asc',
+            page: $page,
+            limit: $limit,
+        ));
+
+        if ($result->page > $result->totalPages && $result->total > 0) {
+            $result = $handler(new ProductCatalogInput(
+                query: $query,
+                categoryId: $categoryId,
+                sort: 'name_asc',
+                page: $result->totalPages,
+                limit: $limit,
+            ));
+        }
+
+        return $this->json([
+            'data' => array_map(static fn ($product): array => [
+                'id' => $product->id,
+                'sku' => $product->sku,
+                'name' => $product->name,
+                'unit' => $product->unit,
+                'sellingPrice' => $product->sellingPrice,
+                'stockQuantity' => $product->stockQuantity,
+                'categoryId' => $product->categoryId,
+                'categoryName' => $product->categoryName,
+            ], $result->items),
+            'pagination' => [
+                'page' => $result->page,
+                'limit' => $result->limit,
+                'total' => $result->total,
+                'totalPages' => $result->totalPages,
+            ],
+            'categories' => array_map(static fn ($category): array => [
+                'id' => $category->getId(),
+                'name' => $category->getName(),
+            ], $categories->findActiveOrdered()),
+        ]);
+    }
+
     #[Route('/app/pos/customers', name: 'pos_customers_search', methods: ['GET'], format: 'json')]
     public function searchCustomers(Request $request, SearchCustomersHandler $handler): JsonResponse
     {
@@ -81,6 +151,198 @@ final class CheckoutController extends AbstractController
                 'phone' => $customer->phone,
             ], $results),
         ]);
+    }
+
+    #[Route('/app/pos/payment-bank-accounts', name: 'pos_payment_bank_accounts', methods: ['GET'], format: 'json')]
+    public function paymentBankAccounts(PaymentBankAccountRepositoryInterface $bankAccounts): JsonResponse
+    {
+        $this->requirePosAccess(Permission::POS_ACCESS);
+        return $this->json(['data' => array_map(static fn ($account): array => [
+            'id' => $account->getId(),
+            'bankBin' => $account->getBankBin(),
+            'bankName' => $account->getBankName(),
+            'accountNumber' => $account->getAccountNumber(),
+            'accountName' => $account->getAccountName(),
+            'qrTemplate' => $account->getQrTemplate(),
+            'transferContentTemplate' => $account->getTransferContentTemplate(),
+        ], $bankAccounts->findActive())]);
+    }
+
+    #[Route('/app/payment-sessions/{id<\d+>}/status', name: 'checkout_payment_session_status', methods: ['GET'], format: 'json')]
+    public function paymentSessionStatus(int $id, CheckoutPaymentSessionRepositoryInterface $sessions, PaymentReferenceRepositoryInterface $references, ExternalPaymentTransactionRepositoryInterface $transactions): JsonResponse
+    {
+        $this->requirePosAccess(Permission::POS_CHECKOUT);
+        $session = $sessions->findById($id);
+        if ($session === null) {
+            return $this->json(['errorCode' => 'RESOURCE_NOT_FOUND', 'message' => 'Payment session not found.'], Response::HTTP_NOT_FOUND);
+        }
+        $reference = null;
+        $pendingReference = $references->findLatestPendingBySession($id);
+        if ($pendingReference !== null && !$pendingReference->isExpired()) {
+            $reference = $pendingReference->getReference();
+        }
+        foreach ($session->getOrder()?->getPayments() ?? [] as $payment) {
+            if ($payment->getMethod() === PaymentMethod::BANK_TRANSFER) {
+                $reference = $payment->getReference();
+                break;
+            }
+        }
+        $order = $session->getOrder();
+        $externalTransaction = $order?->getId() !== null
+            ? $transactions->findLatestByOrderId($order->getId())
+            : null;
+
+        return $this->json(['data' => [
+            'sessionId' => $session->getId(),
+            'status' => $session->getStatus()->value,
+            'orderId' => $order?->getId(),
+            'orderNumber' => $order?->getOrderNumber()?->value(),
+            'total' => $session->getAmount()->toDecimal(),
+            'paidAmount' => $session->getOrder()?->getPaidAmount()->toDecimal() ?? '0.00',
+            'debtAmount' => $session->getOrder()?->getDebtAmount()->toDecimal() ?? $session->getAmount()->toDecimal(),
+            'paymentReceived' => $session->getStatus()->value === 'PAID',
+            'paymentReference' => $reference,
+            'manualConfirmationAvailable' => $this->isGranted(Permission::PAYMENT_BANK_MANUAL_CONFIRM->value)
+                && $session->getStatus()->value === 'WAITING_FOR_BANK_PAYMENT'
+                && $reference !== null,
+            'externalTransaction' => $externalTransaction === null ? null : [
+                'id' => $externalTransaction->getId(),
+                'provider' => $externalTransaction->getProvider(),
+                'externalTransactionId' => $externalTransaction->getExternalTransactionId(),
+                'amount' => $externalTransaction->getAmount()->toDecimal(),
+                'description' => $externalTransaction->getDescription(),
+                'reference' => $externalTransaction->getTransactionReference(),
+                'occurredAt' => $externalTransaction->getOccurredAt()->format(\DateTimeInterface::ATOM),
+                'status' => $externalTransaction->getStatus(),
+            ],
+        ]]);
+    }
+
+    #[Route('/app/payment-sessions/{id<\\d+>}/manual-confirm', name: 'checkout_payment_session_manual_confirm', methods: ['POST'], format: 'json')]
+    public function manualBankPaymentConfirm(
+        int $id,
+        Request $request,
+        ManualBankPaymentConfirmationService $service,
+        CsrfTokenManagerInterface $csrfTokenManager,
+    ): JsonResponse {
+        $requestId = $this->requestId($request);
+        $user = $this->getUser();
+        if (!$user instanceof User || !$user->isActive()) {
+            return $this->error('AUTHENTICATION_REQUIRED', 'Authentication is required.', Response::HTTP_UNAUTHORIZED, $requestId);
+        }
+        if (!$this->isGranted(Permission::PAYMENT_BANK_MANUAL_CONFIRM->value)) {
+            return $this->error('ACCESS_DENIED', 'You are not allowed to manually confirm bank payments.', Response::HTTP_FORBIDDEN, $requestId);
+        }
+        $csrf = (string) $request->headers->get('X-CSRF-TOKEN', '');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, $csrf))) {
+            return $this->error('CSRF_INVALID', 'Invalid CSRF token.', Response::HTTP_FORBIDDEN, $requestId);
+        }
+        try {
+            $payload = $request->toArray();
+            $reference = trim((string) ($payload['paymentReference'] ?? ''));
+            $amount = trim((string) ($payload['amount'] ?? ''));
+            if ($reference === '' || $amount === '') {
+                throw new \InvalidArgumentException('paymentReference and amount are required.');
+            }
+            $result = $service->confirmAndComplete($id, $reference, $amount, $user, $requestId);
+            return $this->json(['data' => $result, 'requestId' => $requestId], Response::HTTP_OK, ['X-Request-ID' => $requestId]);
+        } catch (\InvalidArgumentException $e) {
+            return $this->error('VALIDATION_ERROR', $e->getMessage(), Response::HTTP_BAD_REQUEST, $requestId);
+        } catch (\DomainException $e) {
+            return $this->error('MANUAL_BANK_CONFIRMATION_REJECTED', $e->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY, $requestId);
+        } catch (\Throwable) {
+            return $this->error('INTERNAL_ERROR', 'Unable to manually confirm bank payment.', Response::HTTP_INTERNAL_SERVER_ERROR, $requestId);
+        }
+    }
+
+    #[Route('/app/payment-sessions/{id<\\d+>}/payment-reference/regenerate', name: 'payment_session_payment_reference_regenerate', methods: ['POST'], format: 'json')]
+    public function regeneratePaymentSessionReference(
+        int $id,
+        CheckoutPaymentSessionService $service,
+        TransactionManagerInterface $transactionManager,
+        CsrfTokenManagerInterface $csrfTokenManager,
+        Request $request,
+    ): JsonResponse {
+        $this->requirePosAccess(Permission::POS_CHECKOUT);
+        $provided = (string) $request->headers->get('X-CSRF-TOKEN', '');
+        $requestId = $this->requestId($request);
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, $provided))) {
+            return $this->error('CSRF_INVALID', 'Invalid CSRF token.', Response::HTTP_FORBIDDEN, $requestId);
+        }
+
+        try {
+            $result = $transactionManager->run(fn (): array => $service->regenerate($id));
+            return $this->json(['data' => $result, 'requestId' => $requestId], Response::HTTP_OK, ['X-Request-ID' => $requestId]);
+        } catch (\DomainException $e) {
+            return $this->error('PAYMENT_REFERENCE_INVALID', $e->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY, $requestId);
+        } catch (\Throwable) {
+            return $this->error('INTERNAL_ERROR', 'Unable to regenerate payment reference.', Response::HTTP_INTERNAL_SERVER_ERROR, $requestId);
+        }
+    }
+
+    #[Route('/app/orders/{id<\\d+>}/payment-reference/regenerate', name: 'payment_reference_regenerate', methods: ['POST'], format: 'json')]
+    public function regeneratePaymentReference(
+        int $id,
+        PaymentReferenceService $service,
+        TransactionManagerInterface $transactionManager,
+        CsrfTokenManagerInterface $csrfTokenManager,
+        Request $request,
+    ): JsonResponse {
+        $this->requirePosAccess(Permission::POS_CHECKOUT);
+        $provided = (string) $request->headers->get('X-CSRF-TOKEN', '');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, $provided))) {
+            return $this->error('CSRF_INVALID', 'Invalid CSRF token.', Response::HTTP_FORBIDDEN, $this->requestId($request));
+        }
+
+        try {
+            $result = $transactionManager->run(fn (): array => $service->regenerateForOrder($id));
+            return $this->json(['data' => $result], Response::HTTP_OK);
+        } catch (\DomainException $e) {
+            return $this->error('PAYMENT_REFERENCE_INVALID', $e->getMessage(), Response::HTTP_UNPROCESSABLE_ENTITY, $this->requestId($request));
+        } catch (\Throwable) {
+            return $this->error('INTERNAL_ERROR', 'Unable to regenerate payment reference.', Response::HTTP_INTERNAL_SERVER_ERROR, $this->requestId($request));
+        }
+    }
+
+    #[Route('/app/orders/{id<\d+>}/complete', name: 'order_complete', methods: ['POST'], format: 'json')]
+    public function completeOrder(
+        int $id,
+        Request $request,
+        CompleteOrderHandler $handler,
+        CsrfTokenManagerInterface $csrfTokenManager,
+    ): JsonResponse {
+        $requestId = $this->requestId($request);
+        $user = $this->getUser();
+        if (!$user instanceof User || !$user->isActive()) {
+            return $this->error('AUTHENTICATION_REQUIRED', 'Authentication is required.', Response::HTTP_UNAUTHORIZED, $requestId);
+        }
+
+        if (!$this->isGranted(Permission::POS_CHECKOUT->value)) {
+            return $this->error('ACCESS_DENIED', 'You are not allowed to complete a sale.', Response::HTTP_FORBIDDEN, $requestId);
+        }
+
+        $csrfToken = (string) $request->headers->get('X-CSRF-TOKEN', '');
+        if (!$csrfTokenManager->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, $csrfToken))) {
+            return $this->error('CSRF_INVALID', 'Invalid CSRF token.', Response::HTTP_FORBIDDEN, $requestId);
+        }
+
+        try {
+            $result = $handler->handle($id, $user, $requestId);
+        } catch (\Throwable $exception) {
+            return $this->mapException($exception, $requestId);
+        }
+
+        return $this->json([
+            'data' => [
+                'orderId' => $result->orderId,
+                'orderNumber' => $result->orderNumber,
+                'status' => $result->status,
+                'total' => $result->total,
+                'paidAmount' => $result->paidAmount,
+                'debtAmount' => $result->debtAmount,
+            ],
+            'requestId' => $requestId,
+        ], Response::HTTP_OK, ['X-Request-ID' => $requestId]);
     }
 
     #[Route('/app/checkout', name: 'pos_checkout', methods: ['POST'], format: 'json')]
@@ -141,7 +403,13 @@ final class CheckoutController extends AbstractController
                 'debtAmount' => $result->debtAmount->toDecimal(),
                 'tenderedAmount' => $result->tenderedAmount->toDecimal(),
                 'changeAmount' => $result->changeAmount->toDecimal(),
-                'status' => $result->status->value,
+                'status' => $result->status?->value,
+                'paymentReference' => $result->paymentReference,
+                'paymentReferenceExpiresAt' => $result->paymentReferenceExpiresAt,
+                'paymentReferenceTransferContent' => $result->paymentReferenceTransferContent,
+                'paymentReferenceQrUrl' => $result->paymentReferenceQrUrl,
+                'bankTransferCompletionPolicy' => $result->bankTransferCompletionPolicy,
+                'paymentSessionId' => $result->paymentSessionId,
             ],
             'requestId' => $requestId,
         ], Response::HTTP_OK, [
@@ -180,9 +448,24 @@ final class CheckoutController extends AbstractController
         $method = $payment['method'] ?? null;
         $amount = $payment['amount'] ?? null;
         $tenderedAmount = $payment['tenderedAmount'] ?? null;
+        $bankAccountId = $payment['bankAccountId'] ?? null;
+        $paymentReference = $payment['paymentReference'] ?? null;
 
         if (!is_string($method) || (!is_string($amount) && !is_int($amount))) {
             throw new \InvalidArgumentException('payment.method and payment.amount are required.');
+        }
+
+        if ($bankAccountId !== null && !is_int($bankAccountId)) {
+            throw new \InvalidArgumentException('payment.bankAccountId must be an integer or null.');
+        }
+
+        if ($paymentReference !== null && !is_string($paymentReference)) {
+            throw new \InvalidArgumentException('payment.paymentReference must be a string or null.');
+        }
+
+        $paymentReference = $paymentReference !== null ? trim($paymentReference) : null;
+        if ($paymentReference !== null && preg_match('/^PAY[A-Z0-9]{6,32}$/', $paymentReference) !== 1) {
+            throw new \InvalidArgumentException('payment.paymentReference has an invalid format.');
         }
 
         if ($tenderedAmount !== null && !is_string($tenderedAmount) && !is_int($tenderedAmount)) {
@@ -217,6 +500,8 @@ final class CheckoutController extends AbstractController
             items: $mappedItems,
             customerId: $customerId,
             payment: new CheckoutPaymentInput($paymentMethod, $money, $tenderedMoney),
+            bankAccountId: $bankAccountId,
+            paymentReference: $paymentReference,
             note: $note,
             idempotencyKey: $idempotencyKey,
         );

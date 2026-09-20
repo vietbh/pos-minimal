@@ -7,6 +7,10 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    app.bank_transfer_completion_policy_default: 'MANUAL'
+    app.bank_transfer_completion_policy: '%env(default:app.bank_transfer_completion_policy_default:POS_BANK_TRANSFER_COMPLETION_POLICY)%'
+    app.webhook_timezone_default: 'Asia/Ho_Chi_Minh'
+    app.webhook_future_skew_seconds_default: 300
 
 services:
     # default configuration for services in *this* file
@@ -40,6 +44,15 @@ services:
         arguments:
             $storageRoot: '%kernel.project_dir%/%env(PRODUCT_IMAGE_STORAGE_ROOT)%'
 
+    App\Application\Payment\Webhook\BankNotificationWebhookHandler:
+        arguments:
+            $webhookTimezone: '%env(default:app.webhook_timezone_default:POS_WEBHOOK_TIMEZONE)%'
+            $futureSkewSeconds: '%env(int:POS_WEBHOOK_FUTURE_SKEW_SECONDS)%'
+
+    App\Controller\Payment\BankNotificationWebhookController:
+        arguments:
+            $webhookToken: '%env(BANK_NOTIFICATION_WEBHOOK_TOKEN)%'
+
     App\Controller\HealthController:
         arguments:
             $storageRoot: '%kernel.project_dir%/%env(PRODUCT_IMAGE_STORAGE_ROOT)%'
@@ -58,6 +71,10 @@ services:
     App\Application\Product\Command\AdjustStock\AdjustStockHandler:
         public: true
 
-    App\Controller\Statistics\StatisticsController:
+    App\Application\Statistics\Query\Period\StatisticsPeriodResolver:
         arguments:
             $appTimezone: '%env(APP_TIMEZONE)%'
+
+    App\Application\Order\Command\Checkout\CheckoutHandler:
+        arguments:
+            $bankTransferCompletionPolicy: '%app.bank_transfer_completion_policy%'

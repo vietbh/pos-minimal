@@ -18,10 +18,13 @@ use App\Application\Product\Command\DeactivateProduct\DeactivateProductHandler;
 use App\Application\Product\Command\DeactivateProduct\DeactivateProductInput;
 use App\Application\Product\Command\UpdateProduct\UpdateProductHandler;
 use App\Application\Product\Command\UpdateProduct\UpdateProductInput;
+use App\Application\Product\Query\ProductCatalogHandler;
+use App\Application\Product\Query\ProductCatalogInput;
 use App\Application\Product\Query\SearchProducts\SearchProductsHandler;
 use App\Application\Product\Query\SearchProducts\SearchProductsInput;
 use App\Application\Security\Permission;
 use App\Domain\Product\Product;
+use App\Domain\Product\Repository\ProductCategoryRepositoryInterface;
 use App\Domain\Product\Repository\ProductRepositoryInterface;
 use App\Domain\Product\ValueObject\Sku;
 use App\Domain\Shared\ValueObject\Money;
@@ -37,35 +40,56 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class ProductController extends AbstractController
 {
     #[Route('/admin/products', name: 'admin_products_index', methods: ['GET'])]
-    public function index(Request $request, SearchProductsHandler $search): Response
+    public function index(Request $request, ProductCatalogHandler $catalog, ProductCategoryRepositoryInterface $categories): Response
     {
         $this->denyAccessUnlessGranted(Permission::PRODUCT_VIEW->value);
         $q = trim((string) $request->query->get('q', ''));
-        $products = $q === '' ? [] : $search(new SearchProductsInput($q, 50));
-
-        return $this->render('admin/product/index.html.twig', compact('products', 'q'));
+        $categoryRaw = $request->query->get('category');
+        $categoryId = is_numeric($categoryRaw) && (int) $categoryRaw > 0 ? (int) $categoryRaw : null;
+        $sort = (string) $request->query->get('sort', 'name_asc');
+        $pageRaw = $request->query->get('page', 1);
+        $page = is_numeric($pageRaw) ? max(1, (int) $pageRaw) : 1;
+        $result = $catalog(new ProductCatalogInput($q, $categoryId, $sort, $page, 20));
+        if ($result->page > $result->totalPages && $result->total > 0) {
+            $result = $catalog(new ProductCatalogInput($q, $categoryId, $sort, $result->totalPages, 20));
+        }
+        return $this->render('admin/product/index.html.twig', [
+            'products' => $result->items, 'pagination' => $result, 'q' => $q, 'categoryId' => $categoryId,
+            'sort' => in_array($sort, ['name_asc','name_desc'], true) ? $sort : 'name_asc',
+            'categories' => $categories->findActiveOrdered(),
+        ]);
     }
 
     #[Route('/admin/products/new', name: 'admin_products_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, CreateProductHandler $handler, CsrfTokenManagerInterface $csrf): Response
+    public function new(Request $request, CreateProductHandler $handler, ProductCategoryRepositoryInterface $categoryRepository, CsrfTokenManagerInterface $csrf): Response
     {
         $this->denyAccessUnlessGranted(Permission::PRODUCT_CREATE->value);
         $data = $this->productData($request);
         if ($request->isMethod('POST')) {
             $this->checkCsrf($request, $csrf, 'admin_product_form');
             try {
+                $this->validateProductFormData($request, $data, false);
                 $id = $handler(new CreateProductInput(
                     name: $data['name'], sellingPrice: Money::fromDecimal($data['sellingPrice']),
                     sku: $data['sku'] !== '' ? new Sku($data['sku']) : null,
                     unit: $data['unit'] !== '' ? $data['unit'] : null,
                     costPrice: $data['costPrice'] !== '' ? Money::fromDecimal($data['costPrice']) : null,
-                    lowStockThreshold: $data['lowStockThreshold'], note: $data['note'] !== '' ? $data['note'] : null,
+                    lowStockThreshold: $data['lowStockThreshold'], note: $data['note'] !== '' ? $data['note'] : null, categoryId: $data['categoryId'], categoryName: $data['categoryName'] !== '' ? $data['categoryName'] : null,
                 ));
                 $this->addFlash('success', 'Product created.');
                 return $this->redirectToRoute('admin_products_show', ['id' => $id]);
             } catch (\Throwable $e) { $this->addFlash('error', $this->safeMessage($e)); }
         }
-        return $this->render('admin/product/form.html.twig', ['product' => null, 'data' => $data]);
+        $response = $this->render('admin/product/form.html.twig', [
+            'product' => null,
+            'data' => $data,
+            'categories' => $categoryRepository->findActiveOrdered(),
+        ]);
+        if ($request->isMethod('POST')) {
+            $response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return $response;
     }
 
     #[Route('/admin/products/{id<\d+>}', name: 'admin_products_show', methods: ['GET'])]
@@ -78,7 +102,7 @@ final class ProductController extends AbstractController
     }
 
     #[Route('/admin/products/{id<\d+>}/edit', name: 'admin_products_edit', methods: ['GET', 'POST'])]
-    public function edit(int $id, Request $request, ProductRepositoryInterface $products, UpdateProductHandler $handler, CsrfTokenManagerInterface $csrf): Response
+    public function edit(int $id, Request $request, ProductRepositoryInterface $products, ProductCategoryRepositoryInterface $categoryRepository, UpdateProductHandler $handler, CsrfTokenManagerInterface $csrf): Response
     {
         $this->denyAccessUnlessGranted(Permission::PRODUCT_EDIT->value);
         $product = $products->findById($id);
@@ -87,12 +111,22 @@ final class ProductController extends AbstractController
         if ($request->isMethod('POST')) {
             $this->checkCsrf($request, $csrf, 'admin_product_form');
             try {
-                $handler(new UpdateProductInput($id, $data['name'], $data['sku'] !== '' ? new Sku($data['sku']) : null, $data['unit'] !== '' ? $data['unit'] : null, $data['costPrice'] !== '' ? Money::fromDecimal($data['costPrice']) : null, $data['lowStockThreshold'], $data['note'] !== '' ? $data['note'] : null));
+                $this->validateProductFormData($request, $data, true);
+                $handler(new UpdateProductInput($id, $data['name'], $data['sku'] !== '' ? new Sku($data['sku']) : null, $data['unit'] !== '' ? $data['unit'] : null, $data['costPrice'] !== '' ? Money::fromDecimal($data['costPrice']) : null, $data['lowStockThreshold'], $data['note'] !== '' ? $data['note'] : null, $data['categoryId']));
                 $this->addFlash('success', 'Product updated.');
                 return $this->redirectToRoute('admin_products_show', ['id' => $id]);
             } catch (\Throwable $e) { $this->addFlash('error', $this->safeMessage($e)); }
         }
-        return $this->render('admin/product/form.html.twig', ['product' => $product, 'data' => $data]);
+        $response = $this->render('admin/product/form.html.twig', [
+            'product' => $product,
+            'data' => $data,
+            'categories' => $categoryRepository->findActiveOrdered(),
+        ]);
+        if ($request->isMethod('POST')) {
+            $response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return $response;
     }
 
     #[Route('/admin/products/{id<\d+>}/price', name: 'admin_products_price', methods: ['POST'])]
@@ -178,18 +212,94 @@ final class ProductController extends AbstractController
         ]);
     }
 
-    /** @return array{name:string,sellingPrice:string,sku:string,unit:string,costPrice:string,lowStockThreshold:int,note:string} */
+    /** @return array{name:string,sellingPrice:string,sku:string,unit:string,costPrice:string,lowStockThreshold:int,note:string,categoryId:?int,categoryName:string} */
     private function productData(Request $request, ?Product $product = null): array
     {
+        $thresholdRaw = $request->request->get('lowStockThreshold');
+        $threshold = $product?->getLowStockThreshold() ?? 0;
+        if ($thresholdRaw !== null && is_scalar($thresholdRaw) && preg_match('/^\d+$/', trim((string) $thresholdRaw)) === 1) {
+            $threshold = (int) $thresholdRaw;
+        }
+
+        $categoryId = $product?->getCategory()?->getId();
+        if ($request->request->has('categoryId')) {
+            $categoryRaw = trim((string) $request->request->get('categoryId', ''));
+            $categoryId = $categoryRaw !== '' && ctype_digit($categoryRaw) && (int) $categoryRaw > 0
+                ? (int) $categoryRaw
+                : null;
+        }
+
         return [
             'name' => trim((string) $request->request->get('name', $product?->getName() ?? '')),
-            'sellingPrice' => trim((string) $request->request->get('sellingPrice', $product?->getSellingPrice()->toDecimal() ?? '0.00')),
+            'sellingPrice' => trim((string) $request->request->get('sellingPrice', $product?->getSellingPrice()->toDecimal() ?? '')),
             'sku' => trim((string) $request->request->get('sku', $product?->getSku()?->value() ?? '')),
             'unit' => trim((string) $request->request->get('unit', $product?->getUnit() ?? '')),
             'costPrice' => trim((string) $request->request->get('costPrice', $product?->getCostPrice()?->toDecimal() ?? '')),
-            'lowStockThreshold' => max(0, $request->request->getInt('lowStockThreshold', $product?->getLowStockThreshold() ?? 0)),
+            'lowStockThreshold' => $threshold,
             'note' => trim((string) $request->request->get('note', $product?->getNote() ?? '')),
+            'categoryId' => $categoryId,
+            'categoryName' => trim((string) $request->request->get('categoryName', '')),
         ];
+    }
+
+    /** @param array{name:string,sellingPrice:string,sku:string,unit:string,costPrice:string,lowStockThreshold:int,note:string,categoryId:?int,categoryName:string} $data */
+    private function validateProductFormData(Request $request, array $data, bool $editing): void
+    {
+        if ($data['name'] === '') {
+            throw new \InvalidArgumentException('Tên sản phẩm là bắt buộc.');
+        }
+        if (mb_strlen($data['name']) > 255) {
+            throw new \InvalidArgumentException('Tên sản phẩm không được vượt quá 255 ký tự.');
+        }
+
+        if ($data['sellingPrice'] === '') {
+            throw new \InvalidArgumentException('Giá bán là bắt buộc.');
+        }
+        $this->validateMoneyField($data['sellingPrice'], 'Giá bán');
+        if ($data['costPrice'] !== '') {
+            $this->validateMoneyField($data['costPrice'], 'Giá vốn');
+        }
+
+        $sku = $data['sku'];
+        if ($sku !== '' && mb_strlen($sku) > 100) {
+            throw new \InvalidArgumentException('SKU không được vượt quá 100 ký tự.');
+        }
+        if (mb_strlen($data['unit']) > 50) {
+            throw new \InvalidArgumentException('Đơn vị không được vượt quá 50 ký tự.');
+        }
+
+        $thresholdRaw = $request->request->get('lowStockThreshold');
+        if ($thresholdRaw !== null && trim((string) $thresholdRaw) !== '' && preg_match('/^\d+$/', trim((string) $thresholdRaw)) !== 1) {
+            throw new \InvalidArgumentException('Ngưỡng tồn kho thấp phải là số nguyên không âm.');
+        }
+        if ($data['lowStockThreshold'] < 0) {
+            throw new \InvalidArgumentException('Ngưỡng tồn kho thấp không được âm.');
+        }
+
+        $categoryRaw = $request->request->get('categoryId');
+        if ($categoryRaw !== null) {
+            $categoryRaw = trim((string) $categoryRaw);
+            if ($categoryRaw !== '' && (preg_match('/^\d+$/', $categoryRaw) !== 1 || (int) $categoryRaw <= 0)) {
+                throw new \InvalidArgumentException('Danh mục không hợp lệ.');
+            }
+        }
+
+        if (!$editing && $data['categoryId'] !== null && $data['categoryName'] !== '') {
+            throw new \InvalidArgumentException('Chỉ chọn một danh mục hoặc tạo danh mục mới.');
+        }
+        if (mb_strlen($data['categoryName']) > 150) {
+            throw new \InvalidArgumentException('Tên danh mục không được vượt quá 150 ký tự.');
+        }
+    }
+
+    private function validateMoneyField(string $value, string $label): void
+    {
+        if (preg_match('/^\d+(?:\.\d{1,2})?$/', $value) !== 1) {
+            throw new \InvalidArgumentException($label . ' phải là số không âm, tối đa 2 chữ số thập phân.');
+        }
+        if (str_contains($value, '.') && preg_match('/[^0]/', substr($value, strpos($value, '.') + 1)) === 1) {
+            throw new \InvalidArgumentException($label . ' bằng VND không được có phần thập phân khác 0.');
+        }
     }
 
     private function checkCsrf(Request $request, CsrfTokenManagerInterface $csrf, string $id): void

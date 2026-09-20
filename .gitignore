@@ -36,3 +36,7 @@
 # Local environment overrides / secrets
 .env.*
 !.env.example
+
+# Local Python artifacts
+__pycache__/
+*.pyc

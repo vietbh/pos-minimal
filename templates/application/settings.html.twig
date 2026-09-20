@@ -1,0 +1,108 @@
+{% extends 'layout/authenticated.html.twig' %}
+
+{% block title %}{{ 'app.settings_title'|trans }} · Mobile POS{% endblock %}
+
+{% block authenticated_body %}
+    <section class="app-header" aria-labelledby="settings-title">
+        <div>
+            <p class="eyebrow">{{ 'app.customize'|trans }}</p>
+            <h1 id="settings-title">{{ 'app.settings_title'|trans }}</h1>
+            <p class="muted">{{ 'app.settings_help'|trans }}</p>
+        </div>
+        <nav class="button-row" aria-label="{{ 'app.account'|trans }}">
+            <a class="button" href="{{ path('app_profile') }}">{{ 'app.profile_title'|trans }}</a>
+        </nav>
+    </section>
+
+    <form method="post" action="{{ path('app_settings') }}" class="settings-form" data-settings-form>
+        <input type="hidden" name="_token" value="{{ csrf_token('user_preferences') }}">
+
+        <section class="form-card settings-card" aria-labelledby="font-title">
+            <div class="section-heading">
+                <h2 id="font-title">{{ 'app.font_size'|trans }}</h2>
+                <p class="muted">{{ 'app.settings_saved'|trans }}</p>
+            </div>
+            {% set font_labels = {'small': 'app.font_small'|trans, 'medium': 'app.font_medium'|trans, 'large': 'app.font_large'|trans} %}
+            <fieldset class="settings-options">
+                <legend class="sr-only">{{ 'app.font_size'|trans }}</legend>
+                {% for size in font_sizes %}
+                    <label class="settings-option">
+                        <input type="radio" name="font_size" value="{{ size }}" {% if user.fontSize == size %}checked{% endif %}>
+                        <span>
+                            <strong>{{ font_labels[size] }}</strong>
+                            <small>{{ size == 'small' ? ('app.font_small'|trans) : (size == 'large' ? ('app.font_large'|trans) : ('app.font_medium'|trans)) }}</small>
+                        </span>
+                    </label>
+                {% endfor %}
+            </fieldset>
+        </section>
+
+        <section class="form-card settings-card" aria-labelledby="appearance-title">
+            <div class="section-heading">
+                <h2 id="appearance-title">{{ 'app.appearance'|trans }}</h2>
+                <p class="muted">{{ 'app.appearance_help'|trans }}</p>
+            </div>
+            {% set appearance_labels = {'light': 'app.appearance_light'|trans, 'dark': 'app.appearance_dark'|trans, 'system': 'app.appearance_system'|trans} %}
+            <fieldset class="settings-options">
+                <legend class="sr-only">{{ 'app.appearance'|trans }}</legend>
+                {% for appearance in appearances %}
+                    <label class="settings-option">
+                        <input type="radio" name="appearance" value="{{ appearance }}" {% if user.appearance == appearance %}checked{% endif %}>
+                        <span>
+                            <strong>{{ appearance_labels[appearance] }}</strong>
+                            <small>{{ appearance == 'system' ? ('app.appearance_system_help'|trans) : (appearance == 'light' ? ('app.appearance_light_help'|trans) : ('app.appearance_dark_help'|trans)) }}</small>
+                        </span>
+                    </label>
+                {% endfor %}
+            </fieldset>
+        </section>
+
+        <section class="form-card settings-card" aria-labelledby="density-title">
+            <div class="section-heading">
+                <h2 id="density-title">{{ 'app.density'|trans }}</h2>
+                <p class="muted">{{ 'app.density_help'|trans }}</p>
+            </div>
+            {% set density_labels = {'comfortable': 'app.density_comfortable'|trans, 'standard': 'app.density_standard'|trans, 'compact': 'app.density_compact'|trans} %}
+            <fieldset class="settings-options">
+                <legend class="sr-only">{{ 'app.density'|trans }}</legend>
+                {% for density in densities %}
+                    <label class="settings-option">
+                        <input type="radio" name="density" value="{{ density }}" {% if user.uiDensity == density %}checked{% endif %}>
+                        <span>
+                            <strong>{{ density_labels[density] }}</strong>
+                            <small>{{ density == 'compact' ? ('app.density_compact_help'|trans) : (density == 'comfortable' ? ('app.density_comfortable_help'|trans) : ('app.density_standard_help'|trans)) }}</small>
+                        </span>
+                    </label>
+                {% endfor %}
+            </fieldset>
+        </section>
+
+        <section class="form-card settings-card" aria-labelledby="accessibility-title">
+            <div class="section-heading">
+                <h2 id="accessibility-title">{{ 'app.accessibility'|trans }}</h2>
+                <p class="muted">{{ 'app.accessibility_help'|trans }}</p>
+            </div>
+
+            <label class="settings-switch">
+                <span>
+                    <strong>{{ 'app.high_contrast'|trans }}</strong>
+                    <small>{{ 'app.high_contrast_help'|trans }}</small>
+                </span>
+                <input type="checkbox" name="high_contrast" value="1" {% if user.highContrast %}checked{% endif %}>
+            </label>
+
+            <label class="settings-switch">
+                <span>
+                    <strong>{{ 'app.reduce_motion'|trans }}</strong>
+                    <small>{{ 'app.reduce_motion_help'|trans }}</small>
+                </span>
+                <input type="checkbox" name="reduce_motion" value="1" {% if user.reduceMotion %}checked{% endif %}>
+            </label>
+        </section>
+
+        <div class="settings-actions">
+            <button class="button primary settings-save" type="submit">{{ 'app.save_settings'|trans }}</button>
+            <a class="button" href="{{ path('app_profile') }}">{{ 'app.back_profile'|trans }}</a>
+        </div>
+    </form>
+{% endblock %}

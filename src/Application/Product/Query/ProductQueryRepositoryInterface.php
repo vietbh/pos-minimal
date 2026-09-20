@@ -14,4 +14,6 @@ interface ProductQueryRepositoryInterface
     public function search(string $query, int $limit): array;
 
     public function findActiveBySku(string $sku): ?ProductSearchResult;
+
+    public function catalog(\App\Application\Product\Query\ProductCatalogInput $input): \App\Application\Product\Query\ProductCatalogResult;
 }

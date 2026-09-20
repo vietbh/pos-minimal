@@ -1,0 +1,163 @@
+{% extends 'layout/authenticated.html.twig' %}
+
+{% block title %}{{ 'app.home_title'|trans }}{% endblock %}
+
+{% block authenticated_body %}
+    <section class="home-hero" aria-labelledby="home-title">
+        <div class="home-hero-copy">
+            <p class="eyebrow">{{ 'app.application'|trans }}</p>
+            <h1 id="home-title">{{ 'app.greeting'|trans }}, {{ user.username }}</h1>
+            <p class="muted">{{ 'app.home_subtitle'|trans }}</p>
+        </div>
+        <nav class="button-row home-hero-actions" aria-label="{{ 'app.primary_actions'|trans }}">
+            <a class="button" href="{{ path('app_profile') }}">{{ 'app.profile'|trans }}</a>
+            <a class="button" href="{{ path('app_settings') }}">{{ 'app.settings'|trans }}</a>
+            {% if can_open_pos %}
+                <a class="button primary" href="{{ path('pos') }}">{{ 'navigation.pos'|trans }}</a>
+            {% endif %}
+        </nav>
+    </section>
+
+    {% if dashboard %}
+        <section class="home-section" aria-labelledby="kpi-title">
+            <div class="home-section-heading">
+                <div>
+                    <p class="eyebrow">{{ 'app.today'|trans }}</p>
+                    <h2 id="kpi-title">{{ 'app.overview'|trans }}</h2>
+                </div>
+                <a class="home-section-link" href="{{ path('statistics_index') }}">{{ 'app.view_statistics'|trans }}</a>
+            </div>
+
+            <div class="dashboard-kpi-grid">
+                <article class="dashboard-kpi dashboard-kpi-primary">
+                    <span>{{ 'app.sales_today'|trans }}</span>
+                    <strong>{{ dashboard.sales.netSales }} ₫</strong>
+                    <small>{{ dashboard.sales.qualifyingOrders }} {{ 'app.valid_orders'|trans }}</small>
+                </article>
+                <article class="dashboard-kpi">
+                    <span>{{ 'navigation.orders'|trans }}</span>
+                    <strong>{{ dashboard.sales.qualifyingOrders }}</strong>
+                    <small>{{ 'app.completed_refunded_orders'|trans }}</small>
+                </article>
+                <article class="dashboard-kpi">
+                    <span>{{ 'app.outstanding_debt'|trans }}</span>
+                    <strong>{{ dashboard.debt.outstandingAmount }} ₫</strong>
+                    <small>{{ dashboard.debt.debtCount }} {{ 'app.debt_records_today'|trans }}</small>
+                </article>
+                <article class="dashboard-kpi {% if dashboard.stock.lowStockProducts > 0 or dashboard.stock.outOfStockProducts > 0 %}dashboard-kpi-warning{% endif %}">
+                    <span>{{ 'app.stock_alerts'|trans }}</span>
+                    <strong>{{ dashboard.stock.lowStockProducts + dashboard.stock.outOfStockProducts }}</strong>
+                    <small>{{ dashboard.stock.lowStockProducts }} {{ 'app.low_stock_separator'|trans }} {{ dashboard.stock.outOfStockProducts }} {{ 'app.out_of_stock_suffix'|trans }}</small>
+                </article>
+            </div>
+        </section>
+
+        {% if dashboard.stock.lowStockProducts > 0 or dashboard.stock.outOfStockProducts > 0 %}
+            <section class="home-alert" aria-labelledby="alert-title">
+                <div>
+                    <p class="eyebrow">{{ 'app.attention'|trans }}</p>
+                    <h2 id="alert-title">{{ 'app.stock_needs_attention'|trans }}</h2>
+                    <p class="muted">{{ 'app.stock_alert_message_prefix'|trans }} {{ dashboard.stock.lowStockProducts }} {{ 'app.stock_alert_message_and'|trans }} {{ dashboard.stock.outOfStockProducts }} {{ 'app.stock_alert_message_out'|trans }}.</p>
+                </div>
+                {% if is_granted('STOCK_VIEW') %}
+                    <a class="button" href="{{ path('admin_stock_index') }}">{{ 'app.view_stock'|trans }}</a>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        <section class="home-section" aria-labelledby="today-products-title">
+            <div class="home-section-heading">
+                <div>
+                    <p class="eyebrow">{{ 'app.today'|trans }}</p>
+                    <h2 id="today-products-title">{{ 'app.top_products'|trans }}</h2>
+                </div>
+            </div>
+
+            {% if dashboard.topProducts %}
+                <div class="dashboard-list">
+                    {% for product in dashboard.topProducts %}
+                        <div class="dashboard-list-row">
+                            <div>
+                                <strong>{{ product.name }}</strong>
+                                <span>{{ product.quantity }} {{ 'app.units'|trans }}</span>
+                            </div>
+                            <strong>{{ product.salesAmount }} ₫</strong>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="home-empty" role="status">
+                    <strong>{{ 'app.no_sales_today'|trans }}</strong>
+                    <span class="muted">{{ 'app.top_products_empty'|trans }}</span>
+                </div>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    <section class="home-section" aria-labelledby="quick-actions-title">
+        <div class="home-section-heading">
+            <div>
+                <p class="eyebrow">{{ 'app.navigation'|trans }}</p>
+                <h2 id="quick-actions-title">{{ 'app.quick_access'|trans }}</h2>
+            </div>
+        </div>
+
+        <div class="home-grid">
+            {% if can_open_pos %}
+                <a class="home-card home-card-primary" href="{{ path('pos') }}">
+                    <span class="home-card-kicker">{{ 'app.sales'|trans }}</span>
+                    <strong>{{ 'navigation.pos'|trans }}</strong>
+                    <span>{{ 'app.start_transaction'|trans }}</span>
+                </a>
+            {% endif %}
+
+            {% if is_granted('ORDER_VIEW') %}
+                <a class="home-card" href="{{ path('orders_index') }}">
+                    <span class="home-card-kicker">{{ 'app.operations'|trans }}</span>
+                    <strong>{{ 'navigation.orders'|trans }}</strong>
+                    <span>{{ 'app.manage_orders'|trans }}</span>
+                </a>
+            {% endif %}
+
+            {% if is_granted('CUSTOMER_VIEW') %}
+                <a class="home-card" href="{{ path('customers_index') }}">
+                    <span class="home-card-kicker">{{ 'app.customers'|trans }}</span>
+                    <strong>{{ 'navigation.customers'|trans }}</strong>
+                    <span>{{ 'app.manage_customers'|trans }}</span>
+                </a>
+            {% endif %}
+
+            {% if is_granted('PRODUCT_VIEW') %}
+                <a class="home-card" href="{{ path('admin_products_index') }}">
+                    <span class="home-card-kicker">{{ 'app.catalog'|trans }}</span>
+                    <strong>{{ 'navigation.products'|trans }}</strong>
+                    <span>{{ 'app.manage_products'|trans }}</span>
+                </a>
+            {% endif %}
+
+            {% if is_granted('STOCK_VIEW') %}
+                <a class="home-card" href="{{ path('admin_stock_index') }}">
+                    <span class="home-card-kicker">{{ 'app.inventory'|trans }}</span>
+                    <strong>{{ 'navigation.stock'|trans }}</strong>
+                    <span>{{ 'app.manage_stock'|trans }}</span>
+                </a>
+            {% endif %}
+
+            {% if is_granted('DEBT_VIEW') %}
+                <a class="home-card" href="{{ path('debts_index') }}">
+                    <span class="home-card-kicker">{{ 'app.finance'|trans }}</span>
+                    <strong>{{ 'navigation.debt'|trans }}</strong>
+                    <span>{{ 'app.manage_debt'|trans }}</span>
+                </a>
+            {% endif %}
+
+            {% if is_granted('STATISTICS_VIEW') %}
+                <a class="home-card" href="{{ path('statistics_index') }}">
+                    <span class="home-card-kicker">{{ 'app.insights'|trans }}</span>
+                    <strong>{{ 'navigation.statistics'|trans }}</strong>
+                    <span>{{ 'app.view_reports'|trans }}</span>
+                </a>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Order;
 
 use App\Domain\Payment\Enum\PaymentMethod;
+use App\Domain\Payment\PaymentBankAccount;
 use App\Domain\Shared\ValueObject\Money;
 use App\Domain\User\User;
 use Doctrine\ORM\Mapping as ORM;
@@ -23,6 +24,14 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(
     name: 'idx_payment_method_created',
     columns: ['method', 'created_at'],
+)]
+#[ORM\UniqueConstraint(
+    name: 'UNIQ_PAYMENTS_REFERENCE',
+    columns: ['reference']
+)]
+#[ORM\Index(
+    name: 'idx_payment_bank_account',
+    columns: ['payment_bank_account_id']
 )]
 class Payment
 {
@@ -72,6 +81,15 @@ class Payment
     )]
     private ?string $reference = null;
 
+    #[ORM\ManyToOne(targetEntity: PaymentBankAccount::class)]
+    #[ORM\JoinColumn(
+        name: 'payment_bank_account_id',
+        referencedColumnName: 'id',
+        nullable: true,
+        onDelete: 'RESTRICT',
+    )]
+    private ?PaymentBankAccount $bankAccount = null;
+
     #[ORM\Column(
         name: 'created_at',
         type: 'datetime_immutable',
@@ -83,6 +101,7 @@ class Payment
         PaymentMethod $method,
         User $user,
         ?string $reference = null,
+        ?PaymentBankAccount $bankAccount = null,
     ) {
         if (!$amount->isPositive()) {
             throw new \InvalidArgumentException(
@@ -93,9 +112,11 @@ class Payment
         $this->amount = $amount;
         $this->method = $method;
         $this->user = $user;
-        $this->reference = self::normalizeNullableString(
-            $reference,
-        );
+        $this->reference = self::normalizeNullableString($reference);
+        if ($this->reference === null && $bankAccount !== null) {
+            $this->reference = self::generatePaymentReference();
+        }
+        $this->bankAccount = $bankAccount;
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -138,9 +159,27 @@ class Payment
         return $this->reference;
     }
 
+    public function getBankAccount(): ?PaymentBankAccount
+    {
+        return $this->bankAccount;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    private static function generatePaymentReference(): string
+    {
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $bytes = random_bytes(8);
+        $suffix = '';
+
+        for ($i = 0, $length = strlen($bytes); $i < $length; ++$i) {
+            $suffix .= $alphabet[ord($bytes[$i]) % strlen($alphabet)];
+        }
+
+        return 'PAY' . $suffix;
     }
 
     private static function normalizeNullableString(

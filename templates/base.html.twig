@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html{% if app.user is defined and app.user %} data-font-size="{{ app.user.fontSize }}" data-appearance="{{ app.user.appearance }}" data-density="{{ app.user.uiDensity }}"{% if app.user.highContrast %} data-high-contrast="true"{% endif %}{% if app.user.reduceMotion %} data-reduce-motion="true"{% endif %}{% endif %}>
     <head>
         <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <meta name="theme-color" content="#0f172a">
+        <title>{% block title %}Mobile POS{% endblock %}</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
         {% block stylesheets %}
         {% endblock %}
@@ -19,18 +21,6 @@
         {% endif %}
     </head>
     <body>
-        {% if app.user %}
-            <nav class="app-nav" aria-label="Main navigation">
-                <a href="{{ path('pos') }}">POS</a>
-                {% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}">Products</a>{% endif %}
-                {% if is_granted('CUSTOMER_VIEW') %}<a href="{{ path('customers_index') }}">Customers</a>{% endif %}
-                {% if is_granted('ORDER_VIEW') %}<a href="{{ path('orders_index') }}">Orders</a>{% endif %}
-                {% if is_granted('DEBT_VIEW') %}<a href="{{ path('debts_index') }}">Debts</a>{% endif %}
-                {% if is_granted('STOCK_VIEW') %}<a href="{{ path('admin_stock_index') }}">Stock</a>{% endif %}
-                {% if is_granted('STATISTICS_VIEW') %}<a href="{{ path('statistics_index') }}">Statistics</a>{% endif %}
-                <a href="{{ path('logout') }}">Logout</a>
-            </nav>
-        {% endif %}
         {% block body %}{% endblock %}
     </body>
 </html>

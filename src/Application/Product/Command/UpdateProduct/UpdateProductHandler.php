@@ -7,12 +7,15 @@ namespace App\Application\Product\Command\UpdateProduct;
 use App\Application\Common\Transaction\TransactionContextInterface;
 use App\Application\Common\Transaction\TransactionManagerInterface;
 use App\Domain\Product\Repository\ProductRepositoryInterface;
+use App\Domain\Product\Repository\ProductCategoryRepositoryInterface;
+use App\Domain\Product\ValueObject\Sku;
 
 final readonly class UpdateProductHandler
 {
     public function __construct(
         private TransactionManagerInterface $transactionManager,
         private ProductRepositoryInterface $productRepository,
+        private ProductCategoryRepositoryInterface $categoryRepository,
     ) {
     }
 
@@ -35,10 +38,11 @@ final readonly class UpdateProductHandler
                     );
                 }
 
+                $sku = $input->sku ?? $this->generateSku($input->name, $input->productId);
+
                 if (
-                    $input->sku !== null
-                    && $this->productRepository->existsBySku(
-                        $input->sku,
+                    $this->productRepository->existsBySku(
+                        $sku,
                         $input->productId,
                     )
                 ) {
@@ -47,8 +51,15 @@ final readonly class UpdateProductHandler
                     );
                 }
 
+                $category = null;
+                if ($input->categoryId !== null) {
+                    $category = $this->categoryRepository->findById($input->categoryId);
+                    if ($category === null || !$category->isActive()) throw new \DomainException('Product category was not found or is inactive.');
+                }
+
                 $product->rename($input->name);
-                $product->changeSku($input->sku);
+                $product->changeCategory($category);
+                $product->changeSku($sku);
                 $product->changeUnit($input->unit);
                 $product->changeCostPrice($input->costPrice);
                 $product->changeLowStockThreshold(
@@ -61,6 +72,26 @@ final readonly class UpdateProductHandler
                 $transaction->flush();
             },
         );
+    }
+
+    private function generateSku(string $name, int $excludeProductId): Sku
+    {
+        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', trim($name));
+        $ascii = is_string($ascii) && $ascii !== '' ? $ascii : trim($name);
+        $ascii = strtoupper($ascii);
+        $ascii = preg_replace('/[^A-Z0-9]+/', '-', $ascii) ?? '';
+        $base = trim($ascii, '-');
+        $base = substr($base !== '' ? $base : 'PRODUCT', 0, 92);
+
+        for ($attempt = 0; $attempt < 100; ++$attempt) {
+            $candidate = $base . '-' . strtoupper(bin2hex(random_bytes(3)));
+            $sku = new Sku(substr($candidate, 0, 100));
+            if (!$this->productRepository->existsBySku($sku, $excludeProductId)) {
+                return $sku;
+            }
+        }
+
+        throw new \DomainException('Unable to generate a unique SKU for this product.');
     }
 
     private function validateInput(UpdateProductInput $input): void

@@ -52,7 +52,7 @@ final class CheckoutIdempotencyTest extends IntegrationTestCase
 
         $product = new Product(
             'Checkout Replay Product',
-            Money::fromDecimal('100000.00'),
+            Money::fromDecimal('100000'),
         );
 
         $product->setStockQuantityForAdjustment(10);
@@ -79,7 +79,7 @@ final class CheckoutIdempotencyTest extends IntegrationTestCase
         $input = $this->createInput(
             productId: $product->getId(),
             quantity: 2,
-            paymentAmount: '200000.00',
+            paymentAmount: '200000',
             idempotencyKey: $idempotencyKey,
         );
 
@@ -251,7 +251,7 @@ final class CheckoutIdempotencyTest extends IntegrationTestCase
 
         $product = new Product(
             'Checkout Conflict Product',
-            Money::fromDecimal('100000.00'),
+            Money::fromDecimal('100000'),
         );
 
         $product->setStockQuantityForAdjustment(10);
@@ -278,7 +278,7 @@ final class CheckoutIdempotencyTest extends IntegrationTestCase
         $firstInput = $this->createInput(
             productId: $product->getId(),
             quantity: 1,
-            paymentAmount: '100000.00',
+            paymentAmount: '100000',
             idempotencyKey: $idempotencyKey,
         );
 
@@ -290,7 +290,7 @@ final class CheckoutIdempotencyTest extends IntegrationTestCase
             $conflictingInput = $this->createInput(
                 productId: $product->getId(),
                 quantity: 2,
-                paymentAmount: '200000.00',
+                paymentAmount: '200000',
                 idempotencyKey: $idempotencyKey,
             );
 
@@ -385,7 +385,7 @@ final class CheckoutIdempotencyTest extends IntegrationTestCase
 
         $product = new Product(
             'Checkout Failed Product',
-            Money::fromDecimal('100000.00'),
+            Money::fromDecimal('100000'),
         );
 
         $product->setStockQuantityForAdjustment(10);
@@ -410,15 +410,15 @@ final class CheckoutIdempotencyTest extends IntegrationTestCase
             );
 
         /*
-         * Total = 100000.00.
-         * Payment = 200000.00.
+         * Total = 100000.
+         * Payment = 200000.
          *
          * Domain validation must reject the checkout.
          */
         $input = $this->createInput(
             productId: $product->getId(),
             quantity: 1,
-            paymentAmount: '200000.00',
+            paymentAmount: '200000',
             idempotencyKey: $idempotencyKey,
         );
 

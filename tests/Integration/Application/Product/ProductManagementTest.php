@@ -20,6 +20,7 @@ use App\Domain\Shared\ValueObject\Money;
 use App\Tests\Integration\IntegrationTestCase;
 use App\Application\Common\Transaction\TransactionManagerInterface;
 use App\Domain\Product\Repository\ProductRepositoryInterface;
+use App\Domain\Product\Repository\ProductCategoryRepositoryInterface;
 
 final class ProductManagementTest extends IntegrationTestCase
 {
@@ -90,11 +91,37 @@ final class ProductManagementTest extends IntegrationTestCase
         self::assertNotNull($product);
         self::assertSame(0, $product->getStockQuantity());
         self::assertSame(0, $product->getLowStockThreshold());
-        self::assertNull($product->getSku());
+        self::assertNotNull($product->getSku());
+        self::assertStringStartsWith('DEFAULT-PRODUCT-', $product->getSku()?->value() ?? '');
         self::assertNull($product->getUnit());
         self::assertNull($product->getCostPrice());
         self::assertNull($product->getNote());
         self::assertTrue($product->isActive());
+    }
+
+    public function testCreateProductGeneratesSkuFromNameAndKeepsItUnique(): void
+    {
+        $handler = $this->createProductHandler();
+
+        $firstId = $handler(new CreateProductInput(
+            name: 'Cà phê sữa',
+            sellingPrice: Money::fromDecimal('25000.00'),
+        ));
+
+        $secondId = $handler(new CreateProductInput(
+            name: 'Cà phê sữa',
+            sellingPrice: Money::fromDecimal('30000.00'),
+        ));
+
+
+        $firstSku = $this->getProduct($firstId)->getSku()?->value();
+        $secondSku = $this->getProduct($secondId)->getSku()?->value();
+
+        self::assertNotNull($firstSku);
+        self::assertNotNull($secondSku);
+        self::assertStringStartsWith('CA-PHE-SUA-', $firstSku);
+        self::assertStringStartsWith('CA-PHE-SUA-', $secondSku);
+        self::assertNotSame($firstSku, $secondSku);
     }
 
     public function testCreateProductRejectsDuplicateSku(): void
@@ -522,6 +549,9 @@ final class ProductManagementTest extends IntegrationTestCase
             ),
             self::getContainer()->get(
                 ProductRepositoryInterface::class,
+            ),
+            self::getContainer()->get(
+                ProductCategoryRepositoryInterface::class,
             ),
         );
     }

@@ -4,7 +4,7 @@
     <div class="app-frame pos-frame" data-controller="mobile-ux">
         <aside class="desktop-sidebar" aria-label="{{ 'navigation.primary'|trans }}">
             <a class="sidebar-brand" href="{{ path('app_home') }}" aria-label="{{ 'app.brand_home'|trans }}">
-                <span class="app-brand-mark" aria-hidden="true">POS</span>
+                <span class="app-brand-mark" aria-hidden="true">{{ 'customer.pos'|trans }}</span>
                 <span><strong>{{ 'app.brand'|trans }}</strong><small>{{ 'app.sales_workspace'|trans }}</small></span>
             </a>
 
@@ -33,7 +33,7 @@
         <div class="app-content-shell">
             <header class="mobile-topbar pos-mobile-topbar">
                 <a class="app-brand" href="{{ path('app_home') }}" aria-label="{{ 'app.brand_home'|trans }}">
-                    <span class="app-brand-mark" aria-hidden="true">POS</span>
+                    <span class="app-brand-mark" aria-hidden="true">{{ 'customer.pos'|trans }}</span>
                     <span>{{ 'navigation.pos'|trans }}</span>
                 </a>
                 <a class="button" href="{{ path('app_home') }}">{{ 'pos.close'|trans }}</a>

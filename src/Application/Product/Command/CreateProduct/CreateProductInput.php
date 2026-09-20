@@ -17,6 +17,8 @@ final readonly class CreateProductInput
         public ?Money $costPrice = null,
         public int $lowStockThreshold = 0,
         public ?string $note = null,
+        public ?int $categoryId = null,
+        public ?string $categoryName = null,
     ) {
     }
 }

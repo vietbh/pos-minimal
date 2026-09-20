@@ -20,7 +20,8 @@
      data-pos-checkout-status-sale-cleared-value="{{ 'pos.status.sale_cleared'|trans }}"
      data-pos-checkout-processing-label-value="{{ 'pos.checkout.processing'|trans }}"
      data-pos-checkout-complete-sale-label-value="{{ 'pos.checkout.complete_sale'|trans }}"
-     data-pos-checkout-bank-payment-label-value="{{ 'pos.checkout.start_bank_payment'|trans }}">
+     data-pos-checkout-bank-payment-label-value="{{ 'pos.checkout.start_bank_payment'|trans }}"
+     data-pos-checkout-messages-value='{{ {ready: 'pos.ready'|trans, allCategories: 'pos.all_categories'|trans, noSku: 'pos.no_sku'|trans, unableLoadProducts: 'pos.unable_load_products'|trans, unableSearchCustomers: 'pos.unable_search_customers'|trans, addProducts: 'pos.add_products'|trans, enterCustomerAmount: 'pos.enter_customer_amount'|trans, changeDue: 'pos.change_due'|trans, debtWillBeCreated: 'pos.debt_will_be_created'|trans, selectCustomerOrFullPayment: 'pos.select_customer_or_full_payment'|trans, paidInFull: 'pos.paid_in_full'|trans, configureReceivingAccount: 'pos.configure_receiving_account'|trans, transferCannotExceed: 'pos.transfer_cannot_exceed'|trans, enterExactTransfer: 'pos.enter_exact_transfer'|trans, cartEmpty: 'pos.cart_empty'|trans, paymentInvalid: 'pos.payment_invalid'|trans, customerTenderedZero: 'pos.customer_tendered_zero'|trans, transferZero: 'pos.transfer_zero'|trans, bankTransferExact: 'pos.bank_transfer_exact'|trans, unableCheckout: 'pos.unable_checkout'|trans, invalidResult: 'pos.invalid_result'|trans, timeoutUnknown: 'pos.timeout_unknown'|trans, unknownResult: 'pos.unknown_result'|trans, bankTransfer: 'pos.bank_transfer'|trans, waitingPayment: 'pos.waiting_payment'|trans, waitingBankTransfer: 'pos.waiting_bank_transfer'|trans, completeSaleManually: 'pos.complete_sale_manually'|trans, missingReference: 'pos.missing_reference'|trans, manualConfirmFailed: 'pos.manual_confirm_failed'|trans, paymentNotConfirmed: 'pos.payment_not_confirmed'|trans, saleCompleted: 'pos.sale_completed'|trans, unableManualConfirm: 'pos.unable_manual_confirm'|trans, closeQr: 'pos.close_qr'|trans, paymentReceivedBanner: 'pos.payment_received_banner'|trans, bankConfirmed: 'pos.bank_confirmed'|trans, startBankPayment: 'pos.start_bank_payment'|trans, completeSaleButton: 'pos.complete_sale_button'|trans, completed: 'pos.completed'|trans, paymentReceived: 'pos.payment_received_label'|trans, paymentReceivedAutoFail: 'pos.payment_received_auto_fail'|trans, unableCompleteSale: 'pos.unable_complete_sale'|trans, unableCompleteSaleAuto: 'pos.unable_complete_sale_auto'|trans, unableCreateReference: 'pos.unable_create_reference'|trans, checkoutFailedPreserved: 'pos.checkout_failed_preserved'|trans, invalidMoney: 'pos.invalid_money'|trans, unit: 'pos.unit'|trans}|json_encode|e('html_attr') }}'>
 
     <div class="pos-message pos-error" data-pos-checkout-target="message" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
 
@@ -51,7 +52,7 @@
                            enterkeyhint="search"
                            data-pos-checkout-target="productSearch"
                            data-action="input->pos-checkout#searchProducts keydown->pos-checkout#productSearchKeydown">
-                    <label class="sr-only" for="pos-product-category">Product category</label>
+                    <label class="sr-only" for="pos-product-category">{{ 'pos.product_category'|trans }}</label>
                     <select id="pos-product-category"
                             class="pos-search"
                             data-pos-checkout-target="productCategory"
@@ -151,7 +152,7 @@
                     <label hidden style="display:none" data-transfer-only>{{ 'pos.payment.receiving_account'|trans }}
                         <select data-pos-checkout-target="bankAccount"
                                 data-action="change->pos-checkout#bankAccountChanged">
-{#                            <option value="">Select receiving account</option>#}
+{#                            <option value="">{{ 'pos.select_receiving_account'|trans }}</option>#}
                             {% for account in payment_bank_accounts %}
                                 <option value="{{ account.id }}"
                                         data-bank-bin="{{ account.bankBin }}"
@@ -170,26 +171,26 @@
                 <div class="pos-payment-received-banner" data-pos-checkout-target="paymentReceivedBanner" hidden aria-live="assertive" role="alert">
                     <div class="pos-payment-received-icon" aria-hidden="true">✓</div>
                     <div>
-                        <strong>ĐÃ NHẬN TIỀN</strong>
-                        <span>Ngân hàng đã xác nhận thanh toán</span>
+                        <strong>{{ 'pos.payment_received_badge'|trans }}</strong>
+                        <span>{{ 'pos.bank_confirmed'|trans }}</span>
                         <b data-pos-checkout-target="paymentReceivedBannerAmount">0</b>
                     </div>
                 </div>
 
                 <div class="pos-bank-details" data-pos-checkout-target="bankDetails" hidden style="display:none" aria-live="polite">
-                    <div><span class="muted">Receiving account</span></div>
+                    <div><span class="muted">{{ 'pos.receiving_account'|trans }}</span></div>
                     <div><strong data-pos-checkout-target="bankName"></strong> · <span data-pos-checkout-target="bankNumber"></span></div>
-                    <div class="muted">Account name: <strong data-pos-checkout-target="bankAccountName"></strong></div>
-                    <div class="muted">Transfer content: <strong data-pos-checkout-target="transferContent"></strong></div>
-                    <div class="pos-bank-qr-placeholder" data-pos-checkout-target="bankQrPlaceholder" aria-live="polite">QR sẽ xuất hiện sau khi bắt đầu thanh toán.</div>
+                    <div class="muted">{{ 'pos.account_name'|trans }} <strong data-pos-checkout-target="bankAccountName"></strong></div>
+                    <div class="muted">{{ 'pos.transfer_content'|trans }} <strong data-pos-checkout-target="transferContent"></strong></div>
+                    <div class="pos-bank-qr-placeholder" data-pos-checkout-target="bankQrPlaceholder" aria-live="polite">{{ 'pos.qr_waiting'|trans }}</div>
                     <img data-pos-checkout-target="bankQr" class="pos-bank-qr" alt="{{ 'pos.payment_reference.qr_alt'|trans }}" hidden style="display:none">
                 </div>
 
                 <div class="pos-quick-cash" data-pos-checkout-target="quickCash" aria-label="Quick cash amounts"></div>
 
                 <dl class="pos-payment-summary">
-                    <div><dt>Payment applied</dt><dd data-pos-checkout-target="paymentApplied">0</dd></div>
-                    <div data-pos-checkout-target="paymentDueRow" hidden><dt>Remaining</dt><dd data-pos-checkout-target="paymentDue">0</dd></div>
+                    <div><dt>{{ 'pos.payment_applied'|trans }}</dt><dd data-pos-checkout-target="paymentApplied">0</dd></div>
+                    <div data-pos-checkout-target="paymentDueRow" hidden><dt>{{ 'order.debt_remaining'|trans }}</dt><dd data-pos-checkout-target="paymentDue">0</dd></div>
                     <div data-cash-only data-pos-checkout-target="paymentChangeRow" hidden><dt>{{ 'pos.success.change_due'|trans }}</dt><dd data-pos-checkout-target="paymentChange">0</dd></div>
                 </dl>
                 <p class="pos-payment-state" data-pos-checkout-target="paymentState" role="status" aria-live="polite">{{ 'pos.payment.add_products'|trans }}</p>
@@ -199,10 +200,10 @@
                 </label>
 
                 <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="submitButton" data-action="click->pos-checkout#submit">
-                    Complete sale
+                    {{ 'pos.complete_sale'|trans }}
                 </button>
                 <button type="button" class="button" data-pos-checkout-target="retryButton" data-action="click->pos-checkout#retry" hidden>
-                    Retry checkout
+                    {{ 'pos.retry_checkout'|trans }}
                 </button>
             </section>
         </main>
@@ -259,14 +260,14 @@
             <strong class="pos-payment-received-amount" data-pos-checkout-target="paymentReceivedModalAmount">0</strong>
             <div class="pos-payment-received-reference" data-pos-checkout-target="paymentReceivedModalReference"></div>
             <button type="button" class="button primary pos-payment-received-new-sale" data-action="click->pos-checkout#newSale">{{ 'pos.new_sale'|trans }}</button>
-            <p class="pos-payment-received-countdown" role="status" aria-live="polite">Returning to POS in <strong data-pos-checkout-target="paymentReceivedCountdown">5</strong>…</p>
+            <p class="pos-payment-received-countdown" role="status" aria-live="polite">{{ 'pos.returning'|trans }} <strong data-pos-checkout-target="paymentReceivedCountdown">5</strong>…</p>
         </section>
     </div>
 
     <div class="pos-qr-modal" data-pos-checkout-target="qrModal" hidden role="dialog" aria-modal="true" aria-labelledby="pos-qr-modal-title" data-action="keydown->pos-checkout#handleQrModalKeydown">
         <div class="pos-qr-modal-backdrop" data-action="click->pos-checkout#closeQrModal"></div>
         <section class="pos-qr-modal-card">
-            <button type="button" class="button pos-qr-modal-close" data-pos-checkout-target="qrModalClose" data-action="click->pos-checkout#closeQrModal" aria-label="Close QR">×</button>
+            <button type="button" class="button pos-qr-modal-close" data-pos-checkout-target="qrModalClose" data-action="click->pos-checkout#closeQrModal" aria-label="{{ 'pos.close'|trans }}">×</button>
             <p class="pos-eyebrow">{{ 'pos.payment.bank_transfer'|trans }}</p>
             <h2 id="pos-qr-modal-title">{{ 'pos.payment.scan_to_pay'|trans }}</h2>
             <img data-pos-checkout-target="qrModalImage" class="pos-qr-modal-image" alt="{{ 'pos.payment_reference.qr_alt'|trans }}">

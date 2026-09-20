@@ -27,6 +27,19 @@ final class PaymentRepository implements PaymentRepositoryInterface
             ->find($id);
     }
 
+    public function findByReference(string $reference): ?Payment
+    {
+        return $this->entityManager
+            ->createQueryBuilder()
+            ->select('p')
+            ->from(Payment::class, 'p')
+            ->where('p.reference = :reference')
+            ->setParameter('reference', trim($reference))
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     /**
      * @return list<Payment>
      */

@@ -1,14 +1,14 @@
-{% extends 'base.html.twig' %}
+{% extends 'layout/authenticated.html.twig' %}
 
-{% block body %}
-<main class="product-image-upload" data-controller="product-image-upload">
-    <h1>Product image</h1>
+{% block authenticated_body %}
+<main class="product-image-upload" data-controller="product-image-upload" data-product-image-upload-choose-required-message-value="{{ 'upload.choose_required'|trans }}" data-product-image-upload-uploading-message-value="{{ 'upload.uploading'|trans }}" data-product-image-upload-failed-message-value="{{ 'upload.upload_failed'|trans }}" data-product-image-upload-uploaded-message-value="{{ 'upload.uploaded'|trans }}">
+    <h1>{{ 'upload.product_image'|trans }}</h1>
 
     <form action="{{ path('product_image_upload', {productId: productId}) }}" data-product-image-upload-target="form" data-action="submit->product-image-upload#submit" enctype="multipart/form-data">
-        <label for="product-image-file">Choose an image</label>
+        <label for="product-image-file">{{ 'upload.choose_image'|trans }}</label>
         <input type="hidden" name="_token" value="{{ csrf_token('product_image_upload') }}" data-product-image-upload-target="token">
         <input id="product-image-file" type="file" name="image" accept="image/jpeg,image/png,image/webp" required data-product-image-upload-target="input">
-        <button type="submit" data-product-image-upload-target="submit">Upload</button>
+        <button type="submit" data-product-image-upload-target="submit">{{ 'upload.upload'|trans }}</button>
     </form>
 
     <p role="status" aria-live="polite" data-product-image-upload-target="status"></p>

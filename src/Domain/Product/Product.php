@@ -15,6 +15,10 @@ use SortDirection;
 #[ORM\Table(
     name: 'products')]
 #[ORM\Index(
+    name: 'idx_product_category',
+    columns: ['category_id'],
+)]
+#[ORM\Index(
     name: 'idx_product_name',
     columns: ['name'],
 )]
@@ -43,6 +47,10 @@ class Product
         nullable: true,
     )]
     private ?Sku $sku = null;
+
+    #[ORM\ManyToOne(targetEntity: ProductCategory::class)]
+    #[ORM\JoinColumn(name: 'category_id', referencedColumnName: 'id', nullable: true, onDelete: 'RESTRICT')]
+    private ?ProductCategory $category = null;
 
     #[ORM\Column(length: 255)]
     private string $name;
@@ -180,6 +188,17 @@ class Product
     public function changeSku(?Sku $sku): void
     {
         $this->sku = $sku;
+        $this->touch();
+    }
+
+    public function getCategory(): ?ProductCategory
+    {
+        return $this->category;
+    }
+
+    public function changeCategory(?ProductCategory $category): void
+    {
+        $this->category = $category;
         $this->touch();
     }
 

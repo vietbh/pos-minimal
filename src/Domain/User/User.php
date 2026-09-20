@@ -58,6 +58,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     )]
     private bool $isActive = true;
 
+    #[ORM\Column(name: 'font_size', length: 10, options: ['default' => 'medium'])]
+    private string $fontSize = 'medium';
+
+    #[ORM\Column(length: 10, options: ['default' => 'system'])]
+    private string $appearance = 'system';
+
+    #[ORM\Column(name: 'ui_density', length: 12, options: ['default' => 'comfortable'])]
+    private string $uiDensity = 'comfortable';
+
+    #[ORM\Column(name: 'high_contrast', options: ['default' => false])]
+    private bool $highContrast = false;
+
+    #[ORM\Column(name: 'reduce_motion', options: ['default' => false])]
+    private bool $reduceMotion = false;
+
     #[ORM\Column(
         name: 'created_at',
         type: 'datetime_immutable'
@@ -252,6 +267,99 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
 
         $this->isActive = false;
+        $this->touch();
+    }
+
+    public function getFontSize(): string
+    {
+        return $this->fontSize;
+    }
+
+    public function changeFontSize(string $fontSize): void
+    {
+        $fontSize = strtolower(trim($fontSize));
+
+        if (!in_array($fontSize, ['small', 'medium', 'large'], true)) {
+            throw new \InvalidArgumentException('Font size must be small, medium, or large.');
+        }
+
+        if ($this->fontSize === $fontSize) {
+            return;
+        }
+
+        $this->fontSize = $fontSize;
+        $this->touch();
+    }
+
+    public function getAppearance(): string
+    {
+        return $this->appearance;
+    }
+
+    public function changeAppearance(string $appearance): void
+    {
+        $appearance = strtolower(trim($appearance));
+
+        if (!in_array($appearance, ['light', 'dark', 'system'], true)) {
+            throw new \InvalidArgumentException('Appearance must be light, dark, or system.');
+        }
+
+        if ($this->appearance === $appearance) {
+            return;
+        }
+
+        $this->appearance = $appearance;
+        $this->touch();
+    }
+
+    public function getUiDensity(): string
+    {
+        return $this->uiDensity;
+    }
+
+    public function changeUiDensity(string $uiDensity): void
+    {
+        $uiDensity = strtolower(trim($uiDensity));
+
+        if (!in_array($uiDensity, ['comfortable', 'standard', 'compact'], true)) {
+            throw new \InvalidArgumentException('UI density must be comfortable, standard, or compact.');
+        }
+
+        if ($this->uiDensity === $uiDensity) {
+            return;
+        }
+
+        $this->uiDensity = $uiDensity;
+        $this->touch();
+    }
+
+    public function hasHighContrast(): bool
+    {
+        return $this->highContrast;
+    }
+
+    public function setHighContrast(bool $highContrast): void
+    {
+        if ($this->highContrast === $highContrast) {
+            return;
+        }
+
+        $this->highContrast = $highContrast;
+        $this->touch();
+    }
+
+    public function hasReduceMotion(): bool
+    {
+        return $this->reduceMotion;
+    }
+
+    public function setReduceMotion(bool $reduceMotion): void
+    {
+        if ($this->reduceMotion === $reduceMotion) {
+            return;
+        }
+
+        $this->reduceMotion = $reduceMotion;
         $this->touch();
     }
 

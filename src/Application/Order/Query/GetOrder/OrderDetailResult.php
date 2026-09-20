@@ -27,6 +27,7 @@ final readonly class OrderDetailResult
         public ?\DateTimeImmutable $cancelledAt,
         public array $items,
         public array $payments,
+        public ?OrderExternalTransactionResult $externalTransaction,
         public ?OrderDebtResult $debt,
     ) {
     }

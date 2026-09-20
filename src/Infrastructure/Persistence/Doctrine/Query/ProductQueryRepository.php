@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace App\Infrastructure\Persistence\Doctrine\Query;
 
 use App\Application\Product\Query\ProductQueryRepositoryInterface;
+use App\Application\Product\Query\ProductCatalogInput;
+use App\Application\Product\Query\ProductCatalogResult;
+use App\Domain\Product\Enum\ImageStatus;
+use App\Domain\Product\ProductCategory;
+use App\Domain\Product\ProductImage;
 use App\Application\Product\Query\SearchProducts\ProductSearchResult;
 use App\Domain\Product\Product;
 use Doctrine\ORM\EntityManagerInterface;
@@ -57,6 +62,34 @@ final class ProductQueryRepository implements ProductQueryRepositoryInterface
                 ProductSearchResult::fromProduct($product),
             $products,
         );
+    }
+
+    public function catalog(ProductCatalogInput $input): ProductCatalogResult
+    {
+        $page = max(1, $input->page);
+        $limit = min(50, max(1, $input->limit));
+        $query = trim($input->query);
+        $sort = in_array($input->sort, ['name_asc', 'name_desc'], true) ? $input->sort : 'name_asc';
+
+        $base = $this->entityManager->createQueryBuilder()
+            ->from(Product::class, 'p')
+            ->leftJoin('p.category', 'c')
+            ->where('p.isActive = :active')
+            ->setParameter('active', true);
+        if ($query !== '') {
+            $base->andWhere('(p.name LIKE :q OR p.sku LIKE :q)')->setParameter('q', '%'.$query.'%');
+        }
+        if ($input->categoryId !== null && $input->categoryId > 0) {
+            $base->andWhere('c.id = :categoryId')->setParameter('categoryId', $input->categoryId);
+        }
+        $total = (int) (clone $base)->select('COUNT(p.id)')->getQuery()->getSingleScalarResult();
+        $direction = $sort === 'name_desc' ? 'DESC' : 'ASC';
+        $products = $base->select('p', 'c')
+            ->orderBy('p.name', $direction)->addOrderBy('p.id', $direction)
+            ->setFirstResult(($page - 1) * $limit)->setMaxResults($limit)->getQuery()->getResult();
+        $items = array_map(static fn(Product $product): ProductSearchResult => ProductSearchResult::fromProduct($product), $products);
+        $totalPages = max(1, (int) ceil($total / $limit));
+        return new ProductCatalogResult($items, $page, $limit, $total, $totalPages);
     }
 
     public function findActiveBySku(string $sku): ?ProductSearchResult

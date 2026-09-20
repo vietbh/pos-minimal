@@ -58,6 +58,8 @@ final class PermissionMatrix
                     Permission::SESSION_REVOKE,
 
                     Permission::USER_MANAGE,
+                    Permission::PAYMENT_BANK_ACCOUNT_MANAGE,
+                    Permission::PAYMENT_BANK_MANUAL_CONFIRM,
                 ],
             );
         }

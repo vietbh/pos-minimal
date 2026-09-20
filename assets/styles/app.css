@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./phase-uiux-7.css";
 
 :root {
     --color-surface: #F5F7FF;
