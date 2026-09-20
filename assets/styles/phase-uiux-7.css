@@ -40,3 +40,6 @@
 @media(max-width:639px){.admin-toolbar{flex-direction:column}.admin-toolbar__actions{width:100%}.admin-toolbar__actions>*{flex:1 1 140px}.admin-actions>*{flex-basis:100%}.admin-table-wrap{margin-left:-1px;margin-right:-1px}.statistics-ux{padding-left:0;padding-right:0}}
 @media(max-width:380px){.admin-summary,.admin-card__facts{grid-template-columns:1fr}.admin-toolbar h1{font-size:1.4rem}}
 @media(prefers-reduced-motion:reduce){.admin-workspace *{scroll-behavior:auto!important;transition:none!important}}
+
+/* Payment speaker — browser TTS is presentation-only; backend remains payment authority. */
+.pos-payment-speaker{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;padding:10px 12px;border:1px solid var(--ux-border,#cbd5e1);border-radius:12px;background:#f8fafc}.pos-payment-speaker .button{min-height:48px}.pos-payment-speaker .muted{font-size:.95rem}

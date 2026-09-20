@@ -234,6 +234,11 @@ pos:
     retry: Retry checkout
     processing: Processing…
     start_bank_payment: Start bank payment
+  speaker:
+    title: Payment sound
+    enable: Enable payment sound
+    enabled: Payment sound enabled
+    payment_received_speech: 'Payment received: %amount%.'
   success:
     completed: Completed
     sale_completed: Sale completed

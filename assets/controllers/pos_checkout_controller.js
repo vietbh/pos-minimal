@@ -14,7 +14,7 @@ export default class extends Controller {
         'paymentTotal', 'paymentApplied', 'paymentDue', 'paymentChange',
         'paymentState', 'paymentDueRow', 'clearTendered', 'bankAccount', 'bankDetails', 'bankName', 'bankNumber', 'bankAccountName', 'transferContent', 'bankQr', 'paymentChangeRow', 'quickCash', 'note', 'resultTotal', 'resultPaid',
         'resultDebt', 'resultTendered', 'resultChange', 'resultOrder',
-        'resultTenderedRow', 'resultChangeRow', 'resultDebtRow', 'saleView', 'paymentReferenceResult', 'resultPaymentReference', 'resultPaymentReferenceExpiresAt', 'resultPaymentReferenceCountdown', 'regeneratePaymentReferenceButton', 'paymentReferenceHint', 'manualBankConfirmButton', 'resultPaymentReferenceTransferContent', 'resultPaymentReferenceQr', 'bankQrPlaceholder', 'completePaidSaleButton', 'paymentReceivedBanner', 'paymentReceivedBannerAmount', 'paymentReceivedModal', 'paymentReceivedModalAmount', 'paymentReceivedModalReference', 'paymentReceivedCountdown', 'currentTime', 'qrModal', 'qrModalImage', 'qrModalReference', 'qrModalAmount', 'qrModalCountdown', 'qrModalClose',
+        'resultTenderedRow', 'resultChangeRow', 'resultDebtRow', 'saleView', 'paymentReferenceResult', 'resultPaymentReference', 'resultPaymentReferenceExpiresAt', 'resultPaymentReferenceCountdown', 'regeneratePaymentReferenceButton', 'paymentReferenceHint', 'manualBankConfirmButton', 'resultPaymentReferenceTransferContent', 'resultPaymentReferenceQr', 'bankQrPlaceholder', 'completePaidSaleButton', 'paymentReceivedBanner', 'paymentReceivedBannerAmount', 'paymentReceivedModal', 'paymentReceivedModalAmount', 'paymentReceivedModalReference', 'paymentReceivedCountdown', 'speakerButton', 'speakerStatus', 'currentTime', 'qrModal', 'qrModalImage', 'qrModalReference', 'qrModalAmount', 'qrModalCountdown', 'qrModalClose',
     ];
 
     static values = {
@@ -36,6 +36,9 @@ export default class extends Controller {
         completeSaleLabel: String,
         bankPaymentLabel: String,
         messages: Object,
+        speakerEnabledLabel: String,
+        speakerDisabledLabel: String,
+        paymentReceivedSpeech: String,
     };
 
     connect() {
@@ -66,6 +69,10 @@ export default class extends Controller {
         this.paymentReceivedResetTimer = null;
         this.paymentReceivedCountdownTimer = null;
         this.bankTransferCompletionPolicy = null;
+        this.speakerEnabled = false;
+        this.speakerSupported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+        this.speakerAnnouncementKey = null;
+        this.updateSpeakerUi();
         this.updateCurrentTime();
         this.currentTimeTimer = globalThis.setInterval(() => this.updateCurrentTime(), 1000);
 
@@ -81,6 +88,7 @@ export default class extends Controller {
         this.stopPaymentReferenceCountdown();
         this.stopPaymentStatusPolling();
         this.stopPaymentReceivedCelebration();
+        if (this.speakerSupported) window.speechSynthesis.cancel();
         if (this.currentTimeTimer !== null) {
             globalThis.clearInterval(this.currentTimeTimer);
             this.currentTimeTimer = null;
@@ -1218,6 +1226,57 @@ export default class extends Controller {
         }
     }
 
+    toggleSpeaker() {
+        if (!this.speakerSupported) {
+            if (this.hasSpeakerStatusTarget) this.speakerStatusTarget.textContent = this.messagesValue.speakerDisabledLabel;
+            return;
+        }
+
+        this.speakerEnabled = !this.speakerEnabled;
+        this.updateSpeakerUi();
+
+        if (this.speakerEnabled) {
+            this.speak(this.messagesValue.speakerEnabledLabel);
+        } else {
+            window.speechSynthesis.cancel();
+        }
+    }
+
+    updateSpeakerUi() {
+        if (!this.hasSpeakerButtonTarget) return;
+        this.speakerButtonTarget.disabled = !this.speakerSupported;
+        this.speakerButtonTarget.setAttribute('aria-pressed', this.speakerEnabled ? 'true' : 'false');
+        this.speakerButtonTarget.textContent = this.speakerEnabled
+            ? this.messagesValue.speakerEnabledLabel
+            : this.messagesValue.speakerDisabledLabel;
+        if (this.hasSpeakerStatusTarget) {
+            this.speakerStatusTarget.textContent = this.speakerSupported
+                ? (this.speakerEnabled ? this.messagesValue.speakerEnabledLabel : this.messagesValue.speakerDisabledLabel)
+                : this.messagesValue.speakerDisabledLabel;
+        }
+    }
+
+    speak(text) {
+        if (!this.speakerSupported || !this.speakerEnabled || !text) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(String(text));
+        const locale = document.documentElement.lang || navigator.language || 'en-US';
+        utterance.lang = locale.startsWith('vi') ? 'vi-VN' : 'en-US';
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    announcePaymentReceived(data = {}) {
+        const key = [this.paymentSessionId ?? '', data.paymentReference ?? data.reference ?? '', data.paidAmount ?? data.amount ?? ''].join(':');
+        if (key === this.speakerAnnouncementKey) return;
+        this.speakerAnnouncementKey = key;
+
+        const amount = this.formatMajor(data.paidAmount ?? data.amount ?? '0');
+        const template = this.messagesValue.paymentReceivedSpeech || 'Payment received: %amount%.';
+        this.speak(template.replace('%amount%', amount));
+    }
+
     startPaymentStatusPolling() {
         this.stopPaymentStatusPolling();
         if (!this.paymentSessionId && !this.paymentReferenceOrderId) return;
@@ -1249,6 +1308,7 @@ export default class extends Controller {
                 if (body.data.status === 'PAID' || body.data.paymentReceived === true) {
                     if (body.data.orderId) this.paymentReferenceOrderId = Number(body.data.orderId);
                     this.state = 'PAYMENT_RECEIVED';
+                    this.announcePaymentReceived(body.data);
                     this.showPaymentReceivedNotification(body.data);
                     this.successTarget.querySelector('[data-pos-checkout-target="successEyebrow"]')?.replaceChildren(document.createTextNode(this.messagesValue.paymentReceived));
                     this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.replaceChildren(document.createTextNode(this.messagesValue.paymentReceived));

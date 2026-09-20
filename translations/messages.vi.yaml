@@ -234,6 +234,11 @@ pos:
     retry: Thử lại thanh toán
     processing: Đang xử lý…
     start_bank_payment: Bắt đầu thanh toán chuyển khoản
+  speaker:
+    title: Âm thanh thanh toán
+    enable: Bật âm thanh thanh toán
+    enabled: Đã bật âm thanh thanh toán
+    payment_received_speech: 'Đã nhận thanh toán %amount%.'
   success:
     completed: Đã hoàn tất
     sale_completed: Giao dịch đã hoàn tất
