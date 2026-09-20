@@ -1,114 +1,27 @@
-Được 👍 Mình ghi lại thành một bản **dễ đọc và lưu làm tài liệu triển khai** nhé.
+Được. Mình chốt thành **1 quy trình cực đơn giản**, mỗi bước đều có điểm kiểm tra. Nếu lỗi thì **dừng ngay tại bước đó**, không chạy tiếp.
 
-# DEV → Git → PROD — Quy trình triển khai POS
+# 🚀 DEV → PROD — Quy trình chuẩn
 
-composer install
-symfony console tailwind:build
-php bin/console cache:clear
-
-php bin/console lint:yaml translations/messages.en.yaml
-php bin/console lint:yaml translations/messages.vi.yaml
-
-git diff --check
-git status
-git diff --stat
-
-
-
-## 1. Nguyên tắc chính
-
-```text
-DEV
-  ↓
-Code / Test
-  ↓
-Git commit
-  ↓
-Git push
-  ↓
-PROD
-  ↓
-Deploy đúng commit
-  ↓
-Migration / Cache / Worker
-  ↓
-Smoke Test
-```
-
-**Git là Source of Truth.**
-
-- DEV là nơi phát triển.
-- Git là nơi lưu version chính thức.
-- PROD chỉ nhận code từ Git.
-- **Không sửa code trực tiếp trên PROD.**
-- Nếu PROD có vấn đề → sửa ở DEV → commit → deploy lại.
-
----
-
-# 2. Hai môi trường
-
-### DEV
-
-```text
-~/Documents/self-projects/mobile-pos
-```
-
-Dùng để:
-
-- code
-- PHPUnit
-- migration
-- test business logic
-- test concurrency
-- test E2E
-- kiểm tra UI
-- commit Git
-
-### PROD
-
-```text
-~/Documents/sites/mobile-pos/current
-```
-
-Dùng để:
-
-- chạy ứng dụng thật
-- nhận release từ Git
-- chạy worker
-- cron
-- database production
-- upload/storage production
-
----
-
-# 3. Quy trình phát triển
-
-Ở DEV:
+## A. DEV — chuẩn bị release
 
 ```bash
 cd ~/Documents/self-projects/mobile-pos
-```
 
-Kiểm tra:
-
-```bash
-git status
-```
-
-Chạy test:
-
-```bash
+git status --short
+git diff --check
 php bin/phpunit
+git log -1 --oneline
 ```
+
+Phải thấy:
+
+```text
+c23a717 feat: harden manual bank transfer completion
+```
+
+Nếu test lỗi → **DỪNG**, sửa DEV rồi test lại.
 
 Nếu OK:
-
-```bash
-git add .
-git commit -m "Implement ..."
-```
-
-Sau đó:
 
 ```bash
 git push origin main
@@ -116,413 +29,292 @@ git push origin main
 
 ---
 
-# 4. PROD không nên làm kiểu này
-
-Không nên coi:
+# B. PROD — chuẩn bị đúng version
 
 ```bash
-git pull
+cd ~/Documents/sites/mobile-pos/repo
+
+git fetch origin
+git checkout c23a717
+
+git log -1 --oneline
 ```
 
-là toàn bộ quy trình production deployment.
+Phải là:
 
-Nó có thể chạy được với project nhỏ, nhưng POS của mình có:
+```text
+c23a717
+```
 
-- Doctrine migration
-- cache
-- Messenger worker
-- payment
-- webhook
-- idempotency
-- concurrency
-- file upload
-- background processing
-
-nên deployment cần có các bước rõ ràng hơn.
+Nếu không phải → **DỪNG**.
 
 ---
 
-# 5. Deployment cơ bản
+# C. PROD — kiểm tra/build trước khi thay current
 
-PROD:
+```bash
+composer install --no-dev --optimize-autoloader
+```
+
+Sau đó:
+
+```bash
+APP_ENV=prod php bin/console about
+```
+
+Kiểm tra migration:
+
+```bash
+APP_ENV=prod php bin/console doctrine:migrations:status
+```
+
+Nếu có migration mới:
+
+```bash
+APP_ENV=prod php bin/console doctrine:migrations:migrate --no-interaction
+```
+
+Build asset:
+
+```bash
+APP_ENV=prod php bin/console tailwind:build
+APP_ENV=prod php bin/console asset-map:compile
+```
+
+### Nếu bất kỳ lệnh nào lỗi
+
+👉 **DỪNG.**
+
+Chưa đụng `current`.
+
+---
+
+# D. Backup `current`
+
+```bash
+cd ~/Documents/sites/mobile-pos
+
+BACKUP="current.backup-$(date +%Y%m%d-%H%M%S)"
+
+mv current "$BACKUP"
+mkdir current
+```
+
+Kiểm tra:
+
+```bash
+ls -ld "$BACKUP"
+ls -la "$BACKUP/.env"
+```
+
+Phải thấy backup và `.env`.
+
+Nếu không thấy → **DỪNG**.
+
+---
+
+# E. Copy release vào `current`
+
+```bash
+rsync -a --delete \
+  --exclude='.env' \
+  --exclude='var/' \
+  repo/ current/
+```
+
+Kiểm tra:
+
+```bash
+ls -la current/bin/console
+```
+
+Phải tồn tại.
+
+Nếu không có → **DỪNG**.
+
+---
+
+# F. Khôi phục `.env` + `var`
+
+```bash
+cp "$BACKUP/.env" current/.env
+cp -a "$BACKUP/var" current/var
+```
+
+Kiểm tra:
+
+```bash
+ls -la current/.env
+ls -ld current/var
+```
+
+Nếu thiếu `.env` hoặc `var` → **DỪNG**.
+
+---
+
+# G. Permission
 
 ```bash
 cd ~/Documents/sites/mobile-pos/current
+
+sudo chown -R vietbh:www-data var
+sudo chmod -R ug+rwX var
 ```
 
-Lấy code mới:
-
-```bash
-git fetch origin
-```
-
-Sau đó deploy đúng commit/release cần chạy.
-
-Ví dụ:
-
-```bash
-git checkout main
-git reset --hard origin/main
-```
-
-**Không nên deploy khi chưa biết chính xác commit nào đang chạy.**
-
-Tốt hơn nữa về sau là deploy theo **exact commit SHA**.
-
----
-
-# 6. Composer
-
-Sau khi code được deploy:
-
-```bash
-composer install \
-  --no-dev \
-  --prefer-dist \
-  --optimize-autoloader
-```
-
-Không chạy:
-
-```bash
-composer update
-```
-
-trên PROD.
-
-`composer.lock` phải được commit vào Git.
-
----
-
-# 7. Database migration
-
-Nếu release có migration:
-
-```bash
-php bin/console doctrine:migrations:migrate --no-interaction
-```
-
-Migration phải được:
-
-- test trước ở DEV
-- review
-- deploy theo release
-
-Không tự ý sửa database production bằng tay nếu có thể giải quyết bằng migration.
-
----
-
-# 8. Cache
-
-Sau deployment:
+Sau đó:
 
 ```bash
 APP_ENV=prod php bin/console cache:clear
-```
-
-Có thể warm cache:
-
-```bash
 APP_ENV=prod php bin/console cache:warmup
 ```
 
-Mục tiêu là đảm bảo Symfony đang chạy đúng code/config của release mới.
+Nếu cache lỗi → **DỪNG**.
+
+**Không reload PHP-FPM khi cache chưa PASS.**
 
 ---
 
-# 9. Messenger Worker
+# H. Reload PHP-FPM
 
-Đây là phần **rất quan trọng đối với POS hiện tại**.
-
-Nếu deploy code mới mà worker vẫn chạy code cũ thì có thể xảy ra:
-
-```text
-HTTP → code mới
-Worker → code cũ
-```
-
-Đây là tình huống không nên có.
-
-Sau deploy cần reload/restart worker theo process manager đang dùng.
-
-Ví dụ nếu dùng Supervisor:
+Chỉ khi cache PASS:
 
 ```bash
-sudo supervisorctl reread
-sudo supervisorctl update
-sudo supervisorctl restart mobile-pos-worker:*
-```
-
-Nếu dùng systemd thì dùng service tương ứng.
-
----
-
-# 10. Environment & Secret
-
-Không commit production secret vào Git.
-
-Ví dụ:
-
-```text
-.env.local
-```
-
-hoặc secret/config production phải nằm ngoài repository.
-
-Đặc biệt:
-
-- `DATABASE_URL`
-- webhook secret
-- payment credentials
-- bank configuration
-- API keys
-- Symfony secrets
-
-**Git chứa code/config template, không chứa secret production.**
-
----
-
-# 11. Upload / Runtime Data
-
-Không nên để dữ liệu runtime quan trọng phụ thuộc vào Git release.
-
-Ví dụ:
-
-```text
-uploads/
-var/
-logs/
-runtime data
-```
-
-Đặc biệt với Product Image:
-
-```text
-Product
-  ↓
-ProductImage
-  ↓
-Uploaded file
-  ↓
-Processing
-  ↓
-READY
-```
-
-File upload production phải có storage/persistence riêng.
-
----
-
-# 12. Kiến trúc release tốt hơn về sau
-
-Thay vì:
-
-```text
-current/
-  code
-```
-
-có thể chuyển sang:
-
-```text
-mobile-pos/
-├── releases/
-│   ├── 20260921-abc123/
-│   ├── 20260922-def456/
-│   └── ...
-│
-├── shared/
-│   ├── .env.local
-│   ├── uploads/
-│   └── ...
-│
-└── current -> releases/20260922-def456/
-```
-
-Khi deploy:
-
-```text
-Git commit
-    ↓
-new release
-    ↓
-composer install
-    ↓
-migration
-    ↓
-cache warmup
-    ↓
-switch current
-    ↓
-restart/reload worker
-    ↓
-smoke test
-```
-
-Ưu điểm lớn nhất là **rollback dễ hơn**.
-
-Ví dụ release mới lỗi:
-
-```text
-current
-   ↓
-release A  ← lỗi
-```
-
-có thể chuyển lại:
-
-```text
-current
-   ↓
-release trước
-```
-
-thay vì phải sửa chữa trực tiếp trong thư mục production.
-
----
-
-# 13. Smoke Test sau deployment
-
-Không coi deployment thành công chỉ vì:
-
-```text
-composer install → OK
-migration → OK
-```
-
-Cần kiểm tra application thật.
-
-Tối thiểu:
-
-```text
-Login
-  ↓
-Application Shell
-  ↓
-POS
-  ↓
-Create/Start checkout
-  ↓
-Payment
-  ↓
-Complete sale
-  ↓
-Order
-  ↓
-Stock
-```
-
-Với Bank Transfer:
-
-```text
-Start payment
-  ↓
-PaymentReference
-  ↓
-QR/reference
-  ↓
-Webhook
-  ↓
-Payment
-  ↓
-Complete sale
-  ↓
-Order completed
-```
-
-Và kiểm tra DB state tương ứng.
-
----
-
-# 14. Production không được sửa tay
-
-Nếu phát hiện:
-
-```text
-BUG
-```
-
-Không nên:
-
-```text
-ssh PROD
-→ sửa PHP
-→ chạy thử
-→ quên commit
-```
-
-Vì lúc đó:
-
-```text
-Git ≠ PROD
-```
-
-và lần deploy tiếp theo code sửa tay sẽ biến mất.
-
-Đúng quy trình:
-
-```text
-PROD BUG
-   ↓
-DEV
-   ↓
-Fix
-   ↓
-Test
-   ↓
-Commit
-   ↓
-Push
-   ↓
-Deploy
+sudo systemctl reload php8.2-fpm
 ```
 
 ---
 
-# 15. Quy tắc vàng
+# I. Smoke test
 
-Có thể lưu nguyên block này làm **Deployment Rules**:
-
-```text
-1. Git là Source of Truth.
-
-2. DEV là nơi phát triển và sửa code.
-
-3. PROD không sửa code trực tiếp.
-
-4. Mọi production change phải đi qua Git.
-
-5. Không chạy composer update trên PROD.
-
-6. composer.lock phải được version control.
-
-7. Migration phải được test trước khi chạy PROD.
-
-8. Production secrets không commit vào Git.
-
-9. Upload/runtime data phải persistent ngoài release.
-
-10. Worker phải được restart/reload sau deployment
-    khi code worker thay đổi.
-
-11. Deployment phải xác định exact release/commit.
-
-12. Sau deployment phải chạy smoke test.
-
-13. Nếu deployment lỗi:
-    stop → xác định release → rollback/fix,
-    không sửa lung tung trực tiếp trên PROD.
-
-14. Về lâu dài:
-    releases/ + shared/ + current symlink.
-
-15. Mục tiêu:
-    DEV → Git → Release → PROD
-    và có thể rollback.
+```bash
+curl -I https://pos.mini-store-app.io.vn/
 ```
 
-### Tóm tắt một dòng
+Sau đó:
 
-> **Code ở DEV → test → commit → push Git → deploy exact release → migration → cache → worker → smoke test → PROD.**
+```bash
+curl -I https://pos.mini-store-app.io.vn/auth/login
+```
 
-Đây là flow mình khuyên giữ làm **chuẩn triển khai chính thức cho Mobile POS** từ giai đoạn này trở đi.
+Kiểm tra log:
+
+```bash
+tail -n 50 var/log/prod.log
+```
+
+Kỳ vọng:
+
+```text
+/                  → 302
+/auth/login        → 200
+```
+
+Không có lỗi production mới.
+
+---
+
+# J. PASS → xóa backup
+
+**Chỉ xóa sau khi browser test OK.**
+
+```bash
+cd ~/Documents/sites/mobile-pos
+
+ls -ld current.backup-*
+```
+
+Sau đó:
+
+```bash
+rm -rf current.backup-20260921-043015
+```
+
+---
+
+# 🔴 Nếu PROD bị lỗi thì làm gì?
+
+Quy tắc rất đơn giản:
+
+> **Lỗi ở bước nào → dừng ở bước đó. Không chạy tiếp.**
+
+Nếu lỗi **trước bước D**:
+
+```text
+current vẫn nguyên vẹn
+→ sửa lỗi
+→ chạy lại
+```
+
+Nếu lỗi **sau bước D**:
+
+```text
+current mới bị lỗi
+        ↓
+backup vẫn còn
+        ↓
+rollback
+```
+
+Rollback:
+
+```bash
+cd ~/Documents/sites/mobile-pos
+
+rm -rf current
+mv current.backup-20260921-043015 current
+```
+
+Sau đó:
+
+```bash
+cd current
+
+sudo chown -R vietbh:www-data var
+sudo chmod -R ug+rwX var
+
+APP_ENV=prod php bin/console cache:clear
+sudo systemctl reload php8.2-fpm
+```
+
+Test lại:
+
+```bash
+curl -I https://pos.mini-store-app.io.vn/auth/login
+```
+
+---
+
+# 🧠 Nhớ 5 nguyên tắc
+
+```text
+1. DEV phải PASS test
+        ↓
+2. Git phải có đúng SHA
+        ↓
+3. PROD/repo checkout đúng SHA
+        ↓
+4. Backup current trước khi thay
+        ↓
+5. Smoke test PASS → mới xóa backup
+```
+
+Và quan trọng nhất:
+
+```text
+❌ Không git pull trong current
+❌ Không sửa code trực tiếp trong current
+❌ Không xóa backup trước khi smoke test
+❌ Không xóa .env
+❌ Không xóa var/
+❌ Không chown var thành www-data:www-data
+```
+
+**Trường hợp hiện tại của bạn:** đã hoàn thành bước **D**, backup là:
+
+```text
+current.backup-20260921-043015
+```
+
+và `current/` đang rỗng.
+
+👉 Vì vậy **bước tiếp theo duy nhất là E — `rsync repo/ → current/`**.
