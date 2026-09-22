@@ -13,6 +13,7 @@ use App\Application\Order\Command\Checkout\CheckoutInput;
 use App\Application\Order\Command\Checkout\CheckoutItemInput;
 use App\Application\Order\Command\Checkout\CheckoutPaymentInput;
 use App\Application\Payment\Reference\PaymentReferenceService;
+use App\Application\Payment\Reference\PaymentReferenceNormalizer;
 use App\Application\Payment\Reference\CheckoutPaymentSessionService;
 use App\Application\Payment\ManualBankPaymentConfirmationService;
 use App\Domain\Payment\Repository\CheckoutPaymentSessionRepositoryInterface;
@@ -224,6 +225,7 @@ final class CheckoutController extends AbstractController
         Request $request,
         ManualBankPaymentConfirmationService $service,
         CsrfTokenManagerInterface $csrfTokenManager,
+        PaymentReferenceNormalizer $referenceNormalizer,
     ): JsonResponse {
         $requestId = $this->requestId($request);
         $user = $this->getUser();
@@ -244,6 +246,7 @@ final class CheckoutController extends AbstractController
             if ($reference === '' || $amount === '') {
                 throw new \InvalidArgumentException('paymentReference and amount are required.');
             }
+            $reference = $referenceNormalizer->normalize($reference);
             $result = $service->confirmAndComplete($id, $reference, $amount, $user, $requestId);
             return $this->json(['data' => $result, 'requestId' => $requestId], Response::HTTP_OK, ['X-Request-ID' => $requestId]);
         } catch (\InvalidArgumentException $e) {
@@ -351,6 +354,7 @@ final class CheckoutController extends AbstractController
         CheckoutHandlerEntryPoint $handler,
         RuntimeActorContextProvider $actorContextProvider,
         CsrfTokenManagerInterface $csrfTokenManager,
+        PaymentReferenceNormalizer $referenceNormalizer,
     ): JsonResponse {
         $requestId = $this->requestId($request);
 
@@ -375,7 +379,7 @@ final class CheckoutController extends AbstractController
 
         try {
             $payload = $request->toArray();
-            $input = $this->toInput($payload, $idempotencyKey);
+            $input = $this->toInput($payload, $idempotencyKey, $referenceNormalizer);
         } catch (\JsonException|\InvalidArgumentException $exception) {
             return $this->error('VALIDATION_ERROR', $exception->getMessage(), Response::HTTP_BAD_REQUEST, $requestId);
         }
@@ -418,7 +422,7 @@ final class CheckoutController extends AbstractController
     }
 
     /** @param array<string, mixed> $payload */
-    private function toInput(array $payload, string $idempotencyKey): CheckoutInput
+    private function toInput(array $payload, string $idempotencyKey, PaymentReferenceNormalizer $referenceNormalizer): CheckoutInput
     {
         $items = $payload['items'] ?? null;
         if (!is_array($items) || $items === []) {
@@ -463,10 +467,9 @@ final class CheckoutController extends AbstractController
             throw new \InvalidArgumentException('payment.paymentReference must be a string or null.');
         }
 
-        $paymentReference = $paymentReference !== null ? trim($paymentReference) : null;
-        if ($paymentReference !== null && preg_match('/^PAY[A-Z0-9]{6,32}$/', $paymentReference) !== 1) {
-            throw new \InvalidArgumentException('payment.paymentReference has an invalid format.');
-        }
+        $paymentReference = $paymentReference !== null
+            ? $referenceNormalizer->normalize($paymentReference)
+            : null;
 
         if ($tenderedAmount !== null && !is_string($tenderedAmount) && !is_int($tenderedAmount)) {
             throw new \InvalidArgumentException('payment.tenderedAmount must be a string, integer, or null.');

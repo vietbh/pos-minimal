@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Payment;
 
 use App\Application\Common\Transaction\TransactionContextInterface;
+use App\Application\Payment\Reference\PaymentReferenceNormalizer;
 use App\Application\Common\Transaction\TransactionManagerInterface;
 use App\Application\Order\Command\Checkout\ProductLockingInterface;
 use App\Application\Order\Command\CompleteOrder\CompleteOrderService;
@@ -37,6 +38,7 @@ final readonly class ManualBankPaymentConfirmationService
         private CompleteOrderService $completion,
         private ExternalPaymentTransactionRepositoryInterface $externalTransactions,
         private TransactionManagerInterface $transactions,
+        private ?PaymentReferenceNormalizer $referenceNormalizer = null,
     ) {}
 
     /**
@@ -69,7 +71,7 @@ final readonly class ManualBankPaymentConfirmationService
                 throw new \DomainException('Payment session is no longer awaiting manual confirmation.');
             }
 
-            $reference = strtoupper(trim($reference));
+            $reference = ($this->referenceNormalizer ?? new PaymentReferenceNormalizer())->normalize($reference);
             $paymentReference = $this->references->findByReferenceForUpdate($reference);
             if ($paymentReference === null || $paymentReference->getCheckoutPaymentSession() !== $session) {
                 throw new \DomainException('Payment reference does not belong to this payment session.');

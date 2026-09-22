@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Application\Payment\Webhook;
 
+use App\Application\Payment\Reference\PaymentReferenceNormalizer;
+
 final readonly class BankNotificationWebhookHandler
 {
     public function __construct(
         private BankNotificationReconciliationService $reconciliation,
+        private ?PaymentReferenceNormalizer $referenceNormalizer = null,
         private string $webhookTimezone = 'Asia/Ho_Chi_Minh',
         private int $futureSkewSeconds = 300,
     ) {}
@@ -119,10 +122,15 @@ final readonly class BankNotificationWebhookHandler
 
     private function extractPaymentReference(string $description): ?string
     {
-        // Accept the opaque reference either as a standalone token or after
-        // the optional Vietnamese transfer prefix (e.g. THANH / CO THANH).
-        // Matching is ultimately authoritative against PaymentReference in the
-        // reconciliation service; this parser only extracts a safe token.
+        // Provider notifications may contain an opaque provider transaction
+        // token before the POS reference. Prefer an explicit REF/REFERENCE
+        // marker when present (e.g. VCB: "... REF 0FAB4217A0DA ...").
+        if (preg_match('/\bREF(?:ERENCE)?\s*[:#.-]?\s*([A-Z0-9]{8,32})\b/i', $description, $m) === 1) {
+            return $this->normalizeReference($m[1]);
+        }
+
+        // Fallback for legacy notifications where the POS reference is the
+        // only opaque standalone token available.
         if (preg_match('/(?<![A-Z0-9])([A-Z0-9]{8,32})(?![A-Z0-9])/i', $description, $m) !== 1) {
             return null;
         }
@@ -132,13 +140,6 @@ final readonly class BankNotificationWebhookHandler
 
     private function normalizeReference(string $reference): string
     {
-        $reference = strtoupper(trim($reference));
-        $reference = preg_replace('/^PAY[-_\s]*/', '', $reference) ?? $reference;
-
-        if (preg_match('/^[A-Z0-9]{8,32}$/', $reference) !== 1) {
-            throw new \InvalidArgumentException('Payment reference has an invalid format.');
-        }
-
-        return $reference;
+        return ($this->referenceNormalizer ?? new PaymentReferenceNormalizer())->normalize($reference);
     }
 }
