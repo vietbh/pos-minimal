@@ -48,13 +48,13 @@
 {% endblock %}
 
 {% block authenticated_body %}
-<main class="customer-page">
+<main class="business-page customer-page">
     <header class="customer-header">
         <div>
             <h1>{{ customer.name }}</h1>
             <p>{{ 'customer.info_help'|trans }}</p>
         </div>
-        <div class="customer-actions">
+        <div class="customer-actions business-actions">
             <a href="{{ path('customers_index') }}">{{ 'common.customers'|trans }}</a>
             {% if is_granted('CUSTOMER_EDIT') %}
                 <a class="primary" href="{{ path('customers_edit', {id: customer.id}) }}">{{ 'customer.edit'|trans }}</a>
@@ -87,7 +87,7 @@
                 {% for debt in customer.debts %}
                     <a class="customer-row" href="{{ path('debts_show', {id: debt.id}) }}">
                         <div class="customer-row-main">
-                            <strong>Đơn #{{ debt.orderNumber }}</strong>
+                            <strong>{{ 'debt.order'|trans }} #{{ debt.orderNumber }}</strong>
                             <span>{{ debt.createdAt|date('d/m/Y H:i') }} · {{ debt.status|title }}</span>
                         </div>
                         <div class="customer-row-amount">

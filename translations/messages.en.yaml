@@ -837,6 +837,7 @@ order:
   list_aria: Order list
   pagination_aria: Order pagination
   page: Page
+  no_sku: No SKU
   customer_retail: Walk-in customer
   debt_prefix: 'Debt:'
   reason_required: Reason is required.

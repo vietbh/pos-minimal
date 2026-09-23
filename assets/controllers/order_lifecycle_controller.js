@@ -63,9 +63,8 @@ export default class extends Controller {
             const body = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                const code = body.errorCode ? ` [${body.errorCode}]` : '';
                 const message = body.message || this.failedMessageValue;
-                throw new Error(`${message}${code}`);
+                throw new Error(message);
             }
 
             this.idempotencyKey = null;

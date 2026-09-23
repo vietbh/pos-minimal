@@ -52,15 +52,16 @@ export default class extends Controller {
             const body = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                const code = body.errorCode ? ` [${body.errorCode}]` : '';
                 const message = body.message || this.failedMessageValue;
-                throw new Error(`${message}${code}`);
+                throw new Error(message);
             }
 
             this.remainingTarget.textContent = `${body.data.remainingAmount} đ`;
             this.successTarget.textContent =
                 this.recordedTemplateValue.replace('{amount}', body.data.remainingAmount);
             this.successTarget.hidden = false;
+            this.successTarget.setAttribute('tabindex', '-1');
+            this.successTarget.focus();
             this.formTarget.reset();
 
             // A successful logical operation gets a fresh key for the next payment.

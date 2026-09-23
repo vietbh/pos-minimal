@@ -32,7 +32,7 @@
             <h1>#{{ order.orderNumber }}</h1>
             <div class="muted">{{ order.createdAt|date('d/m/Y H:i:s') }}</div>
         </div>
-        <span class="order-status">{{ order.status.value|title }}</span>
+        <span class="order-status business-status" data-status="{{ order.status.value }}">{{ order.status.value|title }}</span>
     </header>
 
     <section class="order-section" aria-labelledby="order-summary">
@@ -52,7 +52,7 @@
         <h2 id="order-items">{{ 'common.products'|trans }}</h2>
         {% for item in order.items %}
             <div class="order-item">
-                <div><div class="strong">{{ item.productName }}</div><div class="order-item-meta">{{ item.sku ?? 'Không có SKU' }} · {{ item.quantity }} × {{ item.unitPrice|money_vnd }}</div></div>
+                <div><div class="strong">{{ item.productName }}</div><div class="order-item-meta">{{ item.sku ?? ('order.no_sku'|trans) }} · {{ item.quantity }} × {{ item.unitPrice|money_vnd }}</div></div>
                 <div class="strong">{{ item.subtotal|money_vnd }}</div>
             </div>
         {% endfor %}

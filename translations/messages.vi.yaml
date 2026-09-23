@@ -837,6 +837,7 @@ order:
   list_aria: Danh sách đơn hàng
   pagination_aria: Phân trang đơn hàng
   page: Trang
+  no_sku: Không có SKU
   customer_retail: Khách lẻ
   debt_prefix: 'Còn nợ:'
   reason_required: Lý do là bắt buộc.

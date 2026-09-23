@@ -1,8 +1,25 @@
 {% extends 'layout/authenticated.html.twig' %}
 {% block title %}{{ 'debt.title'|trans }}{% endblock %}
 {% block authenticated_body %}
-<main class="page-shell"><header class="page-header"><div><h1>{{ 'stat.debts'|trans }}</h1><p class="muted">{{ 'debt.help'|trans }}</p></div></header>
-<form class="search-form" method="get"><input name="q" value="{{ search }}" placeholder="{{ 'debt.search_placeholder'|trans }}" aria-label="{{ 'common.search_debts'|trans }}"><select name="status" aria-label="{{ 'common.filter_status'|trans }}"><option value="">{{ 'order.all_status'|trans }}</option>{% for s in ['OPEN','PARTIALLY_PAID','PAID','REVERSED'] %}<option value="{{ s }}"{% if status==s %} selected{% endif %}>{{ s|title }}</option>{% endfor %}</select><button type="submit">{{ 'common.search'|trans }}</button></form>
-<section class="card-list">{% for debt in debts.items %}<a class="card" href="{{ path('debts_show',{id:debt.id}) }}"><div class="card-main"><strong>{{ debt.customerName }}</strong><span class="muted">Order #{{ debt.orderNumber }}</span></div><div class="card-main"><span>{{ debt.status|title }}</span><strong>{{ debt.remainingAmount }} đ</strong></div></a>{% else %}<div class="empty-state">{{ 'debt.no_found'|trans }}</div>{% endfor %}</section>
-{% if debts.totalPages > 1 %}<nav class="pagination" aria-label="{{ 'debt.pages_aria'|trans }}">{% for p in 1..debts.totalPages %}<a href="{{ path('debts_index',{q:search,status:status,page:p}) }}"{% if p==debts.page %} aria-current="page"{% endif %}>{{ p }}</a>{% endfor %}</nav>{% endif %}</main>
+<main class="business-page">
+    <header class="business-page-header"><div><h1>{{ 'debt.title'|trans }}</h1><p>{{ 'debt.help'|trans }}</p></div></header>
+    <form class="business-search" method="get" role="search" aria-label="{{ 'debt.search'|trans }}">
+        <label for="debt-search">{{ 'debt.search'|trans }}<input id="debt-search" name="q" value="{{ search }}" placeholder="{{ 'debt.search_placeholder'|trans }}" autocomplete="off"></label>
+        <label for="debt-status">{{ 'common.status'|trans }}<select id="debt-status" name="status"><option value="">{{ 'debt.all_statuses'|trans }}</option>{% for s in ['OPEN','PARTIALLY_PAID','PAID','REVERSED'] %}<option value="{{ s }}"{% if status==s %} selected{% endif %}>{{ s|title }}</option>{% endfor %}</select></label>
+        <button type="submit">{{ 'common.search'|trans }}</button>
+    </form>
+    {% if debts.items is empty %}
+        <div class="business-empty"><strong>{{ 'debt.no_found'|trans }}</strong><span>{{ 'debt.search_placeholder'|trans }}</span></div>
+    {% else %}
+        <section class="card-list" aria-label="{{ 'debt.title'|trans }}">
+            {% for debt in debts.items %}
+                <a class="business-row-link" href="{{ path('debts_show',{id:debt.id}) }}">
+                    <span class="business-row-link-main"><strong>{{ debt.customerName }}</strong><span>{{ 'debt.order'|trans }} #{{ debt.orderNumber }}</span></span>
+                    <span class="business-row-amount"><strong>{{ debt.remainingAmount|money_vnd }}</strong><span class="business-status" data-status="{{ debt.status }}">{{ debt.status|title }}</span></span>
+                </a>
+            {% endfor %}
+        </section>
+        {% if debts.totalPages > 1 %}<nav class="pagination" aria-label="{{ 'debt.pages_aria'|trans }}">{% for p in 1..debts.totalPages %}<a href="{{ path('debts_index',{q:search,status:status,page:p}) }}"{% if p==debts.page %} aria-current="page"{% endif %}>{{ p }}</a>{% endfor %}</nav>{% endif %}
+    {% endif %}
+</main>
 {% endblock %}
