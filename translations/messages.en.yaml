@@ -221,6 +221,8 @@ pos:
     method: Payment method
     cash: Cash
     bank_transfer: Bank transfer
+    method_help: Choose how the customer will pay this sale.
+    bank_payment_help: Verify the receiving account and wait for the bank confirmation before completing the sale.
     customer_gives: Customer gives
     transfer_amount: Transfer amount
     receiving_account: Receiving account
@@ -386,6 +388,7 @@ pos:
     payment_reference: Payment reference
     payment_reference_help: Generated per bank-transfer payment. It is not entered here and is used for webhook reconciliation.
     transfer_template: Transfer content template
+    transfer_content: Transfer content
     qr_template: QR template
     casso_subaccount: Casso sub-account ID
     account_number_placeholder: Enter bank account number
@@ -552,6 +555,9 @@ pos:
     complete_sale: Complete sale
     retry_checkout: Retry checkout
     returning: Returning to POS in
+    transfer_content_generated: Transfer content will be generated when payment starts.
+    payment_reference_expired: Payment reference expired. You can create a new code.
+    payment_reference_created: A new payment reference was created.
   product_category: Product category
   select_receiving_account: Select receiving account
   bank_confirmed: The bank has confirmed the payment

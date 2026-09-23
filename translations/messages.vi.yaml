@@ -221,6 +221,11 @@ pos:
     method: Phương thức thanh toán
     cash: Tiền mặt
     bank_transfer: Chuyển khoản
+    method_help: Chọn phương thức khách hàng sẽ dùng để thanh toán đơn hàng này.
+    bank_payment_help: Kiểm tra tài khoản nhận tiền và chờ ngân hàng xác nhận trước khi hoàn tất đơn.
+    transfer_content_generated: Nội dung chuyển khoản sẽ được tạo khi bắt đầu thanh toán.
+    payment_reference_expired: Mã thanh toán đã hết hạn. Bạn có thể tạo mã mới.
+    payment_reference_created: Đã tạo mã thanh toán mới.
     customer_gives: Khách đưa
     transfer_amount: Số tiền chuyển khoản
     receiving_account: Tài khoản nhận
@@ -552,6 +557,9 @@ pos:
     complete_sale: Hoàn tất giao dịch
     retry_checkout: Thử lại thanh toán
     returning: Quay lại POS sau
+    transfer_content_generated: Nội dung chuyển khoản sẽ được tạo khi bắt đầu thanh toán.
+    payment_reference_expired: Mã thanh toán đã hết hạn. Bạn có thể tạo mã mới.
+    payment_reference_created: Đã tạo mã thanh toán mới.
   product_category: Danh mục sản phẩm
   select_receiving_account: Chọn tài khoản nhận
   bank_confirmed: Ngân hàng đã xác nhận thanh toán

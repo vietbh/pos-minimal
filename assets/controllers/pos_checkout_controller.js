@@ -488,6 +488,8 @@ export default class extends Controller {
         this.setElementDisplay(this.paymentAmountTarget.closest('label'), !isCash);
         this.setElementDisplay(this.quickCashTarget, isCash, 'flex');
         this.setElementDisplay(this.bankAccountTarget.closest('label'), !isCash);
+        this.paymentMethodsTargets.forEach((input) => input.closest('label')?.classList.toggle('is-selected', input.checked));
+        this.checkoutSectionTarget?.setAttribute('data-payment-method', this.paymentMethodValue());
 
         if (isCash) {
             this.hideBankTransferDetails();
@@ -516,7 +518,7 @@ export default class extends Controller {
     }
 
     hideBankTransferDetails() {
-        if (this.hasBankDetailsTarget) this.setElementDisplay(this.bankDetailsTarget, false);
+        if (this.hasBankDetailsTarget) { this.setElementDisplay(this.bankDetailsTarget, false); this.bankDetailsTarget.setAttribute('aria-hidden', 'true'); }
         if (this.hasBankQrTarget) {
             this.bankQrTarget.style.display = 'none';
             this.bankQrTarget.hidden = true;
@@ -541,11 +543,12 @@ export default class extends Controller {
 
         const option = this.bankAccountTarget.selectedOptions[0];
         this.setElementDisplay(this.bankDetailsTarget, true);
+        this.bankDetailsTarget.setAttribute('aria-hidden', 'false');
         this.bankNameTarget.textContent = option.dataset.bankName || '';
         this.bankNumberTarget.textContent = option.dataset.accountNumber || '';
         this.bankAccountNameTarget.textContent = option.dataset.accountName || '';
 
-        this.transferContentTarget.textContent = 'Nội dung chuyển khoản sẽ được tạo khi bắt đầu thanh toán.';
+        this.transferContentTarget.textContent = this.messagesValue.transferContentGenerated;
         // QR is authoritative backend data and is rendered after Start payment.
         // Do not manufacture or clear it while the cashier edits the cart.
         if (!this.paymentReference) {
@@ -1464,7 +1467,7 @@ export default class extends Controller {
         if (expired) {
             this.resultPaymentReferenceCountdownTarget.textContent = 'Đã hết hạn';
             if (this.hasQrModalCountdownTarget) this.qrModalCountdownTarget.textContent = 'Đã hết hạn';
-            this.paymentReferenceHintTarget.textContent = 'Mã đã hết hạn. Bạn có thể tạo mã mới.';
+            this.paymentReferenceHintTarget.textContent = this.messagesValue.paymentReferenceExpired;
             this.stopPaymentReferenceCountdown();
         }
     }
@@ -1519,7 +1522,7 @@ export default class extends Controller {
                 accountName: body.data.accountName,
                 amount: body.data.amount,
             });
-            this.setStatus('Đã tạo mã chuyển khoản mới.');
+            this.setStatus(this.messagesValue.paymentReferenceCreated);
         } catch (error) {
             this.showError('PAYMENT_REFERENCE_INVALID', error?.message || this.messagesValue.unableCreateReference);
             this.regeneratePaymentReferenceButtonTarget.disabled = true;
