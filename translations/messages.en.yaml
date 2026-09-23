@@ -41,6 +41,7 @@ navigation:
   account: Account
   open_menu: Open menu
   close_menu: Close menu
+  skip_to_content: 'Skip to main content'
 app:
   greeting: Hello
   customers: Customers
@@ -895,3 +896,4 @@ debt:
   payment_required: Payment amount is required.
   payment_failed: Unable to complete debt payment.
   payment_recorded: 'Payment recorded. Remaining: {amount} đ'
+

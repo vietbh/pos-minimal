@@ -1098,7 +1098,29 @@ body {
     overflow-x: hidden;
 }
 
+/* Phase 10.2 — authenticated shell + navigation foundation */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  transform: translateY(-160%);
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  border: 2px solid var(--shell-primary, #2563eb);
+  border-radius: 10px;
+  background: #fff;
+  color: #172033;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .14);
+}
+.skip-link:focus { transform: translateY(0); }
+
 .app-frame {
+
     min-height: 100dvh;
     width: 100%;
     display: flex;
@@ -1976,3 +1998,55 @@ body {
     }
 }
 
+
+/* Phase 10.2 navigation accessibility and mobile shell hardening */
+.desktop-sidebar {
+  overscroll-behavior: contain;
+}
+.sidebar-nav a,
+.sidebar-footer > a,
+.sidebar-logout,
+.mobile-nav-toggle,
+.mobile-topbar-user,
+.mobile-navigation a,
+.mobile-navigation button,
+.mobile-bottom-nav a {
+  min-height: 48px;
+}
+.mobile-navigation {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.mobile-navigation nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mobile-navigation a[aria-current="page"]::before,
+.mobile-bottom-nav a[aria-current="page"]::before {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+.mobile-bottom-nav a[aria-current="page"] {
+  font-weight: 800;
+}
+.mobile-bottom-nav a[aria-current="page"]::before {
+  width: 5px;
+  height: 5px;
+  margin: 0 auto 2px;
+}
+@media (max-width: 900px) {
+  .app-main { scroll-margin-top: 72px; }
+}
+@media (max-width: 380px) {
+  .mobile-topbar { padding-left: 10px; padding-right: 10px; }
+  .mobile-topbar .app-brand { max-width: calc(100vw - 110px); }
+  .mobile-topbar .app-brand > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skip-link { transition: none !important; }
+}

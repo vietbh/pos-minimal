@@ -1,8 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Application navigation interaction only.
- * Authorization remains server-side; this controller only manages presentation.
+ * Presentation-only navigation controller.
+ * Authorization and route access remain server-side.
  */
 export default class extends Controller {
     static targets = ['menu', 'toggle'];
@@ -36,6 +36,7 @@ export default class extends Controller {
 
     sync() {
         if (!this.hasMenuTarget || !this.hasToggleTarget) return;
+
         this.menuTarget.hidden = !this.openValue;
         this.toggleTarget.setAttribute('aria-expanded', this.openValue ? 'true' : 'false');
         this.toggleTarget.setAttribute(
@@ -44,18 +45,54 @@ export default class extends Controller {
         );
 
         if (this.openValue) {
-            const firstLink = this.menuTarget.querySelector('a, button');
-            if (firstLink) firstLink.focus();
+            const firstFocusable = this.focusableElements()[0];
+            if (firstFocusable) firstFocusable.focus();
+            return;
+        }
+
+        if (this.element.contains(document.activeElement)) {
+            this.toggleTarget.focus();
         }
     }
 
     handleKeydown(event) {
-        if (event.key === 'Escape') this.close();
+        if (!this.openValue) return;
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            this.close();
+            return;
+        }
+
+        if (event.key !== 'Tab') return;
+
+        const focusable = this.focusableElements();
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
     }
 
     handleDocumentClick(event) {
-        if (!this.openValue) return;
-        if (this.element.contains(event.target)) return;
+        if (!this.openValue || this.element.contains(event.target)) return;
         this.close();
+    }
+
+    focusableElements() {
+        if (!this.hasMenuTarget) return [];
+
+        return Array.from(
+            this.menuTarget.querySelectorAll(
+                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
+        ).filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
     }
 }

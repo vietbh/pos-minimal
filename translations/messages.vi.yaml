@@ -41,6 +41,7 @@ navigation:
   account: Tài khoản
   open_menu: Mở menu
   close_menu: Đóng menu
+  skip_to_content: 'Đến nội dung chính'
 app:
   greeting: Xin chào
   customers: Khách hàng

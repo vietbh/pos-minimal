@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block body %}
+    <a class="skip-link" href="#main-content">{{ 'navigation.skip_to_content'|trans }}</a>
     <div class="app-frame pos-frame" data-controller="mobile-ux">
         <aside class="desktop-sidebar" aria-label="{{ 'navigation.primary'|trans }}">
             <a class="sidebar-brand" href="{{ path('app_home') }}" aria-label="{{ 'app.brand_home'|trans }}">
