@@ -713,6 +713,14 @@ admin:
   quantity_change: Quantity change
   adjust_help: Enter a positive number to add stock or a negative number to remove stock.
   confirm_adjustment: Confirm adjustment
+
+  no_products_match: No products match the current filters.
+  no_sku: No SKU
+  product_pagination: Product pagination
+  stock_products_count: '%count% active products.'
+  page_of: Page %page% of %total%
+  product_summary: Product summary
+  stock_summary: Stock summary
   no_movements: No movements.
   receiving_accounts: Receiving bank accounts
   receiving_accounts_help: Configure the accounts used to receive bank-transfer payments.

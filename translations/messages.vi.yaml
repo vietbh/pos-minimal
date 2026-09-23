@@ -713,6 +713,14 @@ admin:
   quantity_change: Thay đổi số lượng
   adjust_help: Nhập số dương để tăng tồn kho hoặc số âm để giảm tồn kho.
   confirm_adjustment: Xác nhận điều chỉnh
+
+  no_products_match: Không có sản phẩm phù hợp với bộ lọc hiện tại.
+  no_sku: Chưa có SKU
+  product_pagination: Phân trang sản phẩm
+  stock_products_count: '%count% sản phẩm đang hoạt động.'
+  page_of: Trang %page% / %total%
+  product_summary: Tóm tắt sản phẩm
+  stock_summary: Tóm tắt tồn kho
   no_movements: Chưa có biến động.
   receiving_accounts: Tài khoản ngân hàng nhận tiền
   receiving_accounts_help: Cấu hình tài khoản dùng để nhận thanh toán chuyển khoản.
