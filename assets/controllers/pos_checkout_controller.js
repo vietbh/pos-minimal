@@ -7,7 +7,7 @@ const MINOR_SCALE = 100n;
 
 export default class extends Controller {
     static targets = [
-        'productSearch', 'productResults', 'productCategory', 'productCatalogMeta', 'productPagination', 'productPrevious', 'productNext', 'productPageIndicator', 'webhookEnrichment', 'webhookEnrichmentState', 'webhookProvider', 'webhookExternalId', 'webhookOccurredAt', 'webhookAmount', 'webhookDescription', 'customerSearch', 'customerResults',
+        'checkoutSection', 'productSearch', 'productResults', 'productCategory', 'productCatalogMeta', 'productPagination', 'productPrevious', 'productNext', 'productPageIndicator', 'webhookEnrichment', 'webhookEnrichmentState', 'webhookProvider', 'webhookExternalId', 'webhookOccurredAt', 'webhookAmount', 'webhookDescription', 'customerSearch', 'customerResults',
         'selectedCustomer', 'clearCustomer', 'cart', 'cartEmpty', 'cartCount',
         'cartTotal', 'submitButton', 'message', 'success', 'requestId', 'status',
         'retryButton', 'paymentMethods', 'paymentAmount', 'customerTendered',
@@ -38,6 +38,7 @@ export default class extends Controller {
         messages: Object,
         speakerEnabledLabel: String,
         speakerDisabledLabel: String,
+        addProductLabel: String,
         paymentReceivedSpeech: String,
     };
 
@@ -238,10 +239,11 @@ export default class extends Controller {
             const add = document.createElement('button');
             add.type = 'button';
             add.className = 'button primary pos-touch-button';
-            add.textContent = 'Add';
+            add.textContent = this.addProductLabelValue;
             add.disabled = Number(product.stockQuantity) <= 0;
             add.dataset.action = 'click->pos-checkout#addToCart';
             add.dataset.productId = String(product.id);
+            add.setAttribute('aria-label', `${this.addProductLabelValue}: ${product.name}`);
 
             row.append(info, add);
             return row;
@@ -290,6 +292,10 @@ export default class extends Controller {
 
         this.persistCart();
         this.renderCart();
+        const focusButton = this.cartTarget.querySelector(
+            `[data-product-id="${productId}"][data-delta="${delta}"]`,
+        );
+        focusButton?.focus();
     }
 
     removeItem(event) {
@@ -879,6 +885,8 @@ export default class extends Controller {
         this.inFlight = submitting;
         if (submitting) this.state = 'SUBMITTING';
         this.submitButtonTarget.disabled = submitting;
+        this.submitButtonTarget.setAttribute('aria-busy', submitting ? 'true' : 'false');
+        if (this.hasCheckoutSectionTarget) this.checkoutSectionTarget.setAttribute('aria-busy', submitting ? 'true' : 'false');
         if (!submitting) this.updatePaymentState(this.cartTotalMinor());
         this.submitButtonTarget.textContent = submitting
             ? this.processingLabelValue
@@ -908,6 +916,7 @@ export default class extends Controller {
         this.resultDebtRowTarget.hidden = !this.isPositiveMoney(data.debtAmount);
 
         this.successTarget.hidden = false;
+        this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.focus();
         this.renderWebhookEnrichment(data.externalTransaction || null, isBankPending);
 
         if (isBankPending) {

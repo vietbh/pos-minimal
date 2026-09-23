@@ -21,6 +21,7 @@
      data-pos-checkout-processing-label-value="{{ 'pos.checkout.processing'|trans }}"
      data-pos-checkout-complete-sale-label-value="{{ 'pos.checkout.complete_sale'|trans }}"
      data-pos-checkout-bank-payment-label-value="{{ 'pos.checkout.start_bank_payment'|trans }}"
+     data-pos-checkout-add-product-label-value="{{ 'pos.products.add'|trans }}"
      data-pos-checkout-messages-value='{{ {ready: 'pos.ready'|trans, allCategories: 'pos.all_categories'|trans, noSku: 'pos.no_sku'|trans, unableLoadProducts: 'pos.unable_load_products'|trans, unableSearchCustomers: 'pos.unable_search_customers'|trans, addProducts: 'pos.add_products'|trans, enterCustomerAmount: 'pos.enter_customer_amount'|trans, changeDue: 'pos.change_due'|trans, debtWillBeCreated: 'pos.debt_will_be_created'|trans, selectCustomerOrFullPayment: 'pos.select_customer_or_full_payment'|trans, paidInFull: 'pos.paid_in_full'|trans, configureReceivingAccount: 'pos.configure_receiving_account'|trans, transferCannotExceed: 'pos.transfer_cannot_exceed'|trans, enterExactTransfer: 'pos.enter_exact_transfer'|trans, cartEmpty: 'pos.cart_empty'|trans, paymentInvalid: 'pos.payment_invalid'|trans, customerTenderedZero: 'pos.customer_tendered_zero'|trans, transferZero: 'pos.transfer_zero'|trans, bankTransferExact: 'pos.bank_transfer_exact'|trans, unableCheckout: 'pos.unable_checkout'|trans, invalidResult: 'pos.invalid_result'|trans, timeoutUnknown: 'pos.timeout_unknown'|trans, unknownResult: 'pos.unknown_result'|trans, bankTransfer: 'pos.bank_transfer'|trans, waitingPayment: 'pos.waiting_payment'|trans, waitingBankTransfer: 'pos.waiting_bank_transfer'|trans, completeSaleManually: 'pos.complete_sale_manually'|trans, missingReference: 'pos.missing_reference'|trans, manualConfirmFailed: 'pos.manual_confirm_failed'|trans, paymentNotConfirmed: 'pos.payment_not_confirmed'|trans, saleCompleted: 'pos.sale_completed'|trans, unableManualConfirm: 'pos.unable_manual_confirm'|trans, closeQr: 'pos.close_qr'|trans, paymentReceivedBanner: 'pos.payment_received_banner'|trans, bankConfirmed: 'pos.bank_confirmed'|trans, speakerEnabledLabel: 'pos.speaker.enabled'|trans, speakerDisabledLabel: 'pos.speaker.enable'|trans, paymentReceivedSpeech: 'pos.speaker.payment_received_speech'|trans, startBankPayment: 'pos.start_bank_payment'|trans, completeSaleButton: 'pos.complete_sale_button'|trans, completed: 'pos.completed'|trans, paymentReceived: 'pos.payment_received_label'|trans, paymentReceivedAutoFail: 'pos.payment_received_auto_fail'|trans, unableCompleteSale: 'pos.unable_complete_sale'|trans, unableCompleteSaleAuto: 'pos.unable_complete_sale_auto'|trans, unableCreateReference: 'pos.unable_create_reference'|trans, checkoutFailedPreserved: 'pos.checkout_failed_preserved'|trans, invalidMoney: 'pos.invalid_money'|trans, unit: 'pos.unit'|trans}|json_encode|e('html_attr') }}'>
 
     <div class="pos-message pos-error" data-pos-checkout-target="message" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
@@ -61,7 +62,7 @@
                     </select>
                 </div>
                 <div class="pos-catalog-meta" data-pos-checkout-target="productCatalogMeta" aria-live="polite"></div>
-                <div class="pos-results" data-pos-checkout-target="productResults" aria-live="polite"></div>
+                <div class="pos-results" data-pos-checkout-target="productResults" aria-live="polite" aria-busy="false"></div>
                 <nav class="pos-product-pagination" data-pos-checkout-target="productPagination" aria-label="{{ 'pos.products.pagination'|trans }}" hidden>
                     <button type="button" class="button" data-pos-checkout-target="productPrevious" data-action="click->pos-checkout#previousProductPage">{{ 'pos.products.previous'|trans }}</button>
                     <span data-pos-checkout-target="productPageIndicator">{{ 'pos.products.page_indicator'|trans({page: 1, total: 1}) }}</span>
@@ -104,7 +105,7 @@
                 <div class="pos-results" data-pos-checkout-target="customerResults" aria-live="polite"></div>
             </section>
 
-            <section class="pos-card pos-payment-card" aria-labelledby="payment-heading">
+            <section class="pos-card pos-payment-card" aria-labelledby="payment-heading" data-pos-checkout-target="checkoutSection">
                 <div class="pos-section-header">
                     <div>
                         <p class="pos-eyebrow">{{ 'pos.payment.title'|trans }}</p>
@@ -124,15 +125,16 @@
                 </fieldset>
 
                 <div class="pos-payment-fields">
-                    <label data-cash-only>{{ 'pos.payment.customer_gives'|trans }}
+                    <label for="pos-customer-tendered" data-cash-only>{{ 'pos.payment.customer_gives'|trans }}
                         <div class="pos-payment-input-row">
-                            <input data-pos-checkout-target="customerTendered"
+                            <input id="pos-customer-tendered" data-pos-checkout-target="customerTendered"
                                    inputmode="decimal"
                                    enterkeyhint="done"
                                    data-action="input->pos-checkout#customerTenderedChanged"
                                    inputmode="decimal"
                                    placeholder="0"
-                                   autocomplete="off">
+                                   autocomplete="off"
+                                   aria-describedby="pos-payment-state">
                             <button type="button"
                                     class="button"
                                     data-pos-checkout-target="clearTendered"
@@ -140,17 +142,18 @@
                                     hidden>{{ 'pos.cart.clear'|trans }}</button>
                         </div>
                     </label>
-                    <label hidden style="display:none" data-transfer-only>{{ 'pos.payment.transfer_amount'|trans }}
-                        <input data-pos-checkout-target="paymentAmount"
+                    <label for="pos-payment-amount" hidden style="display:none" data-transfer-only>{{ 'pos.payment.transfer_amount'|trans }}
+                        <input id="pos-payment-amount" data-pos-checkout-target="paymentAmount"
                                inputmode="decimal"
                                enterkeyhint="done"
                                data-action="input->pos-checkout#paymentAmountChanged blur->pos-checkout#normalizePaymentAmount"
                                inputmode="decimal"
                                placeholder="0"
-                               autocomplete="off">
+                               autocomplete="off"
+                               aria-describedby="pos-payment-state">
                     </label>
-                    <label hidden style="display:none" data-transfer-only>{{ 'pos.payment.receiving_account'|trans }}
-                        <select data-pos-checkout-target="bankAccount"
+                    <label for="pos-bank-account" hidden style="display:none" data-transfer-only>{{ 'pos.payment.receiving_account'|trans }}
+                        <select id="pos-bank-account" data-pos-checkout-target="bankAccount"
                                 data-action="change->pos-checkout#bankAccountChanged">
 {#                            <option value="">{{ 'pos.select_receiving_account'|trans }}</option>#}
                             {% for account in payment_bank_accounts %}
@@ -198,13 +201,13 @@
                     <div data-pos-checkout-target="paymentDueRow" hidden><dt>{{ 'order.debt_remaining'|trans }}</dt><dd data-pos-checkout-target="paymentDue">0</dd></div>
                     <div data-cash-only data-pos-checkout-target="paymentChangeRow" hidden><dt>{{ 'pos.success.change_due'|trans }}</dt><dd data-pos-checkout-target="paymentChange">0</dd></div>
                 </dl>
-                <p class="pos-payment-state" data-pos-checkout-target="paymentState" role="status" aria-live="polite">{{ 'pos.payment.add_products'|trans }}</p>
+                <p id="pos-payment-state" class="pos-payment-state" data-pos-checkout-target="paymentState" role="status" aria-live="polite">{{ 'pos.payment.add_products'|trans }}</p>
 
-                <label>{{ 'pos.payment.note'|trans }}
-                    <input data-pos-checkout-target="note" maxlength="1000" autocomplete="off" enterkeyhint="done">
+                <label for="pos-payment-note">{{ 'pos.payment.note'|trans }}
+                    <input id="pos-payment-note" data-pos-checkout-target="note" maxlength="1000" autocomplete="off" enterkeyhint="done">
                 </label>
 
-                <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="submitButton" data-action="click->pos-checkout#submit">
+                <button type="button" class="button primary pos-complete-button" aria-describedby="pos-payment-state" data-pos-checkout-target="submitButton" data-action="click->pos-checkout#submit">
                     {{ 'pos.complete_sale'|trans }}
                 </button>
                 <button type="button" class="button" data-pos-checkout-target="retryButton" data-action="click->pos-checkout#retry" hidden>
@@ -218,7 +221,7 @@
         <div class="pos-current-time pos-success-time" data-pos-checkout-target="currentTime" aria-label="{{ 'pos.current_time'|trans }}"></div>
         <div class="pos-success-icon" aria-hidden="true">✓</div>
         <p class="pos-eyebrow" data-pos-checkout-target="successEyebrow">{{ 'pos.success.completed'|trans }}</p>
-        <h1 data-pos-checkout-target="successTitle">{{ 'pos.success.sale_completed'|trans }}</h1>
+        <h1 data-pos-checkout-target="successTitle" tabindex="-1">{{ 'pos.success.sale_completed'|trans }}</h1>
         <p>{{ 'pos.success.order'|trans }} <strong data-pos-checkout-target="resultOrder"></strong></p>
         <section class="pos-bank-reference-result" data-pos-checkout-target="paymentReferenceResult" hidden>
             <div><strong>{{ 'pos.payment_reference.title'|trans }}</strong></div>
@@ -251,9 +254,9 @@
             <div data-pos-checkout-target="resultDebtRow"><dt>{{ 'pos.success.debt'|trans }}</dt><dd data-pos-checkout-target="resultDebt"></dd></div>
         </dl>
         <p class="muted">{{ 'pos.success.request'|trans }} <span data-pos-checkout-target="requestId"></span></p>
-        <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="completePaidSaleButton" data-action="click->pos-checkout#completePaidSale" hidden>{{ 'pos.checkout.complete_sale'|trans }}</button>
+        <button type="button" class="button primary pos-complete-button" aria-describedby="pos-payment-state" data-pos-checkout-target="completePaidSaleButton" data-action="click->pos-checkout#completePaidSale" hidden>{{ 'pos.checkout.complete_sale'|trans }}</button>
                 <button type="button" class="button warning" data-pos-checkout-target="manualBankConfirmButton" data-action="click->pos-checkout#manualBankConfirm" hidden>{{ 'pos.payment.manual_confirm'|trans }}</button>
-        <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="newSaleButton" data-action="click->pos-checkout#newSale">{{ 'pos.new_sale'|trans }}</button>
+        <button type="button" class="button primary pos-complete-button" aria-describedby="pos-payment-state" data-pos-checkout-target="newSaleButton" data-action="click->pos-checkout#newSale">{{ 'pos.new_sale'|trans }}</button>
     </section>
     <div class="pos-payment-received-modal" data-pos-checkout-target="paymentReceivedModal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pos-payment-received-title" aria-describedby="pos-payment-received-description">
         <div class="pos-payment-received-backdrop" aria-hidden="true"></div>

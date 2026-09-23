@@ -163,6 +163,7 @@ pos:
     search_help: Search by product name or SKU.
     search_label: Search products
     search_placeholder: Search product or SKU…
+    add: Add
     all_categories: All categories
     pagination: Product pagination
     previous: Previous

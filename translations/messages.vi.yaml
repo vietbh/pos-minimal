@@ -163,6 +163,7 @@ pos:
     search_help: Tìm theo tên sản phẩm hoặc SKU.
     search_label: Tìm sản phẩm
     search_placeholder: Tìm sản phẩm hoặc SKU…
+    add: Thêm
     all_categories: Tất cả danh mục
     pagination: Phân trang sản phẩm
     previous: Trước

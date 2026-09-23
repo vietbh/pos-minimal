@@ -2050,3 +2050,102 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .skip-link { transition: none !important; }
 }
+
+/* ============================================================================
+   PHASE 10.3 — POS CHECKOUT UI INTEGRATION
+   Presentation/accessibility only. Checkout authority remains backend-side.
+   ============================================================================ */
+.pos-products:focus-within,
+.pos-cart:focus-within,
+.pos-payment-card:focus-within {
+    border-color: var(--color-primary, #2563eb);
+}
+
+.pos-product-result,
+.pos-customer-result {
+    min-height: 60px;
+}
+
+.pos-product-result .pos-touch-button {
+    min-width: 96px;
+    min-height: 48px;
+}
+
+.pos-cart-item:focus-within,
+.pos-method:focus-within,
+.pos-selected:focus-within {
+    outline: 3px solid color-mix(in srgb, var(--color-primary, #2563eb) 28%, transparent);
+    outline-offset: 1px;
+}
+
+.pos-payment-card[aria-busy="true"] {
+    cursor: progress;
+}
+
+.pos-payment-card[aria-busy="true"] .pos-payment-fields,
+.pos-payment-card[aria-busy="true"] .pos-methods,
+.pos-payment-card[aria-busy="true"] .pos-quick-cash {
+    opacity: .72;
+}
+
+.pos-complete-button[aria-busy="true"] {
+    cursor: progress;
+}
+
+.pos-success [data-pos-checkout-target="successTitle"]:focus-visible {
+    outline: 3px solid var(--color-primary, #2563eb);
+    outline-offset: 6px;
+    border-radius: 6px;
+}
+
+@media (max-width: 520px) {
+    .pos-product-result {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .pos-product-result .pos-touch-button {
+        width: 100%;
+    }
+
+    .pos-cart-controls {
+        gap: 8px;
+    }
+
+    .pos-cart-controls .pos-quantity-button {
+        flex: 0 0 48px;
+        width: 48px;
+    }
+
+    .pos-cart-controls .pos-remove-button {
+        min-height: 48px;
+    }
+}
+
+@media (max-width: 380px) {
+    .pos-page {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .pos-card {
+        padding: 11px;
+        border-radius: 14px;
+    }
+
+    .pos-section-header h2,
+    .pos-payment-card h2 {
+        font-size: 1rem;
+    }
+
+    .pos-product-result,
+    .pos-customer-result,
+    .pos-cart-item {
+        padding: 10px;
+    }
+
+    .pos-payment-total strong,
+    .pos-cart-total strong {
+        font-size: 1.35rem;
+    }
+}
