@@ -32,7 +32,7 @@
             <h1>#{{ order.orderNumber }}</h1>
             <div class="muted">{{ order.createdAt|date('d/m/Y H:i:s') }}</div>
         </div>
-        <span class="order-status business-status" data-status="{{ order.status.value }}">{{ order.status.value|title }}</span>
+        <span class="order-status">{{ order.status.value|title }}</span>
     </header>
 
     <section class="order-section" aria-labelledby="order-summary">
@@ -52,7 +52,7 @@
         <h2 id="order-items">{{ 'common.products'|trans }}</h2>
         {% for item in order.items %}
             <div class="order-item">
-                <div><div class="strong">{{ item.productName }}</div><div class="order-item-meta">{{ item.sku ?? ('order.no_sku'|trans) }} · {{ item.quantity }} × {{ item.unitPrice|money_vnd }}</div></div>
+                <div><div class="strong">{{ item.productName }}</div><div class="order-item-meta">{{ item.sku ?? 'Không có SKU' }} · {{ item.quantity }} × {{ item.unitPrice|money_vnd }}</div></div>
                 <div class="strong">{{ item.subtotal|money_vnd }}</div>
             </div>
         {% endfor %}
@@ -98,7 +98,8 @@
     {% if order.status.value == 'COMPLETED' and (is_granted('ORDER_CANCEL') or is_granted('ORDER_REFUND')) %}
         <section class="order-section" aria-labelledby="order-lifecycle">
             <h2 id="order-lifecycle">{{ 'order.actions'|trans }}</h2>
-            <div data-controller="order-lifecycle" data-order-lifecycle-url-value="" data-order-lifecycle-csrf-value="{{ csrf_token('order_lifecycle') }}" data-order-lifecycle-reason-required-message-value="{{ 'order.reason_required'|trans }}" data-order-lifecycle-failed-message-value="{{ 'order.operation_failed'|trans }}">
+            <div data-controller="order-lifecycle" data-order-lifecycle-url-value="" data-order-lifecycle-csrf-value="{{ csrf_token('order_lifecycle') }}" data-order-lifecycle-reason-required-message-value="{{ 'order.reason_required'|trans }}" data-order-lifecycle-failed-message-value="{{ 'order.operation_failed'|trans }}"
+                data-order-lifecycle-error-messages-value='{{ {AUTHENTICATION_REQUIRED: 'order.error_authentication'|trans, ACCESS_DENIED: 'order.error_access_denied'|trans, CSRF_INVALID: 'order.error_csrf'|trans, VALIDATION_ERROR: 'order.error_validation'|trans, ORDER_NOT_FOUND: 'order.error_not_found'|trans, IDEMPOTENCY_CONFLICT: 'order.error_idempotency_conflict'|trans, IDEMPOTENCY_IN_PROGRESS: 'order.error_idempotency_in_progress'|trans, ORDER_ALREADY_CANCELLED: 'order.error_already_cancelled'|trans, ORDER_ALREADY_REFUNDED: 'order.error_already_refunded'|trans, ORDER_INVALID_STATE: 'order.error_invalid_state'|trans, REFUND_ALREADY_PROCESSED: 'order.error_refund_processed'|trans, BUSINESS_RULE_VIOLATION: 'order.error_business_rule'|trans, INTERNAL_ERROR: 'order.operation_failed'|trans}|json_encode|e('html_attr') }}'>
                 <div class="modal-actions">
                     {% if is_granted('ORDER_CANCEL') %}<button type="button" data-action="click->order-lifecycle#open" data-url="{{ path('order_cancel',{id:order.id}) }}">{{ 'order.cancel'|trans }}</button>{% endif %}
                     {% if is_granted('ORDER_REFUND') %}<button type="button" data-action="click->order-lifecycle#open" data-url="{{ path('order_refund',{id:order.id}) }}">{{ 'order.refund'|trans }}</button>{% endif %}

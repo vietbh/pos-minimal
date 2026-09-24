@@ -43,3 +43,564 @@
 
 /* Payment speaker — browser TTS is presentation-only; backend remains payment authority. */
 .pos-payment-speaker{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0;padding:10px 12px;border:1px solid var(--ux-border,#cbd5e1);border-radius:12px;background:#f8fafc}.pos-payment-speaker .button{min-height:48px}.pos-payment-speaker .muted{font-size:.95rem}
+
+/* Phase 10.7 — admin / statistics / security presentation hardening */
+.admin-workspace h1,
+.admin-workspace h2,
+.admin-workspace h3 { text-wrap: balance; }
+.admin-toolbar__actions .button,
+.admin-toolbar__actions button { min-height: 52px; }
+.admin-filter { color: var(--ux-text, #172033); }
+.admin-filter .admin-help { margin: 0; }
+.admin-filter input,
+.admin-filter select,
+.admin-form input,
+.admin-form select,
+.admin-form textarea { font-size: 1.0625rem; }
+.admin-status::before { content: '•'; margin-right: 5px; }
+.admin-status--neutral::before { content: '•'; }
+.admin-table-wrap { max-width: 100%; }
+.admin-empty { font-size: 1rem; }
+.security-denied { max-width: 620px; margin: clamp(24px, 10vh, 80px) auto; }
+.statistics-range { margin: -6px 0 14px; color: var(--ux-muted, #475569); font-size: .95rem; }
+.statistics-filter-grid { display: grid; gap: 12px; }
+.statistics-filter-dates { display: grid; gap: 12px; }
+.statistics-filter-actions { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; }
+.statistics-filter-actions button { min-width: 120px; }
+.statistics-loading { color: var(--ux-muted, #475569); font-weight: 700; min-height: 48px; display: inline-flex; align-items: center; }
+.statistics-card h2,
+.statistics-card h3 { margin: 0 0 8px; font-size: 1rem; line-height: 1.3; }
+.statistics-card h2 { font-size: 1.05rem; }
+.statistics-card > h2 {
+    margin: 0;
+    padding: 12px 14px 9px;
+    font-size: 1.05rem;
+    line-height: 1.3;
+    text-wrap: balance;
+}
+.statistics-table-wrap { width: 100%; overflow-x: auto; }
+.statistics-table { min-width: 0; }
+.statistics-table th,
+.statistics-table td { padding: 10px 10px; }
+.statistics-table td:last-child,
+.statistics-table th:last-child { font-variant-numeric: tabular-nums; }
+.statistics-empty { margin: 0 6px; padding: 12px; border: 1px dashed #94a3b8; border-radius: 10px; background: #f8fafc; }
+.statistics-card { min-width: 0; }
+
+@media (min-width: 640px) {
+    .statistics-filter-grid { grid-template-columns: minmax(150px, .8fr) minmax(260px, 1.6fr) minmax(110px, .5fr) auto; align-items: end; }
+    .statistics-filter-dates { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 639px) {
+    .statistics-filter-actions { align-items: stretch; }
+    .statistics-filter-actions button { width: 100%; }
+    .statistics-loading { width: 100%; }
+}
+
+@media (max-width: 380px) {
+    .admin-workspace { padding-bottom: 24px; }
+    .statistics-card { padding: 13px; }
+    .statistics-card > h2 {
+        margin: -13px -13px 0;
+        padding: 12px 13px 9px;
+    }
+    .statistics-value { overflow-wrap: anywhere; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-workspace *,
+    .security-denied * { transition: none !important; animation: none !important; }
+}
+
+/* Phase 10.7 follow-up — statistics information density and presentation. */
+.statistics-kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.statistics-kpi-card {
+    display: grid;
+    align-content: start;
+    min-height: 118px;
+    padding: 15px;
+}
+.statistics-kpi-card h3 {
+    color: var(--ux-muted, #475569);
+    font-size: .95rem;
+    font-weight: 700;
+}
+.statistics-kpi-card .statistics-value {
+    margin-top: auto;
+    padding-top: 12px;
+    font-size: 1.45rem;
+    line-height: 1.2;
+    font-weight: 800;
+}
+.statistics-muted {
+    color: var(--ux-muted, #475569);
+}
+.statistics-table-meta {
+    display: block;
+    margin-top: 2px;
+    color: var(--ux-muted, #475569);
+    font-size: .875rem;
+}
+.statistics-amount {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+@media (min-width: 640px) {
+    .statistics-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (min-width: 960px) {
+    .statistics-kpi-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+}
+@media (max-width: 380px) {
+    .statistics-kpi-card {
+        min-height: 108px;
+    }
+    .statistics-kpi-card .statistics-value {
+        font-size: 1.3rem;
+    }
+}
+
+/* Phase 10.9 — mobile acceptance hardening (360 / 390px). */
+.app-frame,
+.app-content-shell,
+.app-main,
+.pos-main,
+.pos-page,
+.pos-layout,
+.pos-card,
+.pos-section-header,
+.pos-cart-item,
+.pos-product-result,
+.pos-customer-result {
+    min-width: 0;
+}
+
+.app-main,
+.pos-main {
+    scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom));
+}
+
+.app-main > *,
+.pos-page > * {
+    max-width: 100%;
+}
+
+.pos-result-main,
+.pos-cart-main,
+.pos-cart-main strong,
+.pos-payment-fields,
+.pos-bank-details,
+.pos-payment-reference,
+.pos-webhook-enrichment,
+.statistics-card {
+    min-width: 0;
+}
+
+.pos-result-main strong,
+.pos-cart-main strong,
+.pos-payment-reference,
+.pos-bank-details strong,
+.pos-webhook-enrichment strong {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 390px) {
+    .app-main,
+    .pos-main {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .pos-page {
+        padding: 8px 0 24px;
+    }
+
+    .pos-card {
+        padding: 12px;
+        border-radius: 14px;
+    }
+
+    .pos-section-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .pos-section-header > * {
+        min-width: 0;
+    }
+
+    .pos-result,
+    .pos-product-result,
+    .pos-customer-result,
+    .pos-cart-item {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .pos-method,
+    .pos-quantity-button,
+    .pos-touch-button,
+    .pos-complete-button,
+    .pos-payment-speaker .button {
+        min-height: 48px;
+    }
+
+    .pos-payment-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .statistics-table-wrap,
+    .admin-table-wrap {
+        max-width: calc(100vw - 20px);
+    }
+}
+
+@media (max-width: 360px) {
+    .app-main,
+    .pos-main {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .pos-page {
+        padding-top: 6px;
+    }
+
+    .pos-card {
+        padding: 11px;
+    }
+
+    .pos-section-header h2,
+    .pos-payment-card h2 {
+        font-size: 1rem;
+    }
+
+    .pos-cart-main {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .pos-remove-button {
+        width: 100%;
+    }
+
+    .pos-complete-button {
+        min-height: 52px;
+    }
+
+    .mobile-bottom-nav a {
+        min-width: 48px;
+    }
+}
+
+@media (max-width: 390px) and (orientation: landscape) {
+    .mobile-bottom-nav {
+        position: fixed;
+    }
+
+    .pos-layout {
+        gap: 10px;
+    }
+}
+
+/* POS product catalog — icon-only add action.
+ * Keep the clicked product action focused after adding; do not steal focus
+ * back to the product search field. */
+.pos-add-product-button {
+    width: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 48px;
+    font-size: 1.5rem;
+    line-height: 1;
+    font-weight: 800;
+}
+.pos-add-product-button:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .35);
+    outline-offset: 2px;
+}
+@media (max-width: 360px) {
+    .pos-add-product-button {
+        width: 48px;
+        min-width: 48px;
+        flex-basis: 48px;
+    }
+}
+
+
+/* Statistics dashboard redesign — overview cards + ApexCharts. */
+.statistics-hero {
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+.statistics-hero > div { min-width: 0; }
+.statistics-hero h1 { margin-bottom: 6px; }
+.statistics-hero .statistics-range {
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--ux-border, #CBD5E1);
+    border-radius: 999px;
+    background: #FFFFFF;
+    white-space: nowrap;
+}
+.statistics-section-heading,
+.statistics-card-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 10px;
+}
+.statistics-section-heading {
+    margin: 4px 0 10px;
+}
+.statistics-section-heading h2,
+.statistics-card-heading h2 {
+    margin: 0;
+}
+.statistics-section-heading p,
+.statistics-card-heading p {
+    margin: 4px 0 0;
+    color: var(--ux-muted, #475569);
+    font-size: .92rem;
+}
+.statistics-section-note {
+    color: var(--ux-muted, #475569);
+    font-size: .9rem;
+    white-space: nowrap;
+}
+.statistics-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.statistics-kpi-card {
+    min-height: 128px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #FFFFFF;
+}
+.statistics-kpi-card--primary {
+    border-color: #93C5FD;
+    background: #EFF6FF;
+}
+.statistics-kpi-card--soft {
+    background: #F8FAFC;
+}
+.statistics-kpi-card--warning {
+    border-color: #FCD34D;
+    background: #FFFBEB;
+}
+.statistics-kpi-card--danger {
+    border-color: #FCA5A5;
+    background: #FEF2F2;
+}
+.statistics-kpi-label {
+    color: var(--ux-muted, #475569);
+    font-size: .94rem;
+    font-weight: 700;
+}
+.statistics-kpi-card .statistics-value {
+    margin-top: 13px;
+    padding-top: 0;
+    font-size: clamp(1.35rem, 4vw, 1.65rem);
+    line-height: 1.15;
+    letter-spacing: -.02em;
+}
+.statistics-kpi-meta {
+    display: block;
+    margin-top: 8px;
+    color: var(--ux-muted, #475569);
+    font-size: .88rem;
+}
+.statistics-chart-grid,
+.statistics-detail-grid,
+.statistics-lists-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 14px;
+}
+.statistics-chart-card {
+    min-height: 350px;
+    padding: 16px;
+}
+.statistics-chart-card--wide {
+    min-width: 0;
+}
+.statistics-chart {
+    min-height: 280px;
+    width: 100%;
+}
+.statistics-chart-card .apexcharts-canvas,
+.statistics-chart-card svg {
+    max-width: 100%;
+}
+.statistics-summary-list {
+    display: grid;
+    gap: 0;
+    margin-top: 10px;
+}
+.statistics-summary-list > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 52px;
+    padding: 9px 10px;
+    border-bottom: 1px solid #E2E8F0;
+}
+.statistics-summary-list > div:last-child { border-bottom: 0; }
+.statistics-summary-list span { color: var(--ux-muted, #475569); }
+.statistics-summary-list strong {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+.statistics-summary-list__emphasis strong { color: #1D4ED8; }
+.statistics-summary-list__warning strong { color: #B45309; }
+.statistics-summary-list__danger strong { color: #B91C1C; }
+.statistics-accessible-data {
+    margin-top: 14px;
+}
+.statistics-accessible-data details {
+    padding: 12px 14px;
+    border: 1px solid var(--ux-border, #CBD5E1);
+    border-radius: 14px;
+    background: #FFFFFF;
+}
+.statistics-accessible-data summary {
+    min-height: 32px;
+    cursor: pointer;
+    font-weight: 800;
+}
+.statistics-accessible-data p {
+    color: var(--ux-muted, #475569);
+}
+.statistics-table th,
+.statistics-table td {
+    padding: 11px 8px;
+}
+.statistics-table td:nth-child(2),
+.statistics-table th:nth-child(2),
+.statistics-table td:nth-child(3),
+.statistics-table th:nth-child(3) {
+    white-space: nowrap;
+}
+@media (min-width: 640px) {
+    .statistics-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .statistics-chart-grid { grid-template-columns: minmax(0, 1.65fr) minmax(280px, .85fr); }
+    .statistics-detail-grid,
+    .statistics-lists-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 960px) {
+    .statistics-kpi-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .statistics-kpi-card { min-height: 142px; }
+    .statistics-kpi-card .statistics-value { font-size: 1.38rem; }
+}
+@media (max-width: 639px) {
+    .statistics-hero { align-items: stretch; }
+    .statistics-hero .statistics-range {
+        width: fit-content;
+        max-width: 100%;
+        white-space: normal;
+    }
+    .statistics-section-heading,
+    .statistics-card-heading { flex-direction: column; }
+    .statistics-section-note { white-space: normal; }
+    .statistics-chart-card { min-height: 330px; padding: 13px; }
+}
+@media (max-width: 380px) {
+    .statistics-kpi-grid { grid-template-columns: 1fr; }
+    .statistics-kpi-card { min-height: 112px; }
+    .statistics-chart { min-height: 250px; }
+}
+
+/* Statistics overview final polish — wider workspace, clearer KPI hierarchy. */
+.statistics.statistics-ux {
+    width: min(100%, 1180px);
+    max-width: 1180px;
+    margin-inline: auto;
+}
+.statistics-kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+.statistics-kpi-card {
+    min-width: 0;
+}
+.statistics-kpi-card--primary .statistics-value {
+    font-size: clamp(1.55rem, 2.5vw, 2rem);
+}
+.statistics-kpi-card--soft {
+    background: #F8FAFC;
+}
+.statistics-chart-grid {
+    align-items: stretch;
+}
+.statistics-chart-card--wide {
+    min-width: 0;
+}
+.statistics-chart-card {
+    min-width: 0;
+}
+
+@media (min-width: 640px) {
+    .statistics-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 960px) {
+    .statistics-kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .statistics-kpi-card--primary,
+    .statistics-kpi-card--soft {
+        grid-column: span 2;
+    }
+    .statistics-kpi-card {
+        min-height: 132px;
+    }
+    .statistics-kpi-card .statistics-value {
+        font-size: 1.45rem;
+    }
+    .statistics-kpi-card--primary .statistics-value {
+        font-size: 1.9rem;
+    }
+    .statistics-chart {
+        min-height: 300px;
+    }
+}
+
+@media (max-width: 959px) {
+    .statistics.statistics-ux {
+        width: 100%;
+        max-width: none;
+    }
+}
+
+@media (max-width: 380px) {
+    .statistics-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    .statistics-kpi-card--primary,
+    .statistics-kpi-card--soft {
+        grid-column: auto;
+    }
+}

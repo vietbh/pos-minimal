@@ -2,70 +2,268 @@
 
 {% block title %}{{ 'stat.title'|trans }}{% endblock %}
 
-{% block stylesheets %}
-<style>
-.statistics { max-width: 1100px; margin: 0 auto; padding: 16px; }
-.statistics-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.statistics-card { background:#fff; border:1px solid #ddd; border-radius:12px; padding:14px; }
-.statistics-card h2 { margin:0 0 8px; font-size:1rem; }
-.statistics-value { font-size:1.45rem; font-weight:700; }
-.statistics-muted { color:#666; font-size:.85rem; }
-.statistics-card table { min-width: auto }
-.statistics-table { width:100%; border-collapse:collapse; font-size:.9rem; }
-.statistics-table th,.statistics-table td { padding:8px 4px; border-bottom:1px solid #eee; text-align:left; }
-.statistics-table th:last-child,.statistics-table td:last-child { text-align:right; }
-.statistics-filter { display:grid; gap:10px; margin-bottom:14px; }
-.statistics-filter .fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.statistics-filter input,.statistics-filter select,.statistics-filter button { min-height:42px; padding:8px; }
-@media (min-width: 760px) { .statistics-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .statistics-filter { grid-template-columns:auto 1fr auto; align-items:end; } }
-</style>
-{% endblock %}
-
 {% block authenticated_body %}
 <div class="statistics statistics-ux admin-workspace" data-controller="statistics-filter">
-    <header class="admin-toolbar"><div><p class="eyebrow">{{ 'stat.insights'|trans }}</p><h1>{{ 'stat.title'|trans }}</h1><p>{{ 'stat.help'|trans }}</p></div></header>
-    <p class="statistics-muted">Range: {{ from }} → {{ to }} · timezone {{ timezone }}</p>
-
-    <form method="get" class="statistics-filter admin-filter" data-action="submit->statistics-filter#loading">
+    <header class="statistics-hero admin-toolbar">
         <div>
-            <label for="preset">{{ 'stat.preset'|trans }}</label>
-            <select id="preset" name="preset" data-action="change->statistics-filter#preset">
-                <option value="custom"{% if preset == 'custom' %} selected{% endif %}>{{ 'stat.custom'|trans }}</option>
-                <option value="today"{% if preset == 'today' %} selected{% endif %}>{{ 'stat.today'|trans }}</option>
-                <option value="yesterday"{% if preset == 'yesterday' %} selected{% endif %}>{{ 'stat.yesterday'|trans }}</option>
-                <option value="week"{% if preset == 'week' %} selected{% endif %}>{{ 'stat.week'|trans }}</option>
-                <option value="month"{% if preset == 'month' %} selected{% endif %}>{{ 'stat.month'|trans }}</option>
-            </select>
+            <p class="eyebrow">{{ 'stat.insights'|trans }}</p>
+            <h1>{{ 'stat.title'|trans }}</h1>
+            <p>{{ 'stat.help'|trans }}</p>
         </div>
-        <div class="fields" data-statistics-filter-target="custom">
-            <div><label for="from">{{ 'stat.from'|trans }}</label><input id="from" type="date" name="from" value="{{ from }}" required></div>
-            <div><label for="to">{{ 'stat.to'|trans }}</label><input id="to" type="date" name="to" value="{{ to }}" required></div>
+        <p class="statistics-range" aria-live="polite">
+            {{ 'stat.range'|trans({'%from%': from, '%to%': to, '%timezone%': timezone}) }}
+        </p>
+    </header>
+
+    <form method="get" class="statistics-filter admin-filter" data-action="submit->statistics-filter#loading" aria-describedby="statistics-filter-help">
+        <p id="statistics-filter-help" class="admin-help">{{ 'stat.filter_help'|trans }}</p>
+        <div class="statistics-filter-grid">
+            <div>
+                <label for="preset">{{ 'stat.preset'|trans }}</label>
+                <select id="preset" name="preset" data-action="change->statistics-filter#preset">
+                    <option value="custom"{% if preset == 'custom' %} selected{% endif %}>{{ 'stat.custom'|trans }}</option>
+                    <option value="today"{% if preset == 'today' %} selected{% endif %}>{{ 'stat.today'|trans }}</option>
+                    <option value="yesterday"{% if preset == 'yesterday' %} selected{% endif %}>{{ 'stat.yesterday'|trans }}</option>
+                    <option value="week"{% if preset == 'week' %} selected{% endif %}>{{ 'stat.week'|trans }}</option>
+                    <option value="month"{% if preset == 'month' %} selected{% endif %}>{{ 'stat.month'|trans }}</option>
+                </select>
+            </div>
+            <div class="statistics-filter-dates" data-statistics-filter-target="custom">
+                <div>
+                    <label for="from">{{ 'stat.from'|trans }}</label>
+                    <input id="from" type="date" name="from" value="{{ from }}" required>
+                </div>
+                <div>
+                    <label for="to">{{ 'stat.to'|trans }}</label>
+                    <input id="to" type="date" name="to" value="{{ to }}" required>
+                </div>
+            </div>
+            <div>
+                <label for="limit">{{ 'stat.top_n'|trans }}</label>
+                <input id="limit" type="number" name="limit" min="1" max="100" value="{{ limit }}" inputmode="numeric">
+            </div>
+            <div class="statistics-filter-actions">
+                <button class="primary" type="submit" data-statistics-filter-target="submit">{{ 'common.apply'|trans }}</button>
+                <span class="statistics-loading" hidden data-statistics-filter-target="loading" role="status" aria-live="polite">{{ 'common.loading'|trans }}</span>
+            </div>
         </div>
-        <div><label for="limit">{{ 'stat.top_n'|trans }}</label><input id="limit" type="number" name="limit" min="1" max="100" value="{{ limit }}"></div>
-        <button type="submit">{{ 'common.apply'|trans }}</button>
-        <span hidden data-statistics-filter-target="loading">{{ 'common.loading'|trans }}</span>
     </form>
 
-    <div class="statistics-grid admin-card-grid">
-        <section class="statistics-card"><h2>{{ 'stat.gross_sales'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.grossSales }}</div></section>
-        <section class="statistics-card"><h2>{{ 'stat.net_sales'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.netSales }}</div></section>
-        <section class="statistics-card"><h2>{{ 'stat.payments_collected'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.paymentsCollected }}</div></section>
-        <section class="statistics-card"><h2>{{ 'stat.aov'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.averageOrderValue }}</div><div class="statistics-muted">{{ dashboard.sales.qualifyingOrders }} qualifying orders</div></section>
-        <section class="statistics-card"><h2>{{ 'stat.cancelled'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.cancelledAmount }}</div><div class="statistics-muted">{{ dashboard.sales.cancelledOrders }} orders</div></section>
-        <section class="statistics-card"><h2>{{ 'stat.refunded'|trans }}</h2><div class="statistics-value">{{ dashboard.sales.refundedAmount }}</div><div class="statistics-muted">{{ dashboard.sales.refundedOrders }} orders</div></section>
-    </div>
+    <section class="statistics-overview" aria-labelledby="statistics-overview-title">
+        <div class="statistics-section-heading">
+            <div>
+                <p class="eyebrow">{{ 'stat.insights'|trans }}</p>
+                <h2 id="statistics-overview-title">{{ 'stat.kpi_summary'|trans }}</h2>
+            </div>
+            <span class="statistics-section-note">{{ from }} → {{ to }}</span>
+        </div>
 
-    <div class="statistics-grid admin-card-grid">
-        <section class="statistics-card"><h2>{{ 'common.payments'|trans }}</h2>
-            {% if dashboard.payments %}<table class="statistics-table"><tr><th>{{ 'stat.method'|trans }}</th><th>{{ 'common.amount'|trans }}</th></tr>{% for p in dashboard.payments %}<tr><td>{{ p.paymentMethod }}</td><td>{{ p.amount }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">{{ 'stat.no_payments'|trans }}</p>{% endif %}
-        </section>
-        <section class="statistics-card"><h2>{{ 'common.debt'|trans }}</h2><table class="statistics-table"><tr><th>{{ 'stat.debts'|trans }}</th><td>{{ dashboard.debt.debtCount }}</td></tr><tr><th>{{ 'stat.original'|trans }}</th><td>{{ dashboard.debt.originalAmount }}</td></tr><tr><th>{{ 'stat.collected'|trans }}</th><td>{{ dashboard.debt.collectedAmount }}</td></tr><tr><th>{{ 'stat.outstanding'|trans }}</th><td>{{ dashboard.debt.outstandingAmount }}</td></tr></table></section>
-        <section class="statistics-card"><h2>{{ 'stat.stock_snapshot'|trans }}</h2><table class="statistics-table"><tr><th>{{ 'stat.total_products'|trans }}</th><td>{{ dashboard.stock.totalProducts }}</td></tr><tr><th>{{ 'common.active'|trans }}</th><td>{{ dashboard.stock.activeProducts }}</td></tr><tr><th>{{ 'admin.low_stock'|trans }}</th><td>{{ dashboard.stock.lowStockProducts }}</td></tr><tr><th>{{ 'stat.out_of_stock'|trans }}</th><td>{{ dashboard.stock.outOfStockProducts }}</td></tr><tr><th>{{ 'stat.total_quantity'|trans }}</th><td>{{ dashboard.stock.totalStockQuantity }}</td></tr></table></section>
-    </div>
+        <div class="statistics-kpi-grid">
+            <article class="statistics-card statistics-kpi-card statistics-kpi-card--primary">
+                <span class="statistics-kpi-label">{{ 'stat.net_sales'|trans }}</span>
+                <strong class="statistics-value">{{ dashboard.sales.netSales|money_vnd }}</strong>
+                <span class="statistics-kpi-meta">{{ dashboard.sales.qualifyingOrders }} {{ 'stat.orders_suffix'|trans }}</span>
+            </article>
+            <article class="statistics-card statistics-kpi-card">
+                <span class="statistics-kpi-label">{{ 'stat.payments_collected'|trans }}</span>
+                <strong class="statistics-value">{{ dashboard.sales.paymentsCollected|money_vnd }}</strong>
+                <span class="statistics-kpi-meta">{{ 'stat.collected'|trans }}</span>
+            </article>
+            <article class="statistics-card statistics-kpi-card">
+                <span class="statistics-kpi-label">{{ 'stat.aov'|trans }}</span>
+                <strong class="statistics-value">{{ dashboard.sales.averageOrderValue|money_vnd }}</strong>
+                <span class="statistics-kpi-meta">{{ dashboard.sales.qualifyingOrders }} {{ 'stat.qualifying_suffix'|trans }}</span>
+            </article>
+            <article class="statistics-card statistics-kpi-card statistics-kpi-card--soft">
+                <span class="statistics-kpi-label">{{ 'stat.gross_sales'|trans }}</span>
+                <strong class="statistics-value">{{ dashboard.sales.grossSales|money_vnd }}</strong>
+                <span class="statistics-kpi-meta">{{ 'stat.original'|trans }}</span>
+            </article>
+            <article class="statistics-card statistics-kpi-card statistics-kpi-card--warning">
+                <span class="statistics-kpi-label">{{ 'stat.cancelled'|trans }}</span>
+                <strong class="statistics-value">{{ dashboard.sales.cancelledAmount|money_vnd }}</strong>
+                <span class="statistics-kpi-meta">{{ dashboard.sales.cancelledOrders }} {{ 'stat.orders_suffix'|trans }}</span>
+            </article>
+            <article class="statistics-card statistics-kpi-card statistics-kpi-card--danger">
+                <span class="statistics-kpi-label">{{ 'stat.refunded'|trans }}</span>
+                <strong class="statistics-value">{{ dashboard.sales.refundedAmount|money_vnd }}</strong>
+                <span class="statistics-kpi-meta">{{ dashboard.sales.refundedOrders }} {{ 'stat.orders_suffix'|trans }}</span>
+            </article>
+        </div>
+    </section>
 
-    <div class="statistics-grid admin-card-grid">
-        <section class="statistics-card"><h2>{{ 'stat.top_products'|trans }}</h2>{% if dashboard.topProducts %}<table class="statistics-table"><tr><th>{{ 'common.product'|trans }}</th><th>{{ 'stat.qty'|trans }}</th></tr>{% for p in dashboard.topProducts %}<tr><td>{{ p.name }}</td><td>{{ p.quantity }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">{{ 'stat.no_product_sales'|trans }}</p>{% endif %}</section>
-        <section class="statistics-card"><h2>{{ 'stat.top_customers'|trans }}</h2>{% if dashboard.topCustomers %}<table class="statistics-table"><tr><th>{{ 'common.customer'|trans }}</th><th>{{ 'stat.spent'|trans }}</th></tr>{% for c in dashboard.topCustomers %}<tr><td>{{ c.name }}</td><td>{{ c.totalSpent }}</td></tr>{% endfor %}</table>{% else %}<p class="statistics-muted">{{ 'stat.no_customer_sales'|trans }}</p>{% endif %}</section>
+    {% set paymentChartData = [] %}
+    {% for p in dashboard.payments %}
+        {% set paymentChartData = paymentChartData|merge([{
+            label: ('pos.payment.' ~ (p.paymentMethod|lower))|trans,
+            amount: p.amount + 0
+        }]) %}
+    {% endfor %}
+
+    <section class="statistics-chart-grid" aria-labelledby="statistics-charts-title">
+        <h2 id="statistics-charts-title" class="sr-only">{{ 'stat.overview_charts'|trans }}</h2>
+
+        <article class="statistics-card statistics-chart-card statistics-chart-card--wide">
+            <div class="statistics-card-heading">
+                <div>
+                    <h2>{{ 'stat.financial_overview'|trans }}</h2>
+                    <p>{{ 'stat.financial_overview_help'|trans }}</p>
+                </div>
+            </div>
+            <div
+                class="statistics-chart"
+                data-statistics-filter-target="financialChart"
+                data-chart="{{ {
+                    seriesLabel: 'common.amount'|trans,
+                    categories: [
+                        'stat.net_sales'|trans,
+                        'stat.payments_collected'|trans,
+                        'stat.gross_sales'|trans,
+                        'stat.refunded'|trans,
+                        'stat.cancelled'|trans
+                    ],
+                    values: [
+                        dashboard.sales.netSales + 0,
+                        dashboard.sales.paymentsCollected + 0,
+                        dashboard.sales.grossSales + 0,
+                        dashboard.sales.refundedAmount + 0,
+                        dashboard.sales.cancelledAmount + 0
+                    ]
+                }|json_encode|e('html_attr') }}"
+                role="img"
+                aria-label="{{ 'stat.financial_overview'|trans }}"
+            ></div>
+        </article>
+
+        <article class="statistics-card statistics-chart-card">
+            <div class="statistics-card-heading">
+                <div>
+                    <h2>{{ 'stat.payment_mix'|trans }}</h2>
+                    <p>{{ 'stat.payment_mix_help'|trans }}</p>
+                </div>
+            </div>
+            {% if dashboard.payments %}
+                <div
+                    class="statistics-chart"
+                    data-statistics-filter-target="paymentChart"
+                    data-chart="{{ {
+                    items: paymentChartData,
+                    totalLabel: 'stat.total'|trans
+                }|json_encode|e('html_attr') }}"
+                    role="img"
+                    aria-label="{{ 'stat.payment_mix'|trans }}"
+                ></div>
+            {% else %}
+                <p class="statistics-muted statistics-empty">{{ 'stat.no_payments'|trans }}</p>
+            {% endif %}
+        </article>
+    </section>
+
+    <section class="statistics-detail-grid" aria-labelledby="statistics-details-title">
+        <h2 id="statistics-details-title" class="sr-only">{{ 'stat.details'|trans }}</h2>
+
+        <article class="statistics-card">
+            <div class="statistics-card-heading">
+                <div>
+                    <h2>{{ 'common.debt'|trans }}</h2>
+                    <p>{{ 'stat.debt_summary'|trans }}</p>
+                </div>
+            </div>
+            <div class="statistics-summary-list">
+                <div><span>{{ 'stat.debts'|trans }}</span><strong>{{ dashboard.debt.debtCount }}</strong></div>
+                <div><span>{{ 'stat.original'|trans }}</span><strong>{{ dashboard.debt.originalAmount|money_vnd }}</strong></div>
+                <div><span>{{ 'stat.collected'|trans }}</span><strong>{{ dashboard.debt.collectedAmount|money_vnd }}</strong></div>
+                <div class="statistics-summary-list__emphasis"><span>{{ 'stat.outstanding'|trans }}</span><strong>{{ dashboard.debt.outstandingAmount|money_vnd }}</strong></div>
+            </div>
+        </article>
+
+        <article class="statistics-card">
+            <div class="statistics-card-heading">
+                <div>
+                    <h2>{{ 'stat.stock_snapshot'|trans }}</h2>
+                    <p>{{ 'stat.stock_summary'|trans }}</p>
+                </div>
+            </div>
+            <div class="statistics-summary-list">
+                <div><span>{{ 'stat.total_products'|trans }}</span><strong>{{ dashboard.stock.totalProducts }}</strong></div>
+                <div><span>{{ 'common.active'|trans }}</span><strong>{{ dashboard.stock.activeProducts }}</strong></div>
+                <div class="statistics-summary-list__warning"><span>{{ 'admin.low_stock'|trans }}</span><strong>{{ dashboard.stock.lowStockProducts }}</strong></div>
+                <div class="statistics-summary-list__danger"><span>{{ 'stat.out_of_stock'|trans }}</span><strong>{{ dashboard.stock.outOfStockProducts }}</strong></div>
+                <div><span>{{ 'stat.total_quantity'|trans }}</span><strong>{{ dashboard.stock.totalStockQuantity }}</strong></div>
+            </div>
+        </article>
+    </section>
+
+    <section class="statistics-lists-grid" aria-labelledby="statistics-lists-title">
+        <h2 id="statistics-lists-title" class="sr-only">{{ 'stat.details'|trans }}</h2>
+
+        <article class="statistics-card">
+            <div class="statistics-card-heading">
+                <div>
+                    <h2>{{ 'stat.top_products'|trans }}</h2>
+                    <p>{{ 'stat.top_products_help'|trans }}</p>
+                </div>
+            </div>
+            {% if dashboard.topProducts %}
+                <div class="statistics-table-wrap">
+                    <table class="statistics-table">
+                        <caption class="sr-only">{{ 'stat.top_products'|trans }}</caption>
+                        <thead><tr><th scope="col">{{ 'common.product'|trans }}</th><th scope="col">{{ 'stat.qty'|trans }}</th><th scope="col">{{ 'common.amount'|trans }}</th></tr></thead>
+                        <tbody>
+                        {% for p in dashboard.topProducts %}
+                            <tr><td>{{ p.name }}</td><td>{{ p.quantity }}</td><td class="statistics-amount">{{ p.salesAmount|money_vnd }}</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="statistics-muted statistics-empty">{{ 'stat.no_product_sales'|trans }}</p>
+            {% endif %}
+        </article>
+
+        <article class="statistics-card">
+            <div class="statistics-card-heading">
+                <div>
+                    <h2>{{ 'stat.top_customers'|trans }}</h2>
+                    <p>{{ 'stat.top_customers_help'|trans }}</p>
+                </div>
+            </div>
+            {% if dashboard.topCustomers %}
+                <div class="statistics-table-wrap">
+                    <table class="statistics-table">
+                        <caption class="sr-only">{{ 'stat.top_customers'|trans }}</caption>
+                        <thead><tr><th scope="col">{{ 'common.customer'|trans }}</th><th scope="col">{{ 'stat.orders_suffix'|trans }}</th><th scope="col">{{ 'stat.spent'|trans }}</th></tr></thead>
+                        <tbody>
+                        {% for c in dashboard.topCustomers %}
+                            <tr><td>{{ c.name }}</td><td>{{ c.orderCount }}</td><td class="statistics-amount">{{ c.totalSpent|money_vnd }}</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="statistics-muted statistics-empty">{{ 'stat.no_customer_sales'|trans }}</p>
+            {% endif %}
+        </article>
+    </section>
+
+    <div class="statistics-accessible-data">
+        <details>
+            <summary>{{ 'stat.accessible_data'|trans }}</summary>
+            <p>{{ 'stat.accessible_data_help'|trans }}</p>
+            <div class="statistics-table-wrap">
+                <table class="statistics-table">
+                    <caption>{{ 'stat.payment_breakdown'|trans }}</caption>
+                    <thead><tr><th>{{ 'stat.method'|trans }}</th><th>{{ 'common.amount'|trans }}</th><th>{{ 'stat.transactions_suffix'|trans }}</th></tr></thead>
+                    <tbody>
+                    {% for p in dashboard.payments %}
+                        <tr><td>{{ ('pos.payment.' ~ (p.paymentMethod|lower))|trans }}</td><td>{{ p.amount|money_vnd }}</td><td>{{ p.paymentCount }}</td></tr>
+                    {% else %}
+                        <tr><td colspan="3">{{ 'stat.no_payments'|trans }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </details>
     </div>
 </div>
 {% endblock %}

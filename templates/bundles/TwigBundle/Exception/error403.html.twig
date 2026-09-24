@@ -4,10 +4,10 @@
 
 {% block body %}
     <main class="app-main" aria-labelledby="access-denied-title">
-        <section class="card" style="max-width: 620px; margin: 10vh auto; display: grid; gap: 12px;">
+        <section class="card security-denied" aria-describedby="access-denied-message">
             <p class="eyebrow">403</p>
             <h1 id="access-denied-title">{{ 'access.denied_title'|trans }}</h1>
-            <p class="muted">{{ 'access.denied_message'|trans }}</p>
+            <p class="muted" id="access-denied-message">{{ 'access.denied_message'|trans }}</p>
             <div class="action-grid">
                 <a class="button primary" href="{{ path('app_home') }}">{{ 'access.back_home'|trans }}</a>
             </div>

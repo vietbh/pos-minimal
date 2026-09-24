@@ -7,7 +7,7 @@ const MINOR_SCALE = 100n;
 
 export default class extends Controller {
     static targets = [
-        'checkoutSection', 'productSearch', 'productResults', 'productCategory', 'productCatalogMeta', 'productPagination', 'productPrevious', 'productNext', 'productPageIndicator', 'webhookEnrichment', 'webhookEnrichmentState', 'webhookProvider', 'webhookExternalId', 'webhookOccurredAt', 'webhookAmount', 'webhookDescription', 'customerSearch', 'customerResults',
+        'productSearch', 'productResults', 'productCategory', 'productCatalogMeta', 'productPagination', 'productPrevious', 'productNext', 'productPageIndicator', 'webhookEnrichment', 'webhookEnrichmentState', 'webhookProvider', 'webhookExternalId', 'webhookOccurredAt', 'webhookAmount', 'webhookDescription', 'customerSearch', 'customerResults',
         'selectedCustomer', 'clearCustomer', 'cart', 'cartEmpty', 'cartCount',
         'cartTotal', 'submitButton', 'message', 'success', 'requestId', 'status',
         'retryButton', 'paymentMethods', 'paymentAmount', 'customerTendered',
@@ -38,7 +38,6 @@ export default class extends Controller {
         messages: Object,
         speakerEnabledLabel: String,
         speakerDisabledLabel: String,
-        addProductLabel: String,
         paymentReceivedSpeech: String,
     };
 
@@ -238,12 +237,13 @@ export default class extends Controller {
 
             const add = document.createElement('button');
             add.type = 'button';
-            add.className = 'button primary pos-touch-button';
-            add.textContent = this.addProductLabelValue;
+            add.className = 'button primary pos-touch-button pos-add-product-button';
+            add.textContent = '＋';
+            add.setAttribute('aria-label', `${this.messagesValue.addProducts}: ${product.name}`);
+            add.title = `${this.messagesValue.addProducts}: ${product.name}`;
             add.disabled = Number(product.stockQuantity) <= 0;
             add.dataset.action = 'click->pos-checkout#addToCart';
             add.dataset.productId = String(product.id);
-            add.setAttribute('aria-label', `${this.addProductLabelValue}: ${product.name}`);
 
             row.append(info, add);
             return row;
@@ -273,7 +273,6 @@ export default class extends Controller {
         this.persistCart();
         this.renderCart();
         this.setStatus(this.statusItemAddedValue);
-        this.productSearchTarget.focus();
     }
 
     changeQuantity(event) {
@@ -292,10 +291,6 @@ export default class extends Controller {
 
         this.persistCart();
         this.renderCart();
-        const focusButton = this.cartTarget.querySelector(
-            `[data-product-id="${productId}"][data-delta="${delta}"]`,
-        );
-        focusButton?.focus();
     }
 
     removeItem(event) {
@@ -488,8 +483,6 @@ export default class extends Controller {
         this.setElementDisplay(this.paymentAmountTarget.closest('label'), !isCash);
         this.setElementDisplay(this.quickCashTarget, isCash, 'flex');
         this.setElementDisplay(this.bankAccountTarget.closest('label'), !isCash);
-        this.paymentMethodsTargets.forEach((input) => input.closest('label')?.classList.toggle('is-selected', input.checked));
-        this.checkoutSectionTarget?.setAttribute('data-payment-method', this.paymentMethodValue());
 
         if (isCash) {
             this.hideBankTransferDetails();
@@ -518,7 +511,7 @@ export default class extends Controller {
     }
 
     hideBankTransferDetails() {
-        if (this.hasBankDetailsTarget) { this.setElementDisplay(this.bankDetailsTarget, false); this.bankDetailsTarget.setAttribute('aria-hidden', 'true'); }
+        if (this.hasBankDetailsTarget) this.setElementDisplay(this.bankDetailsTarget, false);
         if (this.hasBankQrTarget) {
             this.bankQrTarget.style.display = 'none';
             this.bankQrTarget.hidden = true;
@@ -543,12 +536,11 @@ export default class extends Controller {
 
         const option = this.bankAccountTarget.selectedOptions[0];
         this.setElementDisplay(this.bankDetailsTarget, true);
-        this.bankDetailsTarget.setAttribute('aria-hidden', 'false');
         this.bankNameTarget.textContent = option.dataset.bankName || '';
         this.bankNumberTarget.textContent = option.dataset.accountNumber || '';
         this.bankAccountNameTarget.textContent = option.dataset.accountName || '';
 
-        this.transferContentTarget.textContent = this.messagesValue.transferContentGenerated;
+        this.transferContentTarget.textContent = 'Nội dung chuyển khoản sẽ được tạo khi bắt đầu thanh toán.';
         // QR is authoritative backend data and is rendered after Start payment.
         // Do not manufacture or clear it while the cashier edits the cart.
         if (!this.paymentReference) {
@@ -888,8 +880,6 @@ export default class extends Controller {
         this.inFlight = submitting;
         if (submitting) this.state = 'SUBMITTING';
         this.submitButtonTarget.disabled = submitting;
-        this.submitButtonTarget.setAttribute('aria-busy', submitting ? 'true' : 'false');
-        if (this.hasCheckoutSectionTarget) this.checkoutSectionTarget.setAttribute('aria-busy', submitting ? 'true' : 'false');
         if (!submitting) this.updatePaymentState(this.cartTotalMinor());
         this.submitButtonTarget.textContent = submitting
             ? this.processingLabelValue
@@ -919,7 +909,6 @@ export default class extends Controller {
         this.resultDebtRowTarget.hidden = !this.isPositiveMoney(data.debtAmount);
 
         this.successTarget.hidden = false;
-        this.successTarget.querySelector('[data-pos-checkout-target="successTitle"]')?.focus();
         this.renderWebhookEnrichment(data.externalTransaction || null, isBankPending);
 
         if (isBankPending) {
@@ -1017,7 +1006,7 @@ export default class extends Controller {
                 body: JSON.stringify({ paymentReference: reference, amount: String(amount) }),
             });
             const body = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(body.message || this.messagesValue.unableManualConfirm);
+            if (!response.ok) throw new Error(this.userFacingErrorMessage(body.errorCode || '', body.message || this.messagesValue.unableManualConfirm));
             this.paymentReferenceOrderId = Number(body.data?.orderId ?? 0) || null;
             this.renderWebhookEnrichment(body.data?.externalTransaction || null, body.data?.webhookEnrichmentPending !== false);
             this.state = 'SUCCESS';
@@ -1467,7 +1456,7 @@ export default class extends Controller {
         if (expired) {
             this.resultPaymentReferenceCountdownTarget.textContent = 'Đã hết hạn';
             if (this.hasQrModalCountdownTarget) this.qrModalCountdownTarget.textContent = 'Đã hết hạn';
-            this.paymentReferenceHintTarget.textContent = this.messagesValue.paymentReferenceExpired;
+            this.paymentReferenceHintTarget.textContent = 'Mã đã hết hạn. Bạn có thể tạo mã mới.';
             this.stopPaymentReferenceCountdown();
         }
     }
@@ -1522,7 +1511,7 @@ export default class extends Controller {
                 accountName: body.data.accountName,
                 amount: body.data.amount,
             });
-            this.setStatus(this.messagesValue.paymentReferenceCreated);
+            this.setStatus('Đã tạo mã chuyển khoản mới.');
         } catch (error) {
             this.showError('PAYMENT_REFERENCE_INVALID', error?.message || this.messagesValue.unableCreateReference);
             this.regeneratePaymentReferenceButtonTarget.disabled = true;
@@ -1556,8 +1545,17 @@ export default class extends Controller {
 
     showError(code, message) {
         this.messageTarget.hidden = false;
-        this.messageTarget.textContent = `${code}: ${message}`;
+        this.messageTarget.textContent = this.userFacingErrorMessage(code, message);
         this.messageTarget.focus();
+    }
+
+    userFacingErrorMessage(code, fallbackMessage) {
+        const messages = this.messagesValue || {};
+        const mapped = messages.errorMessages?.[code];
+        if (mapped) return mapped;
+
+        // Never expose backend exception text or technical error codes in the POS UI.
+        return messages.genericError || fallbackMessage || messages.unableCheckout;
     }
 
     clearMessage() {

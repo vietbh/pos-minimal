@@ -41,7 +41,6 @@ navigation:
   account: Tài khoản
   open_menu: Mở menu
   close_menu: Đóng menu
-  skip_to_content: 'Đến nội dung chính'
 app:
   greeting: Xin chào
   customers: Khách hàng
@@ -163,11 +162,10 @@ pos:
     search_help: Tìm theo tên sản phẩm hoặc SKU.
     search_label: Tìm sản phẩm
     search_placeholder: Tìm sản phẩm hoặc SKU…
-    add: Thêm
     all_categories: Tất cả danh mục
     pagination: Phân trang sản phẩm
-    previous: Trước
-    next: Sau
+    previous: '<<'
+    next: '>>'
     page_indicator: Trang %page% / %total%
   cart:
     title: Giao dịch hiện tại
@@ -176,7 +174,7 @@ pos:
     empty: Thêm sản phẩm để bắt đầu giao dịch.
     total: Tổng cộng
     server_total_note: Tổng cuối cùng được máy chủ xác nhận khi thanh toán.
-    remove: Xóa
+    remove: X
     increase: Tăng
     decrease: Giảm
   customer:
@@ -221,11 +219,6 @@ pos:
     method: Phương thức thanh toán
     cash: Tiền mặt
     bank_transfer: Chuyển khoản
-    method_help: Chọn phương thức khách hàng sẽ dùng để thanh toán đơn hàng này.
-    bank_payment_help: Kiểm tra tài khoản nhận tiền và chờ ngân hàng xác nhận trước khi hoàn tất đơn.
-    transfer_content_generated: Nội dung chuyển khoản sẽ được tạo khi bắt đầu thanh toán.
-    payment_reference_expired: Mã thanh toán đã hết hạn. Bạn có thể tạo mã mới.
-    payment_reference_created: Đã tạo mã thanh toán mới.
     customer_gives: Khách đưa
     transfer_amount: Số tiền chuyển khoản
     receiving_account: Tài khoản nhận
@@ -557,9 +550,6 @@ pos:
     complete_sale: Hoàn tất giao dịch
     retry_checkout: Thử lại thanh toán
     returning: Quay lại POS sau
-    transfer_content_generated: Nội dung chuyển khoản sẽ được tạo khi bắt đầu thanh toán.
-    payment_reference_expired: Mã thanh toán đã hết hạn. Bạn có thể tạo mã mới.
-    payment_reference_created: Đã tạo mã thanh toán mới.
   product_category: Danh mục sản phẩm
   select_receiving_account: Chọn tài khoản nhận
   bank_confirmed: Ngân hàng đã xác nhận thanh toán
@@ -617,6 +607,22 @@ pos:
   checkout_failed_preserved: Thanh toán thất bại. Giao dịch của bạn vẫn được giữ lại.
   invalid_money: Số tiền không hợp lệ.
   unit: đơn vị
+  error_authentication: Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
+  error_access_denied: Bạn không có quyền thực hiện thao tác này.
+  error_csrf: Phiên bảo mật đã hết hạn. Vui lòng tải lại trang rồi thử lại.
+  error_validation: Thông tin giao dịch chưa hợp lệ. Vui lòng kiểm tra lại.
+  error_not_found: Không tìm thấy dữ liệu giao dịch.
+  error_insufficient_stock: Số lượng tồn kho không đủ. Vui lòng kiểm tra lại sản phẩm.
+  error_product_inactive: Sản phẩm hiện không còn hoạt động.
+  error_invalid_payment: Thông tin thanh toán chưa hợp lệ. Vui lòng kiểm tra lại.
+  error_idempotency_conflict: Giao dịch này đã được gửi với yêu cầu khác. Vui lòng kiểm tra trạng thái trước khi thử lại.
+  error_idempotency_in_progress: Giao dịch đang được xử lý. Vui lòng chờ rồi thử lại nếu cần.
+  error_business_rule: Giao dịch không thể hoàn tất theo trạng thái hiện tại.
+  error_payment_reference: Mã thanh toán không còn hợp lệ. Vui lòng tạo mã mới.
+  error_order_completion: Thanh toán đã được ghi nhận nhưng chưa thể hoàn tất đơn. Vui lòng kiểm tra trạng thái và thử lại.
+  error_generic: Không thể hoàn tất thao tác. Vui lòng thử lại.
+  error_timeout: Kết nối đã hết thời gian chờ. Kết quả giao dịch chưa xác định; vui lòng kiểm tra trạng thái trước khi thử lại.
+  error_network: Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.
   payment_received_label: Đã nhận thanh toán
 common:
   back: Quay lại
@@ -721,14 +727,6 @@ admin:
   quantity_change: Thay đổi số lượng
   adjust_help: Nhập số dương để tăng tồn kho hoặc số âm để giảm tồn kho.
   confirm_adjustment: Xác nhận điều chỉnh
-
-  no_products_match: Không có sản phẩm phù hợp với bộ lọc hiện tại.
-  no_sku: Chưa có SKU
-  product_pagination: Phân trang sản phẩm
-  stock_products_count: '%count% sản phẩm đang hoạt động.'
-  page_of: Trang %page% / %total%
-  product_summary: Tóm tắt sản phẩm
-  stock_summary: Tóm tắt tồn kho
   no_movements: Chưa có biến động.
   receiving_accounts: Tài khoản ngân hàng nhận tiền
   receiving_accounts_help: Cấu hình tài khoản dùng để nhận thanh toán chuyển khoản.
@@ -794,8 +792,15 @@ stat:
   spent: Đã chi tiêu
   no_customer_sales: Không có dữ liệu mua hàng của khách trong khoảng thời gian này.
   orders_suffix: đơn
+  transactions_suffix: giao dịch
   qualifying_suffix: đơn hợp lệ
   products_units: sản phẩm
+  range: "Khoảng: %from% → %to% · múi giờ %timezone%"
+  filter_help: Bộ lọc được xử lý ở máy chủ; kết quả thống kê luôn lấy từ dữ liệu backend.
+  kpi_summary: Tổng quan chỉ số
+  payment_breakdown: Phân bổ thanh toán
+  debt_summary: Tổng quan công nợ
+  stock_summary: Tổng quan tồn kho
 upload:
   product_image: Hình ảnh sản phẩm
   choose_image: Chọn hình ảnh
@@ -853,11 +858,22 @@ order:
   list_aria: Danh sách đơn hàng
   pagination_aria: Phân trang đơn hàng
   page: Trang
-  no_sku: Không có SKU
   customer_retail: Khách lẻ
   debt_prefix: 'Còn nợ:'
   reason_required: Lý do là bắt buộc.
   operation_failed: Không thể hoàn tất thao tác đơn hàng.
+  error_authentication: Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.
+  error_access_denied: Bạn không có quyền thực hiện thao tác này.
+  error_csrf: Phiên bảo mật đã hết hạn. Vui lòng tải lại trang rồi thử lại.
+  error_validation: Thông tin thao tác chưa hợp lệ. Vui lòng kiểm tra lại.
+  error_not_found: Không tìm thấy đơn hàng.
+  error_idempotency_conflict: Thao tác này đã được gửi với yêu cầu khác. Vui lòng kiểm tra lại đơn hàng.
+  error_idempotency_in_progress: Thao tác đang được xử lý. Vui lòng chờ rồi thử lại.
+  error_already_cancelled: Đơn hàng đã được hủy trước đó.
+  error_already_refunded: Đơn hàng đã được hoàn tiền trước đó.
+  error_invalid_state: Đơn hàng không ở trạng thái cho phép thao tác này.
+  error_refund_processed: Khoản hoàn tiền đã được xử lý trước đó.
+  error_business_rule: Không thể thực hiện thao tác với đơn hàng ở trạng thái hiện tại.
 customer:
   form_edit: Chỉnh sửa khách hàng
   form_new: Khách hàng mới
@@ -914,3 +930,15 @@ debt:
   payment_required: Số tiền thanh toán là bắt buộc.
   payment_failed: Không thể hoàn tất thanh toán công nợ.
   payment_recorded: 'Đã ghi nhận thanh toán. Còn lại: {amount} đ'
+
+stat.overview_charts: "Biểu đồ tổng quan"
+stat.financial_overview: "Tổng quan dòng tiền"
+stat.financial_overview_help: "So sánh các chỉ số tiền chính trong khoảng thời gian đã chọn."
+stat.payment_mix: "Cơ cấu thanh toán"
+stat.payment_mix_help: "Khoản thanh toán đã thu, phân nhóm theo phương thức."
+stat.total: "Tổng"
+stat.details: "Chi tiết"
+stat.top_products_help: "Sản phẩm có số lượng bán cao nhất."
+stat.top_customers_help: "Khách hàng có tổng chi tiêu từ đơn hoàn tất cao nhất."
+stat.accessible_data: "Xem bảng dữ liệu"
+stat.accessible_data_help: "Mở bảng nếu bạn cần số liệu chính xác hoặc sử dụng công nghệ hỗ trợ."

@@ -41,7 +41,6 @@ navigation:
   account: Account
   open_menu: Open menu
   close_menu: Close menu
-  skip_to_content: 'Skip to main content'
 app:
   greeting: Hello
   customers: Customers
@@ -163,11 +162,10 @@ pos:
     search_help: Search by product name or SKU.
     search_label: Search products
     search_placeholder: Search product or SKU…
-    add: Add
     all_categories: All categories
     pagination: Product pagination
-    previous: Previous
-    next: Next
+    previous: '<<'
+    next: '>>'
     page_indicator: Page %page% / %total%
   cart:
     title: Current sale
@@ -176,7 +174,7 @@ pos:
     empty: Add a product to start the sale.
     total: Total
     server_total_note: Final total is confirmed by the server at checkout.
-    remove: Remove
+    remove: X
     increase: Increase
     decrease: Decrease
   customer:
@@ -221,8 +219,6 @@ pos:
     method: Payment method
     cash: Cash
     bank_transfer: Bank transfer
-    method_help: Choose how the customer will pay this sale.
-    bank_payment_help: Verify the receiving account and wait for the bank confirmation before completing the sale.
     customer_gives: Customer gives
     transfer_amount: Transfer amount
     receiving_account: Receiving account
@@ -388,7 +384,6 @@ pos:
     payment_reference: Payment reference
     payment_reference_help: Generated per bank-transfer payment. It is not entered here and is used for webhook reconciliation.
     transfer_template: Transfer content template
-    transfer_content: Transfer content
     qr_template: QR template
     casso_subaccount: Casso sub-account ID
     account_number_placeholder: Enter bank account number
@@ -555,9 +550,6 @@ pos:
     complete_sale: Complete sale
     retry_checkout: Retry checkout
     returning: Returning to POS in
-    transfer_content_generated: Transfer content will be generated when payment starts.
-    payment_reference_expired: Payment reference expired. You can create a new code.
-    payment_reference_created: A new payment reference was created.
   product_category: Product category
   select_receiving_account: Select receiving account
   bank_confirmed: The bank has confirmed the payment
@@ -615,6 +607,22 @@ pos:
   checkout_failed_preserved: Checkout failed. Your sale was preserved.
   invalid_money: Invalid money amount.
   unit: unit
+  error_authentication: Your session has expired. Please sign in again.
+  error_access_denied: You are not allowed to perform this operation.
+  error_csrf: The security session has expired. Reload the page and try again.
+  error_validation: The transaction data is invalid. Please review it.
+  error_not_found: The transaction data could not be found.
+  error_insufficient_stock: There is not enough stock. Please review the product quantity.
+  error_product_inactive: This product is no longer active.
+  error_invalid_payment: The payment information is invalid. Please review it.
+  error_idempotency_conflict: This transaction was already submitted with a different request. Check its status before retrying.
+  error_idempotency_in_progress: This transaction is still being processed. Wait and retry if needed.
+  error_business_rule: The transaction cannot be completed in its current state.
+  error_payment_reference: The payment reference is no longer valid. Create a new reference.
+  error_order_completion: Payment was recorded but the order could not be completed. Check the status and try again.
+  error_generic: The operation could not be completed. Please try again.
+  error_timeout: The connection timed out. The transaction result is unknown; check its status before retrying.
+  error_network: The server could not be reached. Check your connection and try again.
   payment_received_label: Payment received
 common:
   back: Back
@@ -719,14 +727,6 @@ admin:
   quantity_change: Quantity change
   adjust_help: Enter a positive number to add stock or a negative number to remove stock.
   confirm_adjustment: Confirm adjustment
-
-  no_products_match: No products match the current filters.
-  no_sku: No SKU
-  product_pagination: Product pagination
-  stock_products_count: '%count% active products.'
-  page_of: Page %page% of %total%
-  product_summary: Product summary
-  stock_summary: Stock summary
   no_movements: No movements.
   receiving_accounts: Receiving bank accounts
   receiving_accounts_help: Configure the accounts used to receive bank-transfer payments.
@@ -792,8 +792,15 @@ stat:
   spent: Spent
   no_customer_sales: No customer sales in this period.
   orders_suffix: orders
+  transactions_suffix: transactions
   qualifying_suffix: qualifying orders
   products_units: units
+  range: "Range: %from% → %to% · timezone %timezone%"
+  filter_help: Filters are processed by the server; statistics results always come from backend data.
+  kpi_summary: KPI summary
+  payment_breakdown: Payment breakdown
+  debt_summary: Debt summary
+  stock_summary: Stock summary
 upload:
   product_image: Product image
   choose_image: Choose an image
@@ -851,11 +858,22 @@ order:
   list_aria: Order list
   pagination_aria: Order pagination
   page: Page
-  no_sku: No SKU
   customer_retail: Walk-in customer
   debt_prefix: 'Debt:'
   reason_required: Reason is required.
   operation_failed: Unable to complete order operation.
+  error_authentication: Your session has expired. Please sign in again.
+  error_access_denied: You are not allowed to perform this operation.
+  error_csrf: The security session has expired. Reload the page and try again.
+  error_validation: The operation data is invalid. Please review it.
+  error_not_found: The order could not be found.
+  error_idempotency_conflict: This operation was already submitted with a different request. Check the order before retrying.
+  error_idempotency_in_progress: The operation is still being processed. Wait and retry if needed.
+  error_already_cancelled: The order has already been cancelled.
+  error_already_refunded: The order has already been refunded.
+  error_invalid_state: The order is not in a state that allows this operation.
+  error_refund_processed: The refund has already been processed.
+  error_business_rule: This operation cannot be performed in the order’s current state.
 customer:
   form_edit: Edit customer
   form_new: New customer
@@ -913,3 +931,14 @@ debt:
   payment_failed: Unable to complete debt payment.
   payment_recorded: 'Payment recorded. Remaining: {amount} đ'
 
+stat.overview_charts: "Overview charts"
+stat.financial_overview: "Financial overview"
+stat.financial_overview_help: "Compare the main money flows for the selected period."
+stat.payment_mix: "Payment mix"
+stat.payment_mix_help: "Collected payments grouped by method."
+stat.total: "Total"
+stat.details: "Details"
+stat.top_products_help: "Products with the highest sold quantity."
+stat.top_customers_help: "Customers with the highest completed-order spend."
+stat.accessible_data: "View data table"
+stat.accessible_data_help: "Use the tables below if you prefer exact values or assistive technology."

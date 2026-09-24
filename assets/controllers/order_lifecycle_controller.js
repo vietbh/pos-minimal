@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static values = { url: String, csrf: String, reasonRequiredMessage: String, failedMessage: String };
+    static values = { url: String, csrf: String, reasonRequiredMessage: String, failedMessage: String, errorMessages: Object };
     static targets = ['reason', 'submit', 'error', 'modal'];
 
     connect() {
@@ -63,8 +63,8 @@ export default class extends Controller {
             const body = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                const message = body.message || this.failedMessageValue;
-                throw new Error(message);
+                const code = body.errorCode || '';
+                throw new Error(this.userFacingErrorMessage(code));
             }
 
             this.idempotencyKey = null;
@@ -75,6 +75,10 @@ export default class extends Controller {
             this.inFlight = false;
             this.submitTarget.disabled = false;
         }
+    }
+
+    userFacingErrorMessage(code) {
+        return this.errorMessagesValue?.[code] || this.failedMessageValue;
     }
 
     showError(message) {

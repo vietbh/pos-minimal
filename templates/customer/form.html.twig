@@ -1,18 +1,1 @@
-{% extends 'layout/authenticated.html.twig' %}
-{% block title %}{{ customer ? 'customer.form_edit'|trans : 'customer.form_new'|trans }}{% endblock %}
-{% block authenticated_body %}
-<main class="business-page">
-    <header class="business-page-header"><div><h1>{{ customer ? 'customer.form_edit'|trans : 'customer.form_new'|trans }}</h1><p>{{ 'customer.info_help'|trans }}</p></div></header>
-    <a class="business-back" href="{{ customer ? path('customers_show',{id:customer.id}) : path('customers_index') }}">{{ 'customer.back'|trans }}</a>
-    {% for message in app.flashes('error') %}<div class="flash error" role="alert">{{ message }}</div>{% endfor %}
-    <section class="business-card">
-        <form class="business-form" method="post">
-            <input type="hidden" name="_token" value="{{ csrf_token('admin_customer_form') }}">
-            <label for="customer-name">{{ 'customer.name'|trans }}<input id="customer-name" required name="name" value="{{ data.name }}" autocomplete="name"></label>
-            <label for="customer-phone">{{ 'customer.phone'|trans }}<input id="customer-phone" inputmode="tel" name="phone" value="{{ data.phone }}" autocomplete="tel"></label>
-            <label for="customer-note">{{ 'customer.note'|trans }}<textarea id="customer-note" name="note">{{ data.note }}</textarea></label>
-            <button type="submit">{{ customer ? 'admin.save_changes'|trans : 'customer.create_customer'|trans }}</button>
-        </form>
-    </section>
-</main>
-{% endblock %}
+{% extends 'layout/authenticated.html.twig' %}{% block title %}{{ customer ? 'customer.form_edit'|trans : 'customer.form_new'|trans }}{% endblock %}{% block authenticated_body %}<div class="app-shell"><header class="app-header"><h1>{{ customer ? 'customer.form_edit'|trans : 'customer.form_new'|trans }}</h1><a href="{{ customer ? path('customers_show',{id:customer.id}) : path('customers_index') }}">{{ 'common.back'|trans }}</a></header>{% for message in app.flashes('error') %}<div class="flash error">{{ message }}</div>{% endfor %}<form class="form-card" method="post"><input type="hidden" name="_token" value="{{ csrf_token('admin_customer_form') }}"><label>{{ 'admin.name'|trans }}<input required name="name" value="{{ data.name }}"></label><label>{{ 'customer.phone'|trans }}<input inputmode="tel" name="phone" value="{{ data.phone }}"></label><label>{{ 'admin.note'|trans }}<textarea name="note">{{ data.note }}</textarea></label><button class="primary">{{ customer ? 'admin.save_changes'|trans : 'customer.create_customer'|trans }}</button></form></div>{% endblock %}

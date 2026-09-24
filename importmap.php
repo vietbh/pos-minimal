@@ -28,4 +28,10 @@ return [
     '@hotwired/hotwire-native-bridge' => [
         'version' => '1.2.2',
     ],
+    'apexcharts' => [
+        'version' => '7.5.0',
+    ],
+    'apexcharts/core' => [
+        'version' => '7.5.0',
+    ],
 ];
