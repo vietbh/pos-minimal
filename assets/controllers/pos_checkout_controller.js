@@ -1112,6 +1112,7 @@ export default class extends Controller {
 
     newSale() {
         this.stopPaymentReceivedCelebration();
+        this.closeQrModal();
         this.state = 'IDLE';
         this.clearMessage();
         this.successTarget.hidden = true;
@@ -1689,9 +1690,21 @@ export default class extends Controller {
         this.updatePaymentReferenceCountdown();
         this.paymentReferenceCountdownTimer = globalThis.setInterval(() => this.updatePaymentReferenceCountdown(), 1000);
         if (this.hasQrModalImageTarget) {
-            this.qrModalImageTarget.src = String(data.paymentReferenceQrUrl ?? data.qrUrl ?? '');
+            this.qrModalImageTarget.src = String(
+                data.paymentReferenceQrUrl ?? data.qrUrl ?? ''
+            );
+
             this.qrModalReferenceTarget.textContent = reference;
-            this.qrModalAmountTarget.textContent = this.formatMajor(data.amount ?? '0');
+
+            // Lần tạo mã đầu tiên: checkout response thường có `total`,
+            // còn regenerate payment reference có thể trả về `amount`.
+            // Ưu tiên amount, sau đó total, rồi fallback về số tiền đã lưu/cart.
+            const qrAmount = data.amount
+                ?? data.total
+                ?? this.paymentReferenceAmount
+                ?? this.formatMinor(this.cartTotalMinor());
+
+            this.qrModalAmountTarget.textContent = this.formatMajor(qrAmount);
         }
     }
 
