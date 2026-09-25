@@ -288,8 +288,8 @@ pos:
     search: Tìm kiếm
     apply: Áp dụng
     loading: Đang tải…
-    previous: Trước
-    next: Sau
+    previous: "<<"
+    next: ">>"
     edit: Chỉnh sửa
     active: Đang hoạt động
     inactive: Không hoạt động
@@ -300,9 +300,9 @@ pos:
     reason: Lý do
     date: Ngày
     type: Loại
-    before: Trước
+    before: "<<"
     change: Thay đổi
-    after: Sau
+    after: ">>"
     amount: Số tiền
     product: Sản phẩm
     products: Sản phẩm
@@ -625,8 +625,8 @@ common:
   search: Tìm kiếm
   apply: Áp dụng
   loading: Đang tải…
-  previous: Trước
-  next: Sau
+  previous: "<<"
+  next: ">>"
   edit: Chỉnh sửa
   active: Đang hoạt động
   inactive: Không hoạt động
@@ -637,9 +637,9 @@ common:
   reason: Lý do
   date: Ngày
   type: Loại
-  before: Trước
+  before: "<<"
   change: Thay đổi
-  after: Sau
+  after: ">>"
   amount: Số tiền
   product: Sản phẩm
   products: Sản phẩm
