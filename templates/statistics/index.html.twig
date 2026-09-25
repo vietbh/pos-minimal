@@ -39,6 +39,13 @@
                 </div>
             </div>
             <div>
+                <label for="salesPointId">Sales point</label>
+                <select id="salesPointId" name="salesPointId">
+                    <option value="">All sales points</option>
+                    {% for point in sales_points %}<option value="{{ point.id }}"{% if sales_point_id == point.id %} selected{% endif %}>{{ point.name }} ({{ point.code }})</option>{% endfor %}
+                </select>
+            </div>
+            <div>
                 <label for="limit">{{ 'stat.top_n'|trans }}</label>
                 <input id="limit" type="number" name="limit" min="1" max="100" value="{{ limit }}" inputmode="numeric">
             </div>

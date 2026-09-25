@@ -2,14 +2,21 @@
 
 {% block title %}{{ 'pos.page_title'|trans }}{% endblock %}
 
+{% block stylesheets %}<style> .pos-copy-source-notice { margin: 0 0 12px; padding: 12px 14px; border: 1px solid #CBD5E1; border-radius: 12px; background: #FFFFFF; color: #172033; font-weight: 700; } </style>{% endblock %}
+
 {% block pos_body %}
 <div class="pos-page"
-     data-controller="pos-checkout mobile-ux"
+     data-controller="pos-checkout mobile-ux sales-point"
      data-pos-checkout-csrf-token-value="{{ checkout_csrf_token }}"
+     data-sales-point-csrf-token-value="{{ checkout_csrf_token }}"
+     data-sales-point-endpoint-value="{{ path('pos_current_sales_point_set') }}"
      data-pos-checkout-endpoint-value="{{ path('pos_checkout') }}"
      data-pos-checkout-product-search-url-value="{{ path('pos_products_search') }}"
      data-pos-checkout-product-catalog-url-value="{{ path('pos_products_catalog') }}"
      data-pos-checkout-customer-search-url-value="{{ path('pos_customers_search') }}"
+     data-pos-checkout-customer-create-url-value="{{ path('pos_customer_create') }}"
+     data-pos-checkout-copy-from-order-url-base-value="{{ path('pos_copy_order_to_pos', {id: 0}) }}"
+     data-pos-checkout-copy-from-order-id-value="{{ copy_from_order_id ?? 0 }}"
      data-pos-checkout-payment-reference-regenerate-base-url-value="{{ path('payment_reference_regenerate', {id: 0}) }}"
      data-pos-checkout-complete-order-base-url-value="{{ path('order_complete', {id: 0}) }}"
      data-pos-checkout-manual-bank-confirm-available-value="{{ manual_bank_confirm_allowed ? 'true' : 'false' }}"
@@ -21,7 +28,7 @@
      data-pos-checkout-processing-label-value="{{ 'pos.checkout.processing'|trans }}"
      data-pos-checkout-complete-sale-label-value="{{ 'pos.checkout.complete_sale'|trans }}"
      data-pos-checkout-bank-payment-label-value="{{ 'pos.checkout.start_bank_payment'|trans }}"
-     data-pos-checkout-messages-value='{{ {ready: 'pos.ready'|trans, allCategories: 'pos.all_categories'|trans, noSku: 'pos.no_sku'|trans, unableLoadProducts: 'pos.unable_load_products'|trans, unableSearchCustomers: 'pos.unable_search_customers'|trans, addProducts: 'pos.add_products'|trans, enterCustomerAmount: 'pos.enter_customer_amount'|trans, changeDue: 'pos.change_due'|trans, debtWillBeCreated: 'pos.debt_will_be_created'|trans, selectCustomerOrFullPayment: 'pos.select_customer_or_full_payment'|trans, paidInFull: 'pos.paid_in_full'|trans, configureReceivingAccount: 'pos.configure_receiving_account'|trans, transferCannotExceed: 'pos.transfer_cannot_exceed'|trans, enterExactTransfer: 'pos.enter_exact_transfer'|trans, cartEmpty: 'pos.cart_empty'|trans, paymentInvalid: 'pos.payment_invalid'|trans, customerTenderedZero: 'pos.customer_tendered_zero'|trans, transferZero: 'pos.transfer_zero'|trans, bankTransferExact: 'pos.bank_transfer_exact'|trans, unableCheckout: 'pos.unable_checkout'|trans, invalidResult: 'pos.invalid_result'|trans, timeoutUnknown: 'pos.timeout_unknown'|trans, unknownResult: 'pos.unknown_result'|trans, bankTransfer: 'pos.bank_transfer'|trans, waitingPayment: 'pos.waiting_payment'|trans, waitingBankTransfer: 'pos.waiting_bank_transfer'|trans, completeSaleManually: 'pos.complete_sale_manually'|trans, missingReference: 'pos.missing_reference'|trans, manualConfirmFailed: 'pos.manual_confirm_failed'|trans, paymentNotConfirmed: 'pos.payment_not_confirmed'|trans, saleCompleted: 'pos.sale_completed'|trans, unableManualConfirm: 'pos.unable_manual_confirm'|trans, closeQr: 'pos.close_qr'|trans, paymentReceivedBanner: 'pos.payment_received_banner'|trans, bankConfirmed: 'pos.bank_confirmed'|trans, speakerEnabledLabel: 'pos.speaker.enabled'|trans, speakerDisabledLabel: 'pos.speaker.enable'|trans, paymentReceivedSpeech: 'pos.speaker.payment_received_speech'|trans, startBankPayment: 'pos.start_bank_payment'|trans, completeSaleButton: 'pos.complete_sale_button'|trans, completed: 'pos.completed'|trans, paymentReceived: 'pos.payment_received_label'|trans, paymentReceivedAutoFail: 'pos.payment_received_auto_fail'|trans, unableCompleteSale: 'pos.unable_complete_sale'|trans, unableCompleteSaleAuto: 'pos.unable_complete_sale_auto'|trans, unableCreateReference: 'pos.unable_create_reference'|trans, checkoutFailedPreserved: 'pos.checkout_failed_preserved'|trans, invalidMoney: 'pos.invalid_money'|trans, unit: 'pos.unit'|trans, errorMessages: {
+     data-pos-checkout-messages-value='{{ {ready: 'pos.ready'|trans, copyLoaded: 'pos.copy_loaded'|trans, copyLoadedWithInactive: 'pos.copy_loaded_with_inactive'|trans, copyFailed: 'pos.copy_failed'|trans, copyNoItems: 'pos.copy_no_items'|trans, allCategories: 'pos.all_categories'|trans, noSku: 'pos.no_sku'|trans, unableLoadProducts: 'pos.unable_load_products'|trans, unableSearchCustomers: 'pos.unable_search_customers'|trans, addProducts: 'pos.add_products'|trans, enterCustomerAmount: 'pos.enter_customer_amount'|trans, changeDue: 'pos.change_due'|trans, debtWillBeCreated: 'pos.debt_will_be_created'|trans, selectCustomerOrFullPayment: 'pos.select_customer_or_full_payment'|trans, createCustomer: 'pos.customer.create_quick'|trans, customerNameRequired: 'pos.customer.name_required'|trans, customerCreated: 'pos.customer.created'|trans, customerCreateFailed: 'pos.customer.create_failed'|trans, outOfStock: 'pos.customer.out_of_stock'|trans, paidInFull: 'pos.paid_in_full'|trans, configureReceivingAccount: 'pos.configure_receiving_account'|trans, transferCannotExceed: 'pos.transfer_cannot_exceed'|trans, enterExactTransfer: 'pos.enter_exact_transfer'|trans, cartEmpty: 'pos.cart_empty'|trans, quantityExceedsStock: 'pos.quantity_exceeds_stock'|trans, paymentInvalid: 'pos.payment_invalid'|trans, customerTenderedZero: 'pos.customer_tendered_zero'|trans, transferZero: 'pos.transfer_zero'|trans, bankTransferExact: 'pos.bank_transfer_exact'|trans, unableCheckout: 'pos.unable_checkout'|trans, invalidResult: 'pos.invalid_result'|trans, timeoutUnknown: 'pos.timeout_unknown'|trans, unknownResult: 'pos.unknown_result'|trans, bankTransfer: 'pos.bank_transfer'|trans, waitingPayment: 'pos.waiting_payment'|trans, waitingBankTransfer: 'pos.waiting_bank_transfer'|trans, completeSaleManually: 'pos.complete_sale_manually'|trans, missingReference: 'pos.missing_reference'|trans, manualConfirmFailed: 'pos.manual_confirm_failed'|trans, paymentNotConfirmed: 'pos.payment_not_confirmed'|trans, saleCompleted: 'pos.sale_completed'|trans, unableManualConfirm: 'pos.unable_manual_confirm'|trans, closeQr: 'pos.close_qr'|trans, paymentReceivedBanner: 'pos.payment_received_banner'|trans, bankConfirmed: 'pos.bank_confirmed'|trans, speakerEnabledLabel: 'pos.speaker.enabled'|trans, speakerDisabledLabel: 'pos.speaker.enable'|trans, paymentReceivedSpeech: 'pos.speaker.payment_received_speech'|trans, startBankPayment: 'pos.start_bank_payment'|trans, completeSaleButton: 'pos.complete_sale_button'|trans, completed: 'pos.completed'|trans, paymentReceived: 'pos.payment_received_label'|trans, paymentReceivedAutoFail: 'pos.payment_received_auto_fail'|trans, unableCompleteSale: 'pos.unable_complete_sale'|trans, unableCompleteSaleAuto: 'pos.unable_complete_sale_auto'|trans, unableCreateReference: 'pos.unable_create_reference'|trans, checkoutFailedPreserved: 'pos.checkout_failed_preserved'|trans, invalidMoney: 'pos.invalid_money'|trans, unit: 'pos.unit'|trans, errorMessages: {
             AUTHENTICATION_REQUIRED: 'pos.error_authentication'|trans,
             ACCESS_DENIED: 'pos.error_access_denied'|trans,
             CSRF_INVALID: 'pos.error_csrf'|trans,
@@ -44,12 +51,14 @@
     <div class="pos-message pos-error" data-pos-checkout-target="message" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
 
     <div data-pos-checkout-target="saleView">
+        <div class="pos-copy-source-notice" data-pos-checkout-target="copySourceNotice" hidden role="status" aria-live="polite"></div>
+
         <header class="pos-header">
             <div>
                 <p class="pos-eyebrow">{{ 'pos.eyebrow'|trans }}</p>
                 <h1>{{ 'pos.new_sale'|trans }}</h1>
             </div>
-            <div class="pos-header-meta"><span class="pos-current-time" data-pos-checkout-target="currentTime" aria-label="{{ 'pos.current_time'|trans }}"></span><span class="pos-state" data-pos-checkout-target="status" role="status" aria-live="polite">{{ 'pos.status.ready'|trans }}</span></div>
+            <div class="pos-header-meta"><label class="pos-sales-point-picker"><span class="sr-only">Sales point</span><select data-sales-point-target="select" aria-label="Sales point">{% for point in sales_points %}<option value="{{ point.id }}" {% if current_sales_point and current_sales_point.id == point.id %}selected{% endif %}>{{ point.name }}</option>{% endfor %}</select></label><span class="pos-current-time" data-pos-checkout-target="currentTime" aria-label="{{ 'pos.current_time'|trans }}"></span><span class="pos-state" data-pos-checkout-target="status" role="status" aria-live="polite">{{ 'pos.status.ready'|trans }}</span></div>
         </header>
 
         <main class="pos-layout">
@@ -120,6 +129,9 @@
                        data-pos-checkout-target="customerSearch"
                        data-action="input->pos-checkout#searchCustomers">
                 <div class="pos-results" data-pos-checkout-target="customerResults" aria-live="polite"></div>
+                {% if is_granted('CUSTOMER_CREATE') %}
+                    <button type="button" class="button" data-pos-checkout-target="openCustomerCreate" data-action="click->pos-checkout#openCustomerCreate">{{ 'pos.customer.create_quick'|trans }}</button>
+                {% endif %}
             </section>
 
             <section class="pos-card pos-payment-card" aria-labelledby="payment-heading">
@@ -230,6 +242,31 @@
         </main>
     </div>
 
+    {% if is_granted('CUSTOMER_CREATE') %}
+    <div class="pos-modal" data-pos-checkout-target="customerCreateModal" hidden role="dialog" aria-modal="true" aria-labelledby="pos-customer-create-title">
+        <div class="pos-modal-panel">
+            <div class="pos-section-header">
+                <div>
+                    <p class="pos-eyebrow">{{ 'pos.customer.title'|trans }}</p>
+                    <h2 id="pos-customer-create-title">{{ 'pos.customer.create_quick'|trans }}</h2>
+                </div>
+                <button type="button" class="button" data-action="click->pos-checkout#closeCustomerCreate" aria-label="{{ 'pos.close'|trans }}">×</button>
+            </div>
+            <label>{{ 'pos.customer.name'|trans }} *
+                <input data-pos-checkout-target="newCustomerName" autocomplete="name" required>
+            </label>
+            <label>{{ 'pos.customer.phone'|trans }}
+                <input data-pos-checkout-target="newCustomerPhone" inputmode="tel" autocomplete="tel">
+            </label>
+            <div class="pos-modal-actions">
+                <button type="button" class="button" data-action="click->pos-checkout#closeCustomerCreate">{{ 'common.cancel'|trans }}</button>
+                <button type="button" class="button primary" data-pos-checkout-target="createCustomerButton" data-action="click->pos-checkout#createCustomer">{{ 'pos.customer.create_quick'|trans }}</button>
+            </div>
+            <p class="pos-message pos-error" data-pos-checkout-target="customerCreateError" role="alert" hidden></p>
+        </div>
+    </div>
+
+    {% endif %}
     <section class="pos-card pos-success" data-pos-checkout-target="success" hidden aria-live="polite">
         <div class="pos-current-time pos-success-time" data-pos-checkout-target="currentTime" aria-label="{{ 'pos.current_time'|trans }}"></div>
         <div class="pos-success-icon" aria-hidden="true">✓</div>

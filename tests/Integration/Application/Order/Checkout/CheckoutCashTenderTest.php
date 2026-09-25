@@ -14,6 +14,7 @@ use App\Application\Security\RuntimeActorContextProvider;
 use App\Domain\Order\Enum\OrderStatus;
 use App\Domain\Order\Order;
 use App\Domain\Order\Payment;
+use App\Domain\Customer\Customer;
 use App\Domain\Payment\Enum\PaymentMethod;
 use App\Domain\Product\Product;
 use App\Domain\Shared\ValueObject\Money;
@@ -44,6 +45,33 @@ final class CheckoutCashTenderTest extends IntegrationTestCase
         self::assertSame('135000.00', $result->tenderedAmount->toDecimal());
         self::assertSame('0.00', $result->changeAmount->toDecimal());
         self::assertSame('0.00', $result->debtAmount->toDecimal());
+        self::assertSame(OrderStatus::COMPLETED, $result->status);
+    }
+
+    public function testZeroCashTenderCompletesAsDebtWhenCustomerIsProvided(): void
+    {
+        $user = new User('cash-zero-debt-'.bin2hex(random_bytes(4)));
+        $customer = new Customer('Cash zero debt customer');
+        $product = new Product('Cash zero debt product', Money::fromDecimal('135000.00'));
+        $product->setStockQuantityForAdjustment(5);
+
+        $this->entityManager->persist($user);
+        $this->entityManager->persist($customer);
+        $this->entityManager->persist($product);
+        $this->entityManager->flush();
+
+        $result = $this->checkout(
+            $user,
+            $product,
+            '0.00',
+            '0.00',
+            $customer,
+        );
+
+        self::assertSame('135000.00', $result->total->toDecimal());
+        self::assertSame('0.00', $result->paidAmount->toDecimal());
+        self::assertSame('0.00', $result->tenderedAmount->toDecimal());
+        self::assertSame('135000.00', $result->debtAmount->toDecimal());
         self::assertSame(OrderStatus::COMPLETED, $result->status);
     }
 
@@ -91,6 +119,7 @@ final class CheckoutCashTenderTest extends IntegrationTestCase
         Product $product,
         string $paymentAmount,
         string $tenderedAmount,
+        ?Customer $customer = null,
     ): CheckoutResult {
         /** @var RuntimeActorContextProvider $actorContextProvider */
         $actorContextProvider = self::getContainer()->get(RuntimeActorContextProvider::class);
@@ -106,7 +135,7 @@ final class CheckoutCashTenderTest extends IntegrationTestCase
 
             return $entryPoint->handle(new CheckoutInput(
                 items: [new CheckoutItemInput($product->getId() ?? throw new \LogicException('Product ID missing.'), 1)],
-                customerId: null,
+                customerId: $customer?->getId(),
                 payment: new CheckoutPaymentInput(
                     method: PaymentMethod::CASH,
                     amount: Money::fromDecimal($paymentAmount),

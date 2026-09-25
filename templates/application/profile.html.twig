@@ -87,6 +87,38 @@
         </section>
     </div>
 
+    <section class="form-card profile-card" aria-labelledby="password-title">
+        <div class="section-heading">
+            <h2 id="password-title">{{ 'app.change_password'|trans }}</h2>
+            <p class="muted">{{ 'app.change_password_help'|trans }}</p>
+        </div>
+        <form method="post" action="{{ path('app_profile') }}" class="profile-form" data-controller="change-password" data-action="submit->change-password#submit">
+            <input type="hidden" name="_token" value="{{ csrf_token('profile_settings') }}">
+            <div class="login-field">
+                <label for="current-password" class="login-label">{{ 'app.current_password'|trans }}</label>
+                <div class="login-password-wrap">
+                    <input id="current-password" class="login-input login-input-password" type="password" name="current_password" autocomplete="current-password" required data-change-password-target="current" />
+                    <button type="button" class="login-password-toggle" data-change-password-target="currentToggle" data-action="click->change-password#toggleCurrent" data-show-label="{{ 'auth.login.show_password'|trans }}" data-hide-label="{{ 'auth.login.hide_password'|trans }}" aria-label="{{ 'auth.login.show_password'|trans }}" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+                </div>
+            </div>
+            <div class="login-field">
+                <label for="new-password" class="login-label">{{ 'app.new_password'|trans }}</label>
+                <div class="login-password-wrap">
+                    <input id="new-password" class="login-input login-input-password" type="password" name="new_password" autocomplete="new-password" minlength="8" required data-change-password-target="new" />
+                    <button type="button" class="login-password-toggle" data-change-password-target="newToggle" data-action="click->change-password#toggleNew" data-show-label="{{ 'auth.login.show_password'|trans }}" data-hide-label="{{ 'auth.login.hide_password'|trans }}" aria-label="{{ 'auth.login.show_password'|trans }}" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+                </div>
+            </div>
+            <div class="login-field">
+                <label for="confirm-password" class="login-label">{{ 'app.confirm_password'|trans }}</label>
+                <div class="login-password-wrap">
+                    <input id="confirm-password" class="login-input login-input-password" type="password" name="confirm_password" autocomplete="new-password" minlength="8" required data-change-password-target="confirm" />
+                    <button type="button" class="login-password-toggle" data-change-password-target="confirmToggle" data-action="click->change-password#toggleConfirm" data-show-label="{{ 'auth.login.show_password'|trans }}" data-hide-label="{{ 'auth.login.hide_password'|trans }}" aria-label="{{ 'auth.login.show_password'|trans }}" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+                </div>
+            </div>
+            <button class="button primary" type="submit" data-change-password-target="submit">{{ 'app.change_password_action'|trans }}</button>
+        </form>
+    </section>
+
     <section class="form-card profile-card" aria-labelledby="security-title">
         <div class="section-heading">
             <h2 id="security-title">{{ 'app.security'|trans }}</h2>

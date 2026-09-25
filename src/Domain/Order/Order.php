@@ -8,6 +8,7 @@ use App\Domain\Customer\Customer;
 use App\Domain\Order\Enum\OrderStatus;
 use App\Domain\Order\ValueObject\OrderNumber;
 use App\Domain\Shared\ValueObject\Money;
+use App\Domain\SalesPoint\SalesPoint;
 use App\Domain\User\User;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -58,6 +59,10 @@ class Order
         onDelete: 'RESTRICT',
     )]
     private User $user;
+
+    #[ORM\ManyToOne(targetEntity: SalesPoint::class)]
+    #[ORM\JoinColumn(name: 'sales_point_id', referencedColumnName: 'id', nullable: true, onDelete: 'RESTRICT')]
+    private ?SalesPoint $salesPoint = null;
 
     #[ORM\ManyToOne(targetEntity: Customer::class)]
     #[ORM\JoinColumn(
@@ -144,10 +149,12 @@ class Order
         User $user,
         ?Customer $customer = null,
         ?string $note = null,
+        ?SalesPoint $salesPoint = null,
     ) {
         $this->orderNumber = $orderNumber;
         $this->user = $user;
         $this->customer = $customer;
+        $this->salesPoint = $salesPoint;
         $this->status = OrderStatus::DRAFT;
 
         $this->subtotal = Money::zero();
@@ -179,6 +186,19 @@ class Order
     public function getCustomer(): ?Customer
     {
         return $this->customer;
+    }
+
+    public function getSalesPoint(): ?SalesPoint
+    {
+        return $this->salesPoint;
+    }
+
+    public function assignSalesPoint(?SalesPoint $salesPoint): void
+    {
+        if (!$this->isDraft()) {
+            throw new \DomainException('Sales point can only be changed while order is draft.');
+        }
+        $this->salesPoint = $salesPoint;
     }
 
     public function changeCustomer(?Customer $customer): void

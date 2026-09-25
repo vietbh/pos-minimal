@@ -7,6 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 #[ORM\Table(name: 'payment_bank_accounts')]
 #[ORM\Index(name: 'idx_payment_bank_account_active', columns: ['is_active'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_PAYMENT_BANK_ACCOUNT_WEBHOOK_TOKEN', columns: ['webhook_token'])]
 class PaymentBankAccount
 {
     #[ORM\Id, ORM\GeneratedValue]
@@ -29,6 +30,8 @@ class PaymentBankAccount
     private ?string $cassoSubAccountId;
     #[ORM\Column(name: 'is_active', type: 'boolean')]
     private bool $isActive;
+    #[ORM\Column(name: 'webhook_token', length: 64)]
+    private string $webhookToken;
     #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
     #[ORM\Column(name: 'updated_at', type: 'datetime_immutable')]
@@ -43,7 +46,7 @@ class PaymentBankAccount
         $this->accountName=trim($accountName); $this->qrTemplate=trim($qrTemplate) ?: 'compact2';
         $this->transferContentTemplate=trim($transferContentTemplate) ?: 'Thanh {PAYMENT REFERENCE} BUIHOANGVIET';
         $this->cassoSubAccountId=$cassoSubAccountId !== null ? trim($cassoSubAccountId) ?: null : null;
-        $this->isActive=$isActive; $this->createdAt=new \DateTimeImmutable(); $this->updatedAt=$this->createdAt;
+        $this->isActive=$isActive; $this->webhookToken=bin2hex(random_bytes(32)); $this->createdAt=new \DateTimeImmutable(); $this->updatedAt=$this->createdAt;
     }
     public function getId(): ?int { return $this->id; }
     public function getBankBin(): string { return $this->bankBin; }
@@ -54,6 +57,8 @@ class PaymentBankAccount
     public function getTransferContentTemplate(): string { return $this->transferContentTemplate; }
     public function getCassoSubAccountId(): ?string { return $this->cassoSubAccountId; }
     public function isActive(): bool { return $this->isActive; }
+    public function getWebhookToken(): string { return $this->webhookToken; }
+    public function regenerateWebhookToken(): string { $this->webhookToken=bin2hex(random_bytes(32)); $this->updatedAt=new \DateTimeImmutable(); return $this->webhookToken; }
     public function update(string $bankBin,string $bankName,string $accountNumber,string $accountName,string $qrTemplate,string $transferContentTemplate,?string $cassoSubAccountId,bool $isActive): void {
         $this->bankBin=trim($bankBin); $this->bankName=trim($bankName); $this->accountNumber=trim($accountNumber); $this->accountName=trim($accountName);
         $this->qrTemplate=trim($qrTemplate) ?: 'compact2'; $this->transferContentTemplate=trim($transferContentTemplate) ?: 'Thanh {PAYMENT REFERENCE} BUIHOANGVIET';

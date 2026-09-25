@@ -33,6 +33,9 @@ services:
     App\Application\Common\Storage\FileStorageInterface:
         alias: App\Infrastructure\Storage\LocalFileStorage
 
+    App\Application\SalesPoint\CurrentSalesPoint:
+        alias: App\Application\SalesPoint\SessionCurrentSalesPoint
+
     App\Infrastructure\Image\ImageMagickProcessor:
         arguments:
             $binary: '%env(IMAGE_MAGICK_BINARY)%'
@@ -49,9 +52,6 @@ services:
             $webhookTimezone: '%env(default:app.webhook_timezone_default:POS_WEBHOOK_TIMEZONE)%'
             $futureSkewSeconds: '%env(int:POS_WEBHOOK_FUTURE_SKEW_SECONDS)%'
 
-    App\Controller\Payment\BankNotificationWebhookController:
-        arguments:
-            $webhookToken: '%env(BANK_NOTIFICATION_WEBHOOK_TOKEN)%'
 
     App\Controller\HealthController:
         arguments:

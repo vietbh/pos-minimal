@@ -8,6 +8,7 @@ use App\Domain\Customer\Customer;
 use App\Domain\Payment\Enum\CheckoutPaymentSessionStatus;
 use App\Domain\Shared\ValueObject\Money;
 use App\Domain\User\User;
+use App\Domain\SalesPoint\SalesPoint;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
@@ -29,6 +30,10 @@ class CheckoutPaymentSession
     #[ORM\ManyToOne(targetEntity: Customer::class)]
     #[ORM\JoinColumn(name: 'customer_id', referencedColumnName: 'id', nullable: true, onDelete: 'RESTRICT')]
     private ?Customer $customer;
+
+    #[ORM\ManyToOne(targetEntity: SalesPoint::class)]
+    #[ORM\JoinColumn(name: 'sales_point_id', referencedColumnName: 'id', nullable: true, onDelete: 'RESTRICT')]
+    private ?SalesPoint $salesPoint;
 
     #[ORM\ManyToOne(targetEntity: PaymentBankAccount::class)]
     #[ORM\JoinColumn(name: 'payment_bank_account_id', referencedColumnName: 'id', nullable: false, onDelete: 'RESTRICT')]
@@ -73,6 +78,7 @@ class CheckoutPaymentSession
         string $activeKey,
         \DateTimeImmutable $expiresAt,
         ?\DateTimeImmutable $createdAt = null,
+        ?SalesPoint $salesPoint = null,
     ) {
         if (!$amount->isPositive()) {
             throw new \InvalidArgumentException('Checkout payment session amount must be greater than zero.');
@@ -91,6 +97,7 @@ class CheckoutPaymentSession
         $this->user = $user;
         $this->customer = $customer;
         $this->bankAccount = $bankAccount;
+        $this->salesPoint = $salesPoint;
         $this->cartSnapshot = array_values($cartSnapshot);
         $this->amount = $amount;
         $this->note = $note !== null ? trim($note) ?: null : null;
@@ -105,6 +112,7 @@ class CheckoutPaymentSession
     public function getUser(): User { return $this->user; }
     public function getCustomer(): ?Customer { return $this->customer; }
     public function getBankAccount(): PaymentBankAccount { return $this->bankAccount; }
+    public function getSalesPoint(): ?SalesPoint { return $this->salesPoint; }
     /** @return list<array{productId:int,quantity:int,unitPrice:string}> */
     public function getCartSnapshot(): array { return $this->cartSnapshot; }
     public function getAmount(): Money { return $this->amount; }

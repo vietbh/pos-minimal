@@ -59,6 +59,7 @@ final class PermissionMatrix
 
                     Permission::USER_MANAGE,
                     Permission::PAYMENT_BANK_ACCOUNT_MANAGE,
+                    Permission::SALES_POINT_MANAGE,
                     Permission::PAYMENT_BANK_MANUAL_CONFIRM,
                 ],
             );

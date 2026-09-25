@@ -154,6 +154,7 @@ final readonly class ManualBankPaymentConfirmationService
             user: $session->getUser(),
             customer: $session->getCustomer(),
             note: $session->getNote(),
+            salesPoint: $session->getSalesPoint(),
         );
         foreach ($session->getCartSnapshot() as $item) {
             $product = $this->productLocking->lock((int) $item['productId']);

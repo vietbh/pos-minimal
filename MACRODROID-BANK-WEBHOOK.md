@@ -15,25 +15,22 @@ https://your-pos.example.com/webhooks/bank-notification
 Authentication:
 
 ```http
-X-Webhook-Token: <BANK_NOTIFICATION_WEBHOOK_TOKEN>
+X-Webhook-Token: <WEBHOOK_TOKEN_OF_THE_RECEIVING_BANK_ACCOUNT>
 Content-Type: application/json
 ```
 
-## 2. Generate the webhook secret
+## 2. Bank-account webhook token
 
-Generate a new secret:
+Each receiving bank account in **Payment Settings** has its own cryptographically generated webhook token persisted in the database.
 
-```bash
-php bin/console app:webhook:generate-token
-```
+1. Open Payment Settings.
+2. Copy the webhook token for the receiving bank account.
+3. Configure MacroDroid with that token in `X-Webhook-Token`.
+4. Include the matching `bankAccountId` in the JSON body.
 
-Or generate and write/update `.env.local` automatically:
+Use **Regenerate webhook token** when the token must be rotated. The previous token becomes invalid immediately after regeneration.
 
-```bash
-php bin/console app:webhook:generate-token --write-env-local
-```
-
-For production, prefer the server/container secret store instead of committing `.env.local`.
+The application no longer reads `BANK_NOTIFICATION_WEBHOOK_TOKEN` from `.env`.
 
 ## 3. MacroDroid request body
 

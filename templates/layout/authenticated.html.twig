@@ -24,10 +24,10 @@
                 {% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_products_' %} aria-current="page"{% endif %}><span aria-hidden="true">□</span><span>{{ 'navigation.products'|trans }}</span></a>{% endif %}
                 {% if is_granted('STOCK_VIEW') %}<a href="{{ path('admin_stock_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_stock_' %} aria-current="page"{% endif %}><span aria-hidden="true">▥</span><span>{{ 'navigation.stock'|trans }}</span></a>{% endif %}
 
-                {% if is_granted('STATISTICS_VIEW') or is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}
+                {% if is_granted('STATISTICS_VIEW') or is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') or is_granted('SALES_POINT_MANAGE') %}
                     <p class="sidebar-label">{{ 'navigation.management'|trans }}</p>
                     {% if is_granted('STATISTICS_VIEW') %}<a href="{{ path('statistics_index') }}"{% if app.request.attributes.get('_route') starts with 'statistics_' %} aria-current="page"{% endif %}><span aria-hidden="true">▥</span><span>{{ 'navigation.statistics'|trans }}</span></a>{% endif %}
-                    {% if is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}<a href="{{ path('admin_payment_accounts') }}"{% if app.request.attributes.get('_route') == 'admin_payment_accounts' %} aria-current="page"{% endif %}><span aria-hidden="true">₿</span><span>{{ 'navigation.payments'|trans }}</span></a>{% endif %}
+                    {% if is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}<a href="{{ path('admin_payment_accounts') }}"{% if app.request.attributes.get('_route') == 'admin_payment_accounts' %} aria-current="page"{% endif %}><span aria-hidden="true">₿</span><span>{{ 'navigation.payments'|trans }}</span></a>{% endif %}{% if is_granted('SALES_POINT_MANAGE') %}<a href="{{ path('admin_sales_points') }}"{% if app.request.attributes.get('_route') starts with 'admin_sales_points' %} aria-current="page"{% endif %}><span aria-hidden="true">▣</span><span>Sales points</span></a>{% endif %}
                 {% endif %}
             </nav>
 
@@ -68,7 +68,7 @@
                     {% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_products_' %} aria-current="page"{% endif %}>{{ 'navigation.products'|trans }}</a>{% endif %}
                     {% if is_granted('STOCK_VIEW') %}<a href="{{ path('admin_stock_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_stock_' %} aria-current="page"{% endif %}>{{ 'navigation.stock'|trans }}</a>{% endif %}
                     {% if is_granted('STATISTICS_VIEW') %}<a href="{{ path('statistics_index') }}"{% if app.request.attributes.get('_route') starts with 'statistics_' %} aria-current="page"{% endif %}>{{ 'navigation.statistics'|trans }}</a>{% endif %}
-                    {% if is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}<a href="{{ path('admin_payment_accounts') }}"{% if app.request.attributes.get('_route') == 'admin_payment_accounts' %} aria-current="page"{% endif %}>{{ 'navigation.payments'|trans }}</a>{% endif %}
+                    {% if is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}<a href="{{ path('admin_payment_accounts') }}"{% if app.request.attributes.get('_route') == 'admin_payment_accounts' %} aria-current="page"{% endif %}>{{ 'navigation.payments'|trans }}</a>{% endif %}{% if is_granted('SALES_POINT_MANAGE') %}<a href="{{ path('admin_sales_points') }}"{% if app.request.attributes.get('_route') starts with 'admin_sales_points' %} aria-current="page"{% endif %}>Sales points</a>{% endif %}
                     <a href="{{ path('app_profile') }}"{% if app.request.attributes.get('_route') == 'app_profile' %} aria-current="page"{% endif %}>{{ 'navigation.account'|trans }}</a>
                     <form method="post" action="{{ path('logout') }}">
                         <button type="submit">{{ 'auth.logout'|trans }}</button>

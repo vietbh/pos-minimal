@@ -17,6 +17,7 @@ final readonly class CheckoutInput
         public ?string $paymentReference = null,
         public ?string $note,
         public string $idempotencyKey,
+        public ?int $salesPointId = null,
     ) {
     }
 }

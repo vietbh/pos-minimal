@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller\Order;
 
+use App\Application\Customer\Command\CreateCustomer\CreateCustomerHandler;
+use App\Application\Customer\Command\CreateCustomer\CreateCustomerInput;
 use App\Application\Customer\Query\SearchCustomers\SearchCustomersHandler;
 use App\Application\Customer\Query\SearchCustomers\SearchCustomersInput;
 use App\Application\Order\Command\Checkout\CheckoutHandlerEntryPoint;
@@ -12,6 +14,8 @@ use App\Application\Product\Query\SearchProducts\SearchProductsInput;
 use App\Application\Order\Command\Checkout\CheckoutInput;
 use App\Application\Order\Command\Checkout\CheckoutItemInput;
 use App\Application\Order\Command\Checkout\CheckoutPaymentInput;
+use App\Application\Order\Query\CopyOrderToPos\CopyOrderToPosHandler;
+use App\Application\Order\Query\CopyOrderToPos\CopyOrderToPosInput;
 use App\Application\Payment\Reference\PaymentReferenceService;
 use App\Application\Payment\Reference\PaymentReferenceNormalizer;
 use App\Application\Payment\Reference\CheckoutPaymentSessionService;
@@ -23,9 +27,11 @@ use App\Application\Common\Transaction\TransactionManagerInterface;
 use App\Application\Security\ActorContext;
 use App\Application\Security\Permission;
 use App\Application\Security\RuntimeActorContextProvider;
+use App\Application\SalesPoint\CurrentSalesPoint;
 use App\Domain\Payment\Enum\PaymentMethod;
 use App\Domain\Payment\Repository\PaymentBankAccountRepositoryInterface;
 use App\Domain\Payment\Repository\ExternalPaymentTransactionRepositoryInterface;
+use App\Domain\SalesPoint\Repository\SalesPointRepositoryInterface;
 use App\Application\Product\Query\ProductCatalogHandler;
 use App\Application\Product\Query\ProductCatalogInput;
 use App\Domain\Product\Repository\ProductCategoryRepositoryInterface;
@@ -44,7 +50,7 @@ final class CheckoutController extends AbstractController
     private const CSRF_TOKEN_ID = 'pos_checkout';
 
     #[Route('/app/pos', name: 'pos', methods: ['GET'])]
-    public function pos(CsrfTokenManagerInterface $csrfTokenManager, PaymentBankAccountRepositoryInterface $bankAccounts): Response
+    public function pos(Request $request, CsrfTokenManagerInterface $csrfTokenManager, PaymentBankAccountRepositoryInterface $bankAccounts, SalesPointRepositoryInterface $salesPoints, CurrentSalesPoint $currentSalesPoint): Response
     {
         if (!$this->getUser() instanceof User) {
             return $this->redirectToRoute('login');
@@ -54,10 +60,84 @@ final class CheckoutController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        $current = $currentSalesPoint->get();
+        if ($current === null) {
+            $current = $salesPoints->findActive()[0] ?? null;
+            if ($current !== null) { $currentSalesPoint->set($current); }
+        }
+
+        $copyFromOrder = $request->query->getInt('copyFromOrder', 0);
+        if ($copyFromOrder <= 0) {
+            $copyFromOrder = null;
+        }
+
         return $this->render('pos/index.html.twig', [
+            'copy_from_order_id' => $copyFromOrder,
             'checkout_csrf_token' => $csrfTokenManager->getToken(self::CSRF_TOKEN_ID)->getValue(),
             'payment_bank_accounts' => $bankAccounts->findActive(),
             'manual_bank_confirm_allowed' => $this->isGranted(Permission::PAYMENT_BANK_MANUAL_CONFIRM->value),
+            'sales_points' => $salesPoints->findActive(),
+            'current_sales_point' => $current,
+        ]);
+    }
+
+    #[Route('/app/pos/current-sales-point', name: 'pos_current_sales_point', methods: ['GET'], format: 'json')]
+    public function currentSalesPoint(CurrentSalesPoint $current, SalesPointRepositoryInterface $salesPoints): JsonResponse
+    {
+        $this->requirePosAccess(Permission::POS_ACCESS);
+        $point = $current->get();
+        if ($point === null) {
+            $point = $salesPoints->findActive()[0] ?? null;
+            if ($point !== null) { $current->set($point); }
+        }
+        return $this->json(['data' => $point ? ['id'=>$point->getId(),'code'=>$point->getCode(),'name'=>$point->getName(),'type'=>$point->getType()->value] : null]);
+    }
+
+    #[Route('/app/pos/current-sales-point', name: 'pos_current_sales_point_set', methods: ['POST'], format: 'json')]
+    public function setCurrentSalesPoint(Request $request, CurrentSalesPoint $current, SalesPointRepositoryInterface $salesPoints, CsrfTokenManagerInterface $csrf): JsonResponse
+    {
+        $this->requirePosAccess(Permission::POS_ACCESS);
+        $token=(string)$request->headers->get('X-CSRF-TOKEN','');
+        if (!$csrf->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID,$token))) return $this->json(['errorCode'=>'CSRF_INVALID','message'=>'Invalid CSRF token.'],Response::HTTP_FORBIDDEN);
+        $id=$request->request->getInt('salesPointId',0);
+        $point=$id>0?$salesPoints->findById($id):null;
+        if ($point===null || !$point->isActive()) return $this->json(['errorCode'=>'SALES_POINT_UNAVAILABLE','message'=>'Sales point is not available.'],Response::HTTP_UNPROCESSABLE_ENTITY);
+        $current->set($point);
+        return $this->json(['data'=>['id'=>$point->getId(),'code'=>$point->getCode(),'name'=>$point->getName(),'type'=>$point->getType()->value]]);
+    }
+
+    #[Route('/app/pos/copy-from-order/{id<\d+>}', name: 'pos_copy_order_to_pos', methods: ['GET'], format: 'json')]
+    public function copyFromOrder(int $id, CopyOrderToPosHandler $handler): JsonResponse
+    {
+        $this->requirePosAccess(Permission::ORDER_VIEW);
+
+        $result = $handler(new CopyOrderToPosInput($id));
+        if ($result === null) {
+            return $this->json([
+                'errorCode' => 'ORDER_NOT_FOUND',
+                'message' => 'Order not found.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json([
+            'data' => [
+                'sourceOrderId' => $result->sourceOrderId,
+                'sourceOrderNumber' => $result->sourceOrderNumber,
+                'customer' => $result->customerId === null ? null : [
+                    'id' => $result->customerId,
+                    'name' => $result->customerName,
+                    'phone' => $result->customerPhone,
+                ],
+                'cashTenderedAmount' => $result->cashTenderedAmount,
+                'items' => array_map(static fn ($item): array => [
+                    'productId' => $item->productId,
+                    'name' => $item->name,
+                    'sku' => $item->sku,
+                    'unitPrice' => $item->unitPrice,
+                    'quantity' => $item->quantity,
+                    'active' => $item->active,
+                ], $result->items),
+            ],
         ]);
     }
 
@@ -152,6 +232,54 @@ final class CheckoutController extends AbstractController
                 'phone' => $customer->phone,
             ], $results),
         ]);
+    }
+
+    #[Route('/app/pos/customers', name: 'pos_customer_create', methods: ['POST'], format: 'json')]
+    public function createCustomer(
+        Request $request,
+        CreateCustomerHandler $handler,
+        CsrfTokenManagerInterface $csrf,
+    ): JsonResponse {
+        $this->requirePosAccess(Permission::CUSTOMER_CREATE);
+
+        $token = (string) $request->headers->get('X-CSRF-TOKEN', '');
+        if (!$csrf->isTokenValid(new CsrfToken(self::CSRF_TOKEN_ID, $token))) {
+            return $this->json([
+                'errorCode' => 'CSRF_INVALID',
+                'message' => 'Invalid CSRF token.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $payload = json_decode($request->getContent(), true);
+        if (!is_array($payload)) {
+            return $this->json([
+                'errorCode' => 'VALIDATION_ERROR',
+                'message' => 'Invalid customer payload.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        try {
+            $id = $handler(new CreateCustomerInput(
+                name: trim((string) ($payload['name'] ?? '')),
+                phone: isset($payload['phone']) ? trim((string) $payload['phone']) : null,
+                note: isset($payload['note']) ? trim((string) $payload['note']) : null,
+            ));
+
+            return $this->json([
+                'data' => [
+                    'id' => $id,
+                    'name' => trim((string) ($payload['name'] ?? '')),
+                    'phone' => isset($payload['phone']) && trim((string) $payload['phone']) !== ''
+                        ? trim((string) $payload['phone'])
+                        : null,
+                ],
+            ], Response::HTTP_CREATED);
+        } catch (\InvalidArgumentException | \DomainException $e) {
+            return $this->json([
+                'errorCode' => 'VALIDATION_ERROR',
+                'message' => $e->getMessage(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
     }
 
     #[Route('/app/pos/payment-bank-accounts', name: 'pos_payment_bank_accounts', methods: ['GET'], format: 'json')]
@@ -355,6 +483,7 @@ final class CheckoutController extends AbstractController
         RuntimeActorContextProvider $actorContextProvider,
         CsrfTokenManagerInterface $csrfTokenManager,
         PaymentReferenceNormalizer $referenceNormalizer,
+        CurrentSalesPoint $currentSalesPoint,
     ): JsonResponse {
         $requestId = $this->requestId($request);
 
@@ -379,6 +508,9 @@ final class CheckoutController extends AbstractController
 
         try {
             $payload = $request->toArray();
+            $current = $currentSalesPoint->get();
+            if ($current === null) { throw new \InvalidArgumentException('Select a sales point before checkout.'); }
+            $payload['salesPointId'] = $current->getId();
             $input = $this->toInput($payload, $idempotencyKey, $referenceNormalizer);
         } catch (\JsonException|\InvalidArgumentException $exception) {
             return $this->error('VALIDATION_ERROR', $exception->getMessage(), Response::HTTP_BAD_REQUEST, $requestId);
@@ -485,6 +617,9 @@ final class CheckoutController extends AbstractController
             throw new \InvalidArgumentException('customerId must be an integer or null.');
         }
 
+        $salesPointId = $payload['salesPointId'] ?? null;
+        if ($salesPointId !== null && !is_int($salesPointId)) { throw new \InvalidArgumentException('salesPointId must be an integer or null.'); }
+
         $note = $payload['note'] ?? null;
         if ($note !== null && !is_string($note)) {
             throw new \InvalidArgumentException('note must be a string or null.');
@@ -507,6 +642,7 @@ final class CheckoutController extends AbstractController
             paymentReference: $paymentReference,
             note: $note,
             idempotencyKey: $idempotencyKey,
+            salesPointId: $salesPointId,
         );
     }
 

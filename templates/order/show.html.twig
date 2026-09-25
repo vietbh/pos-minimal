@@ -48,6 +48,14 @@
         {% if order.note %}<div class="order-row"><span class="muted">{{ 'admin.note'|trans }}</span><span>{{ order.note }}</span></div>{% endif %}
     </section>
 
+    {% if is_granted('POS_ACCESS') and order.items is not empty %}
+        <section class="order-section order-copy-pos" aria-labelledby="order-copy-pos">
+            <h2 id="order-copy-pos">{{ 'order.copy_to_pos.title'|trans }}</h2>
+            <p class="muted">{{ 'order.copy_to_pos.help'|trans }}</p>
+            <a class="button primary" href="{{ path('pos', {copyFromOrder: order.id}) }}">{{ 'order.copy_to_pos.button'|trans }}</a>
+        </section>
+    {% endif %}
+
     <section class="order-section" aria-labelledby="order-items">
         <h2 id="order-items">{{ 'common.products'|trans }}</h2>
         {% for item in order.items %}

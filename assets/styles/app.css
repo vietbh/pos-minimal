@@ -1976,3 +1976,7 @@ body {
     }
 }
 
+
+.pos-sales-point-picker { display:flex; align-items:center; }
+.pos-sales-point-picker select { min-height:48px; min-width:140px; max-width:190px; padding:8px 34px 8px 12px; border:1px solid #CBD5E1; border-radius:10px; background:#fff; color:#172033; font:inherit; font-weight:600; }
+@media (max-width:430px) { .pos-sales-point-picker select { min-width:120px; max-width:145px; } }

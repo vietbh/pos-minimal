@@ -120,6 +120,12 @@ app:
   font_help: Chọn cỡ chữ dễ đọc nhất. Thiết lập được lưu cho tài khoản của bạn.
   choose_font: Chọn cỡ chữ
   save_font: Lưu cỡ chữ
+  change_password: Đổi mật khẩu
+  change_password_help: Đổi mật khẩu tài khoản bằng cách xác nhận mật khẩu hiện tại.
+  current_password: Mật khẩu hiện tại
+  new_password: Mật khẩu mới
+  confirm_password: Xác nhận mật khẩu
+  change_password_action: Đổi mật khẩu
   security: Bảo mật
   remember_help: Remember Me được quản lý tại màn hình đăng nhập. Khi đăng xuất, phiên hiện tại sẽ kết thúc.
   current_session: Phiên đăng nhập hiện tại
@@ -178,6 +184,7 @@ pos:
     increase: Tăng
     decrease: Giảm
   customer:
+    no_customers: Chưa có khách hàng nào.
     title: Khách hàng
     optional: Không bắt buộc
     remove: Bỏ chọn
@@ -213,6 +220,11 @@ pos:
     total_orders: Tổng đơn
     no_orders: Khách hàng chưa có đơn hàng nào.
     no_orders_permission: Bạn không có quyền xem lịch sử đơn hàng.
+    create_quick: '+ Tạo khách hàng nhanh'
+    created: 'Đã tạo và chọn khách hàng.'
+    create_failed: 'Không thể tạo khách hàng.'
+    name_required: 'Vui lòng nhập tên khách hàng.'
+    out_of_stock: 'Hết hàng'
   payment:
     title: Thanh toán
     order_total: Tổng đơn hàng
@@ -276,8 +288,8 @@ pos:
     search: Tìm kiếm
     apply: Áp dụng
     loading: Đang tải…
-    previous: Trước
-    next: Sau
+    previous: "<<"
+    next: ">>"
     edit: Chỉnh sửa
     active: Đang hoạt động
     inactive: Không hoạt động
@@ -288,9 +300,9 @@ pos:
     reason: Lý do
     date: Ngày
     type: Loại
-    before: Trước
+    before: "<<"
     change: Thay đổi
-    after: Sau
+    after: ">>"
     amount: Số tiền
     product: Sản phẩm
     products: Sản phẩm
@@ -317,6 +329,23 @@ pos:
     name_za: Tên Z–A
     apply_filters: Áp dụng bộ lọc
     low_stock: Sắp hết hàng
+    sales_points: Điểm bán hàng
+    pos_setup: Thiết lập POS
+    sales_points_help: Quản lý quầy POS, bàn và các địa điểm thanh toán khác.
+    no_sales_points: Chưa có điểm bán hàng nào.
+    edit_sales_point: Sửa điểm bán hàng
+    add_sales_point: Thêm điểm bán hàng
+    code: Mã
+    display_name: Tên hiển thị
+    type: Loại
+    group: Nhóm
+    none: — Không có —
+    generate_code: Tạo mã
+    sales_point_code_help: Bấm Tạo mã để tự sinh mã theo kiểu SKU. Cơ sở dữ liệu vẫn là nơi kiểm tra tính duy nhất cuối cùng.
+    sales_point_type_pos: POS / Quầy
+    sales_point_type_table: Bàn
+    sales_point_enabled: Đã bật điểm bán hàng.
+    sales_point_disabled: Đã tắt điểm bán hàng.
     stock_ok: Tồn kho ổn
     price: Giá
     low_threshold: Ngưỡng sắp hết
@@ -441,42 +470,6 @@ pos:
     product_image: Hình ảnh sản phẩm
     choose_image: Chọn hình ảnh
     upload: Tải lên
-  app:
-    customize: Tùy chỉnh
-    settings_title: Cài đặt
-    settings_help: Điều chỉnh cách Mobile POS hiển thị và hỗ trợ bạn sử dụng dễ dàng hơn.
-    font_size: Cỡ chữ
-    settings_saved: Thiết lập được lưu theo tài khoản và áp dụng trên toàn bộ ứng dụng.
-    appearance: Giao diện
-    appearance_help: Chọn sáng, tối hoặc theo thiết bị.
-    density: Mật độ giao diện
-    density_help: Điều chỉnh khoảng cách giữa các thành phần để dễ thao tác.
-    accessibility: Trợ năng
-    accessibility_help: Các tùy chọn này ưu tiên khả năng đọc và thao tác ổn định.
-    high_contrast: Tương phản cao
-    high_contrast_help: Tăng độ rõ của chữ, đường viền và trạng thái focus.
-    reduce_motion: Giảm chuyển động
-    reduce_motion_help: Giảm hoặc loại bỏ animation và transition không cần thiết.
-    save_settings: Lưu cài đặt
-    back_profile: Quay lại hồ sơ
-    account: Tài khoản
-    profile_title: Hồ sơ
-    profile_help: Quản lý thông tin cơ bản và cách hiển thị ứng dụng trên thiết bị này.
-    basic_info: Thông tin cơ bản
-    username_help: Tên đăng nhập được dùng để đăng nhập vào Mobile POS.
-    username: Tên đăng nhập
-    role: Vai trò
-    status: Trạng thái
-    save_info: Lưu thông tin
-    font_help: Chọn cỡ chữ dễ đọc nhất. Thiết lập được lưu cho tài khoản của bạn.
-    choose_font: Chọn cỡ chữ
-    save_font: Lưu cỡ chữ
-    security: Bảo mật
-    remember_help: Remember Me được quản lý tại màn hình đăng nhập. Khi đăng xuất, phiên hiện tại sẽ kết thúc.
-    current_session: Phiên đăng nhập hiện tại
-    logout_help: Đăng xuất sẽ đưa bạn về màn hình đăng nhập.
-    logout: Đăng xuất
-    locked: Đã khóa
   order:
     title: Đơn hàng
     help: Tra cứu lịch sử giao dịch và mở chi tiết từng đơn.
@@ -576,6 +569,7 @@ pos:
   configure_receiving_account: Cấu hình tài khoản nhận tiền
   transfer_cannot_exceed: Số tiền chuyển khoản không được vượt quá tổng đơn hàng
   enter_exact_transfer: Nhập đúng số tiền chuyển khoản
+  quantity_exceeds_stock: Số lượng vượt quá tồn kho hiện tại.
   cart_empty: Giỏ hàng phải có ít nhất một sản phẩm.
   payment_invalid: Số tiền thanh toán không hợp lệ.
   customer_tendered_zero: Số tiền khách đưa phải lớn hơn 0.
@@ -631,8 +625,8 @@ common:
   search: Tìm kiếm
   apply: Áp dụng
   loading: Đang tải…
-  previous: Trước
-  next: Sau
+  previous: "<<"
+  next: ">>"
   edit: Chỉnh sửa
   active: Đang hoạt động
   inactive: Không hoạt động
@@ -643,9 +637,9 @@ common:
   reason: Lý do
   date: Ngày
   type: Loại
-  before: Trước
+  before: "<<"
   change: Thay đổi
-  after: Sau
+  after: ">>"
   amount: Số tiền
   product: Sản phẩm
   products: Sản phẩm
@@ -930,6 +924,7 @@ debt:
   payment_required: Số tiền thanh toán là bắt buộc.
   payment_failed: Không thể hoàn tất thanh toán công nợ.
   payment_recorded: 'Đã ghi nhận thanh toán. Còn lại: {amount} đ'
+  payment_success: Thanh toán công nợ thành công.
 
 stat.overview_charts: "Biểu đồ tổng quan"
 stat.financial_overview: "Tổng quan dòng tiền"
@@ -942,3 +937,11 @@ stat.top_products_help: "Sản phẩm có số lượng bán cao nhất."
 stat.top_customers_help: "Khách hàng có tổng chi tiêu từ đơn hoàn tất cao nhất."
 stat.accessible_data: "Xem bảng dữ liệu"
 stat.accessible_data_help: "Mở bảng nếu bạn cần số liệu chính xác hoặc sử dụng công nghệ hỗ trợ."
+order.copy_to_pos:
+  title: Chuyển sang POS
+  help: Sao chép sản phẩm, khách hàng và số tiền khách đưa (nếu có) sang một lượt bán mới. Đơn cũ giữ nguyên để đối chiếu, không bị chỉnh sửa.
+  button: Sao chép sang POS
+pos.copy_loaded: 'Đã sao chép từ đơn #{order}. Đây là lượt bán mới; đơn cũ giữ nguyên để đối chiếu. Giá sản phẩm lấy theo giá hiện tại khi thanh toán.'
+pos.copy_loaded_with_inactive: 'Đã sao chép từ đơn #{order}. Có {count} sản phẩm hiện đã ngừng bán; hãy kiểm tra lại trước khi thanh toán.'
+pos.copy_failed: Không thể sao chép đơn sang POS.
+pos.copy_no_items: Đơn này không có sản phẩm để sao chép.

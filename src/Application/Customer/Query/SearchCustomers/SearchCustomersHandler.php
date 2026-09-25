@@ -43,4 +43,20 @@ final readonly class SearchCustomersHandler
             $limit,
         );
     }
+
+    /**
+     * Returns the default customer list for the customer management page.
+     * Search-by-empty-query intentionally remains empty for POS autocomplete.
+     *
+     * @return list<CustomerSearchResult>
+     */
+    public function list(int $limit = 10): array
+    {
+        if ($limit <= 0) {
+            throw new \InvalidArgumentException('Customer list limit must be greater than zero.');
+        }
+
+        return $this->customerQueryRepository->listCustomers(min($limit, self::MAX_LIMIT));
+    }
 }
+

@@ -13,6 +13,7 @@ use App\Domain\Payment\Repository\PaymentReferenceRepositoryInterface;
 use App\Domain\Customer\Customer;
 use App\Domain\Shared\ValueObject\Money;
 use App\Domain\User\User;
+use App\Domain\SalesPoint\SalesPoint;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class CheckoutPaymentSessionService
@@ -35,6 +36,7 @@ final readonly class CheckoutPaymentSessionService
         Money $amount,
         ?string $note,
         string $activeKey,
+        ?SalesPoint $salesPoint = null,
     ): array {
         $existing = $this->sessions->findActiveByKeyForUpdate($activeKey);
         if ($existing !== null) {
@@ -59,6 +61,7 @@ final readonly class CheckoutPaymentSessionService
             note: $note,
             activeKey: $activeKey,
             expiresAt: new \DateTimeImmutable(sprintf('+%d minutes', $this->expirationMinutes)),
+            salesPoint: $salesPoint,
         );
         $this->sessions->save($session);
         $this->em->flush();

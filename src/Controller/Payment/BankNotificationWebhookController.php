@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controller\Payment;
 
 use App\Application\Payment\Webhook\BankNotificationWebhookHandler;
+use App\Domain\Payment\Repository\PaymentBankAccountRepositoryInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,24 +13,28 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class BankNotificationWebhookController extends AbstractController
 {
-    public function __construct(
-        private readonly string $webhookToken,
-    ) {}
+    public function __construct() {}
 
     #[Route('/webhooks/bank-notification', name: 'webhook_bank_notification', methods: ['POST'], format: 'json')]
-    public function __invoke(Request $request, BankNotificationWebhookHandler $handler): JsonResponse
+    public function __invoke(Request $request, BankNotificationWebhookHandler $handler, PaymentBankAccountRepositoryInterface $accounts): JsonResponse
     {
         $provided = (string)$request->headers->get('X-Webhook-Token', '');
 
-        if ($this->webhookToken === '' || !hash_equals($this->webhookToken, $provided)) {
-            return $this->json([
-                'errorCode' => 'WEBHOOK_UNAUTHORIZED',
-                'message' => 'Invalid webhook token.',
-            ], Response::HTTP_UNAUTHORIZED);
-        }
-
         try {
-            $result = $handler->handle($request->toArray());
+            $payload = $request->toArray();
+            $bankAccountId = filter_var($payload['bankAccountId'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($bankAccountId === false) {
+                return $this->json(['errorCode'=>'BANK_ACCOUNT_REQUIRED','message'=>'bankAccountId is required.'], Response::HTTP_BAD_REQUEST);
+            }
+            $account = $accounts->findById((int)$bankAccountId);
+            if ($account === null || $provided === '' || !hash_equals($account->getWebhookToken(), $provided)) {
+                return $this->json([
+                    'errorCode' => 'WEBHOOK_UNAUTHORIZED',
+                    'message' => 'Invalid webhook token.',
+                ], Response::HTTP_UNAUTHORIZED);
+            }
+
+            $result = $handler->handle($payload);
 
             return $this->json([
                 'ok' => true,

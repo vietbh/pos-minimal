@@ -173,6 +173,35 @@ final class CustomerQueryRepository implements CustomerQueryRepositoryInterface
     /**
      * @return list<CustomerSearchResult>
      */
+    /**
+     * @return list<CustomerSearchResult>
+     */
+    public function listCustomers(int $limit): array
+    {
+        if ($limit <= 0) {
+            throw new \InvalidArgumentException('Customer list limit must be greater than zero.');
+        }
+
+        $rows = $this->entityManager
+            ->createQueryBuilder()
+            ->select('c.id AS id', 'c.name AS name', 'c.phone AS phone')
+            ->from(Customer::class, 'c')
+            ->orderBy('c.name', 'ASC')
+            ->addOrderBy('c.id', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(
+            static fn (array $row): CustomerSearchResult => new CustomerSearchResult(
+                id: (int) $row['id'],
+                name: (string) $row['name'],
+                phone: $row['phone'] !== null ? (string) $row['phone'] : null,
+            ),
+            $rows,
+        );
+    }
+
     public function searchCustomers(
         string $query,
         int $limit,

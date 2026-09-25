@@ -8,7 +8,7 @@ const MINOR_SCALE = 100n;
 export default class extends Controller {
     static targets = [
         'productSearch', 'productResults', 'productCategory', 'productCatalogMeta', 'productPagination', 'productPrevious', 'productNext', 'productPageIndicator', 'webhookEnrichment', 'webhookEnrichmentState', 'webhookProvider', 'webhookExternalId', 'webhookOccurredAt', 'webhookAmount', 'webhookDescription', 'customerSearch', 'customerResults',
-        'selectedCustomer', 'clearCustomer', 'cart', 'cartEmpty', 'cartCount',
+        'selectedCustomer', 'clearCustomer', 'openCustomerCreate', 'customerCreateModal', 'newCustomerName', 'newCustomerPhone', 'createCustomerButton', 'customerCreateError', 'cart', 'cartEmpty', 'cartCount', 'copySourceNotice',
         'cartTotal', 'submitButton', 'message', 'success', 'requestId', 'status',
         'retryButton', 'paymentMethods', 'paymentAmount', 'customerTendered',
         'paymentTotal', 'paymentApplied', 'paymentDue', 'paymentChange',
@@ -23,9 +23,12 @@ export default class extends Controller {
         productSearchUrl: String,
         productCatalogUrl: String,
         customerSearchUrl: String,
+        customerCreateUrl: String,
         timeout: { type: Number, default: DEFAULT_TIMEOUT_MS },
         paymentReferenceRegenerateBaseUrl: String,
         completeOrderBaseUrl: String,
+        copyFromOrderUrlBase: String,
+        copyFromOrderId: { type: Number, default: 0 },
         manualBankConfirmAvailable: Boolean,
         cartRemoveLabel: String,
         cartIncreaseLabel: String,
@@ -80,6 +83,7 @@ export default class extends Controller {
         this.paymentMethodChanged();
         this.loadProductCatalog(1);
         this.setStatus(this.messagesValue.ready);
+        void this.loadCopiedOrder();
     }
 
     disconnect() {
@@ -94,6 +98,85 @@ export default class extends Controller {
             this.currentTimeTimer = null;
         this.paymentReceivedResetTimer = null;
         this.paymentReceivedCountdownTimer = null;
+        }
+    }
+
+    async loadCopiedOrder() {
+        const sourceOrderId = Number(this.copyFromOrderIdValue || 0);
+        if (!Number.isInteger(sourceOrderId) || sourceOrderId <= 0) return;
+
+        const url = this.copyFromOrderUrlBaseValue.replace(/\/0$/, `/${sourceOrderId}`);
+
+        try {
+            const response = await fetch(url, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(body.message || this.messagesValue.copyFailed);
+            }
+
+            const data = body?.data;
+            if (!data || !Array.isArray(data.items) || data.items.length === 0) {
+                throw new Error(this.messagesValue.copyNoItems);
+            }
+
+            // Explicit copy replaces the current local cart. It never mutates
+            // the source order; checkout creates a completely new order.
+            this.cartItems = data.items
+                .filter((item) => Number.isInteger(Number(item.productId)) && Number(item.productId) > 0)
+                .filter((item) => Number.isInteger(Number(item.quantity)) && Number(item.quantity) > 0)
+                .map((item) => ({
+                    productId: Number(item.productId),
+                    name: String(item.name || `Product #${item.productId}`),
+                    sku: item.sku || null,
+                    unitPrice: String(item.unitPrice || '0.00'),
+                    quantity: Number(item.quantity),
+                    stockQuantity: Number.isFinite(Number(item.stockQuantity)) ? Number(item.stockQuantity) : null,
+                }));
+
+            if (data.customer?.id) {
+                this.customer = {
+                    id: Number(data.customer.id),
+                    name: String(data.customer.name || ''),
+                    phone: data.customer.phone ? String(data.customer.phone) : null,
+                };
+                this.selectedCustomerTarget.hidden = false;
+                this.selectedCustomerTarget.textContent = this.customer.phone
+                    ? `${this.customer.name} · ${this.customer.phone}`
+                    : this.customer.name;
+                this.clearCustomerTarget.hidden = false;
+                this.customerSearchTarget.value = '';
+                this.customerResultsTarget.replaceChildren();
+            } else {
+                this.clearCustomer();
+            }
+
+            this.persistCart();
+            this.renderCart();
+
+            const tendered = data.cashTenderedAmount;
+            if (tendered !== null && tendered !== undefined && this.paymentMethodValue() === 'CASH') {
+                this.customerTenderedAuto = false;
+                this.customerTenderedTarget.value = this.formatMajor(tendered);
+                this.customerTenderedChanged();
+            }
+
+            const inactiveCount = data.items.filter((item) => item?.active === false).length;
+            this.copySourceNoticeTarget.hidden = false;
+            this.copySourceNoticeTarget.textContent = inactiveCount > 0
+                ? this.messagesValue.copyLoadedWithInactive.replace('{order}', String(data.sourceOrderNumber || sourceOrderId))
+                    .replace('{count}', String(inactiveCount))
+                : this.messagesValue.copyLoaded.replace('{order}', String(data.sourceOrderNumber || sourceOrderId));
+
+            // Prevent an explicit copy from being repeated on a browser refresh.
+            const nextUrl = new URL(window.location.href);
+            nextUrl.searchParams.delete('copyFromOrder');
+            window.history.replaceState({}, '', nextUrl.toString());
+        } catch (error) {
+            this.copySourceNoticeTarget.hidden = false;
+            this.copySourceNoticeTarget.textContent = error?.message || this.messagesValue.copyFailed;
         }
     }
 
@@ -235,17 +318,29 @@ export default class extends Controller {
 
             info.append(name, meta);
 
+            const actions = document.createElement('div');
+            actions.className = 'pos-product-actions';
+
             const add = document.createElement('button');
             add.type = 'button';
             add.className = 'button primary pos-touch-button pos-add-product-button';
             add.textContent = '＋';
             add.setAttribute('aria-label', `${this.messagesValue.addProducts}: ${product.name}`);
             add.title = `${this.messagesValue.addProducts}: ${product.name}`;
-            add.disabled = Number(product.stockQuantity) <= 0;
+            const stock = Number(product.stockQuantity);
+            add.disabled = stock <= 0;
             add.dataset.action = 'click->pos-checkout#addToCart';
             add.dataset.productId = String(product.id);
 
-            row.append(info, add);
+            if (stock <= 0) {
+                const unavailable = document.createElement('span');
+                unavailable.className = 'pos-stock-warning';
+                unavailable.textContent = this.messagesValue.outOfStock;
+                unavailable.setAttribute('role', 'status');
+                actions.append(unavailable);
+            }
+            actions.append(add);
+            row.append(info, actions);
             return row;
         }));
     }
@@ -256,9 +351,19 @@ export default class extends Controller {
         if (!product) return;
 
         const productId = Number(product.id);
+        const stock = Number(product.stockQuantity);
+        if (!Number.isFinite(stock) || stock <= 0) {
+            this.setStatus(this.messagesValue.outOfStock);
+            return;
+        }
+
         const existing = this.cartItems.find((item) => item.productId === productId);
 
         if (existing) {
+            if (existing.quantity >= stock) {
+                this.setStatus('Số lượng đã đạt tồn kho hiện tại.');
+                return;
+            }
             existing.quantity += 1;
         } else {
             this.cartItems.push({
@@ -267,6 +372,7 @@ export default class extends Controller {
                 sku: product.sku,
                 unitPrice: product.sellingPrice,
                 quantity: 1,
+                stockQuantity: stock,
             });
         }
 
@@ -284,11 +390,66 @@ export default class extends Controller {
         const item = this.cartItems.find((entry) => entry.productId === productId);
         if (!item) return;
 
-        item.quantity += delta;
+        const nextQuantity = item.quantity + delta;
+        if (nextQuantity > 0) {
+            const product = this.products.get(String(productId));
+            const stockValue = product ? product.stockQuantity : item.stockQuantity;
+            const stock = stockValue === null || stockValue === undefined || stockValue === '' ? null : Number(stockValue);
+            if (stock !== null && Number.isFinite(stock) && stock >= 0 && nextQuantity > stock) {
+                this.setStatus(this.messagesValue.quantityExceedsStock);
+                return;
+            }
+        }
+
+        item.quantity = nextQuantity;
         if (item.quantity <= 0) {
             this.cartItems = this.cartItems.filter((entry) => entry.productId !== productId);
         }
 
+        this.persistCart();
+        this.renderCart();
+    }
+
+    quantityChanged(event) {
+        const input = event.currentTarget;
+        const productId = Number(input.dataset.productId);
+        if (!Number.isInteger(productId)) return;
+
+        const item = this.cartItems.find((entry) => entry.productId === productId);
+        if (!item) return;
+
+        const digits = String(input.value || '').replace(/[^0-9]/g, '');
+        if (digits === '') {
+            input.value = String(item.quantity);
+            return;
+        }
+
+        let quantity = Number(digits);
+        if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+            input.value = String(item.quantity);
+            return;
+        }
+
+        const product = this.products.get(String(productId));
+        const stockValue = product ? product.stockQuantity : item.stockQuantity;
+        const stock = stockValue === null || stockValue === undefined || stockValue === '' ? null : Number(stockValue);
+        if (stock !== null && Number.isFinite(stock) && stock >= 0 && quantity > stock) {
+            quantity = stock;
+            this.setStatus(this.messagesValue.quantityExceedsStock);
+        }
+
+        if (quantity <= 0) {
+            this.removeItemById(productId);
+            return;
+        }
+
+        item.quantity = quantity;
+        this.persistCart();
+        this.renderCart();
+    }
+
+    removeItemById(productId) {
+        this.cartItems = this.cartItems.filter((entry) => entry.productId !== productId);
         this.persistCart();
         this.renderCart();
     }
@@ -348,9 +509,14 @@ export default class extends Controller {
             controls.className = 'pos-cart-controls';
 
             const minus = this.quantityButton('−', this.cartDecreaseLabelValue, item, -1);
-            const count = document.createElement('strong');
-            count.textContent = String(item.quantity);
+            const count = document.createElement('input');
+            count.type = 'text';
+            count.inputMode = 'numeric';
+            count.value = String(item.quantity);
             count.className = 'pos-quantity';
+            count.dataset.action = 'input->pos-checkout#quantityChanged change->pos-checkout#quantityChanged';
+            count.dataset.productId = String(item.productId);
+            count.setAttribute('aria-label', `Số lượng ${item.name || `Product #${item.productId}`}`);
             const plus = this.quantityButton('+', this.cartIncreaseLabelValue, item, 1);
 
             const remove = document.createElement('button');
@@ -466,6 +632,79 @@ export default class extends Controller {
         this.updatePaymentState(this.cartTotalMinor());
     }
 
+    openCustomerCreate() {
+        if (!this.hasCustomerCreateModalTarget) return;
+        this.customerCreateErrorTarget.hidden = true;
+        this.customerCreateErrorTarget.textContent = '';
+        this.newCustomerNameTarget.value = '';
+        this.newCustomerPhoneTarget.value = '';
+        this.customerCreateModalTarget.hidden = false;
+        this.newCustomerNameTarget.focus();
+    }
+
+    closeCustomerCreate() {
+        if (!this.hasCustomerCreateModalTarget) return;
+        this.customerCreateModalTarget.hidden = true;
+        this.customerCreateErrorTarget.hidden = true;
+    }
+
+    async createCustomer() {
+        if (this.inFlight) return;
+        const name = this.newCustomerNameTarget.value.trim();
+        const phone = this.newCustomerPhoneTarget.value.trim();
+
+        if (!name) {
+            this.customerCreateErrorTarget.textContent = this.messagesValue.customerNameRequired;
+            this.customerCreateErrorTarget.hidden = false;
+            this.newCustomerNameTarget.focus();
+            return;
+        }
+
+        this.createCustomerButtonTarget.disabled = true;
+        this.customerCreateErrorTarget.hidden = true;
+
+        try {
+            const response = await fetch(this.customerCreateUrlValue, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': this.csrfTokenValue,
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ name, phone: phone || null }),
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(body.message || this.messagesValue.customerCreateFailed);
+            }
+
+            const customer = body.data;
+            this.customer = {
+                id: Number(customer.id),
+                name: String(customer.name || name),
+                phone: customer.phone ? String(customer.phone) : null,
+            };
+            this.selectedCustomerTarget.hidden = false;
+            this.selectedCustomerTarget.textContent = this.customer.phone
+                ? `${this.customer.name} · ${this.customer.phone}`
+                : this.customer.name;
+            this.clearCustomerTarget.hidden = false;
+            this.customerSearchTarget.value = '';
+            this.customerResultsTarget.replaceChildren();
+            this.closeCustomerCreate();
+            this.updatePaymentState(this.cartTotalMinor());
+            this.setStatus(this.messagesValue.customerCreated);
+        } catch (error) {
+            this.customerCreateErrorTarget.textContent = error instanceof Error
+                ? error.message
+                : this.messagesValue.customerCreateFailed;
+            this.customerCreateErrorTarget.hidden = false;
+        } finally {
+            this.createCustomerButtonTarget.disabled = false;
+        }
+    }
+
     paymentMethodValue() {
         const selected = this.paymentMethodsTargets.find((input) => input.checked);
         return selected?.value || 'CASH';
@@ -560,6 +799,7 @@ export default class extends Controller {
     }
 
     customerTenderedChanged() {
+        this.formatMoneyInput(this.customerTenderedTarget);
         const totalMinor = this.cartTotalMinor();
         const enteredMinor = this.safeParseMinor(this.customerTenderedTarget.value);
         this.customerTenderedAuto = this.customerTenderedTarget.value.trim() !== '' && enteredMinor === totalMinor;
@@ -575,7 +815,34 @@ export default class extends Controller {
     }
 
     paymentAmountChanged() {
+        this.formatMoneyInput(this.paymentAmountTarget);
         this.updatePaymentState(this.cartTotalMinor());
+    }
+
+    formatMoneyInput(input) {
+        if (!input) return;
+        const value = String(input.value || '');
+        const caret = Number.isInteger(input.selectionStart) ? input.selectionStart : value.length;
+        const digitsBeforeCaret = value.slice(0, caret).replace(/[^0-9]/g, '').length;
+        const raw = value.replace(/[^0-9]/g, '');
+        if (raw === '') return;
+
+        const normalized = raw.replace(/^0+(?=\d)/, '');
+        const formatted = Number(normalized).toLocaleString('en-US');
+        input.value = formatted;
+
+        let digitCount = 0;
+        let nextCaret = formatted.length;
+        for (let index = 0; index < formatted.length; index += 1) {
+            if (/\d/.test(formatted[index])) digitCount += 1;
+            if (digitCount >= digitsBeforeCaret) {
+                nextCaret = index + 1;
+                break;
+            }
+        }
+        if (input === document.activeElement && typeof input.setSelectionRange === 'function') {
+            input.setSelectionRange(nextCaret, nextCaret);
+        }
     }
 
     updatePaymentState(totalMinor) {
@@ -609,7 +876,6 @@ export default class extends Controller {
             this.paymentChangeTarget.textContent = this.formatMinor(change);
 
             const canCompleteCash = totalMinor > 0n
-                && enteredMinor > 0n
                 && (enteredMinor >= totalMinor || this.customer !== null);
 
             this.paymentDueRowTarget.hidden = due === 0n;
@@ -617,7 +883,9 @@ export default class extends Controller {
             this.paymentStateTarget.textContent = totalMinor === 0n
                 ? this.messagesValue.addProducts
                 : enteredMinor <= 0n
-                    ? this.messagesValue.enterCustomerAmount
+                    ? this.customer !== null
+                        ? this.messagesValue.debtWillBeCreated
+                        : this.messagesValue.selectCustomerOrFullPayment
                     : change > 0n
                         ? this.messagesValue.changeDue
                         : due > 0n
@@ -742,11 +1010,11 @@ export default class extends Controller {
             return;
         }
 
-        if (enteredMinor <= 0n) {
+        if (enteredMinor < 0n || (!isCash && enteredMinor === 0n) || (isCash && enteredMinor === 0n && this.customer === null)) {
             this.handleError({
-                status: 400,
-                errorCode: 'VALIDATION_ERROR',
-                message: isCash ? this.messagesValue.customerTenderedZero : this.messagesValue.transferZero,
+                status: 422,
+                errorCode: isCash ? 'DEBT_CUSTOMER_REQUIRED' : 'VALIDATION_ERROR',
+                message: isCash ? this.messagesValue.selectCustomerOrFullPayment : this.messagesValue.transferZero,
             });
             return;
         }
@@ -848,6 +1116,10 @@ export default class extends Controller {
         this.clearMessage();
         this.successTarget.hidden = true;
         this.saleViewTarget.hidden = false;
+        if (this.hasCopySourceNoticeTarget) {
+            this.copySourceNoticeTarget.hidden = true;
+            this.copySourceNoticeTarget.textContent = '';
+        }
         this.cartItems = [];
         this.persistCart();
         this.customer = null;

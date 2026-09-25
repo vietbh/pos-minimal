@@ -111,6 +111,9 @@ final readonly class PayDebtHandler
                     $payment = new DebtPayment($amount, $user);
                     $payment->assignDebt($debt);
                     $debt->addPayment($payment);
+                    // Persist both sides explicitly. The debt status/remaining
+                    // balance is part of the same financial mutation as the payment.
+                    $this->debtRepository->save($debt);
                     $this->paymentRepository->save($payment);
 
                     $session = $actor->sessionId === null

@@ -6,6 +6,36 @@ export default class extends Controller {
     connect() {
         this.manualSku = this.skuTarget.value.trim() !== "";
         this.generatedPreview = false;
+        this.formatMoneyInput(this.sellingPriceTarget);
+        if (this.hasCostPriceTarget) this.formatMoneyInput(this.costPriceTarget);
+    }
+
+    moneyChanged(event) {
+        this.formatMoneyInput(event.currentTarget);
+    }
+
+    formatMoneyInput(input) {
+        const value = String(input.value || '');
+        const caret = Number.isInteger(input.selectionStart) ? input.selectionStart : value.length;
+        const digitsBeforeCaret = value.slice(0, caret).replace(/[^0-9]/g, '').length;
+        const raw = value.replace(/[^0-9]/g, '');
+        if (raw === '') return;
+        const normalized = raw.replace(/^0+(?=\d)/, '');
+        const formatted = Number(normalized).toLocaleString('en-US');
+        input.value = formatted;
+        let digits = 0;
+        let nextCaret = formatted.length;
+        for (let i = 0; i < formatted.length; i += 1) {
+            if (/\d/.test(formatted[i])) digits += 1;
+            if (digits >= digitsBeforeCaret) { nextCaret = i + 1; break; }
+        }
+        if (input === document.activeElement && typeof input.setSelectionRange === 'function') {
+            input.setSelectionRange(nextCaret, nextCaret);
+        }
+    }
+
+    unformatMoneyInput(input) {
+        input.value = String(input.value || '').replace(/,/g, '');
     }
 
     nameChanged() {
@@ -36,6 +66,8 @@ export default class extends Controller {
 
     submit(event) {
         this.clearValidation();
+        this.unformatMoneyInput(this.sellingPriceTarget);
+        if (this.hasCostPriceTarget) this.unformatMoneyInput(this.costPriceTarget);
 
         if (!this.validateRequired(this.nameTarget, "Tên sản phẩm là bắt buộc.")) {
             event.preventDefault();

@@ -14,6 +14,7 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
 
     public function getSalesSummary(StatisticsQueryInput $input): SalesSummary
     {
+        $filter = $this->salesPointFilter($input, 'o');
         $o = $this->connection->fetchAssociative(
             "SELECT
         COALESCE(SUM(CASE WHEN status IN ('COMPLETED','REFUNDED') THEN total ELSE 0 END),0) AS gross_sales,
@@ -21,33 +22,41 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
         COUNT(CASE WHEN status='COMPLETED' THEN 1 END) AS completed_orders,
         COUNT(CASE WHEN status='CANCELLED' THEN 1 END) AS cancelled_orders,
         COUNT(CASE WHEN status='REFUNDED' THEN 1 END) AS refunded_orders
-     FROM orders
-     WHERE created_at >= :from AND created_at < :to",
-            $this->dateRangeParams($input),
-            $this->dateRangeTypes(),
+     FROM orders o
+     WHERE o.created_at >= :from AND created_at < :to
+       {$filter['sql']}",
+            $this->params($input, $filter['params']),
+            $this->dateRangeTypes($filter['params']),
         );
+        $refundFilter = $this->salesPointFilter($input, 'o');
         $r = $this->connection->fetchAssociative(
             "SELECT COALESCE(SUM(amount),0) AS refunded_amount
-     FROM order_financial_reversals
-     WHERE type='REFUND' AND created_at >= :from AND created_at < :to",
-            $this->dateRangeParams($input),
-            $this->dateRangeTypes(),
+     FROM order_financial_reversals r
+     INNER JOIN orders o ON o.id=r.order_id
+     WHERE r.type='REFUND' AND r.created_at >= :from AND r.created_at < :to
+       {$refundFilter['sql']}",
+            $this->params($input, $refundFilter['params']),
+            $this->dateRangeTypes($refundFilter['params']),
         );
         $p = $this->connection->fetchAssociative(
             "SELECT
         COALESCE(
             (SELECT SUM(amount)
-             FROM payments
-             WHERE created_at >= :from AND created_at < :to), 0
+             FROM payments p
+             INNER JOIN orders o ON o.id=p.order_id
+             WHERE p.created_at >= :from AND p.created_at < :to
+             {$filter['sql']}), 0
         )
         -
         COALESCE(
             (SELECT SUM(amount)
-             FROM order_financial_reversals
-             WHERE created_at >= :from AND created_at < :to), 0
+             FROM order_financial_reversals r
+             INNER JOIN orders o ON o.id=r.order_id
+             WHERE r.created_at >= :from AND r.created_at < :to
+             {$filter['sql']}), 0
         ) AS collected",
-            $this->dateRangeParams($input),
-            $this->dateRangeTypes(),
+            $this->params($input, $filter['params']),
+            $this->dateRangeTypes($filter['params']),
         );
         $gross = (string)$o['gross_sales'];
         $cancelled = (string)$o['cancelled_amount'];
@@ -59,22 +68,26 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
 
     public function getPaymentBreakdown(StatisticsQueryInput $input): array
     {
+        $filter = $this->salesPointFilter($input, 'o');
         $rows = $this->connection->fetchAllAssociative(
             "SELECT method AS payment_method,
             COALESCE(SUM(amount),0) AS amount,
             COUNT(*) AS payment_count
-     FROM payments
-     WHERE created_at >= :from AND created_at < :to
+     FROM payments p
+     INNER JOIN orders o ON o.id=p.order_id
+     WHERE p.created_at >= :from AND p.created_at < :to
+       {$filter['sql']}
      GROUP BY method
      ORDER BY method ASC",
-            $this->dateRangeParams($input),
-            $this->dateRangeTypes(),
+            $this->params($input, $filter['params']),
+            $this->dateRangeTypes($filter['params']),
         );
         return array_map(fn(array $row) => new PaymentBreakdown((string)$row['payment_method'], (string)$row['amount'], (int)$row['payment_count']), $rows);
     }
 
     public function getDebtSummary(StatisticsQueryInput $input): DebtSummary
     {
+        $filter = $this->salesPointFilter($input, 'o');
         $row = $this->connection->fetchAssociative(
             "SELECT COUNT(*) AS debt_count,
             COALESCE(SUM(d.original_amount),0) AS original_amount,
@@ -92,20 +105,23 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
                 0
             ) AS outstanding_amount
      FROM debts d
+     INNER JOIN orders o ON o.id=d.order_id
      LEFT JOIN (
         SELECT debt_id, SUM(amount) paid_amount
         FROM debt_payments
         GROUP BY debt_id
      ) dp ON dp.debt_id=d.id
-     WHERE d.created_at >= :from AND d.created_at < :to",
-            $this->dateRangeParams($input),
-            $this->dateRangeTypes(),
+     WHERE d.created_at >= :from AND d.created_at < :to
+       {$filter['sql']}",
+            $this->params($input, $filter['params']),
+            $this->dateRangeTypes($filter['params']),
         );
         return new DebtSummary((int)$row['debt_count'],(string)$row['original_amount'],(string)$row['collected_amount'],(string)$row['outstanding_amount']);
     }
 
     public function getTopProducts(StatisticsQueryInput $input): array
     {
+        $filter = $this->salesPointFilter($input, 'o');
         $rows = $this->connection->fetchAllAssociative(
             "SELECT oi.product_id,
             oi.product_name AS name,
@@ -116,17 +132,19 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
      WHERE o.created_at >= :from
        AND o.created_at < :to
        AND o.status='COMPLETED'
+       {$filter['sql']}
      GROUP BY oi.product_id, oi.product_name
      ORDER BY quantity DESC, oi.product_id ASC
      LIMIT ".$input->limit,
-            $this->dateRangeParams($input),
-            $this->dateRangeTypes(),
+            $this->params($input, $filter['params']),
+            $this->dateRangeTypes($filter['params']),
         );
         return array_map(fn(array $r)=>new TopProduct((int)$r['product_id'],(string)$r['name'],(int)$r['quantity'],(string)$r['sales_amount']),$rows);
     }
 
     public function getTopCustomers(StatisticsQueryInput $input): array
     {
+        $filter = $this->salesPointFilter($input, 'o');
         $rows = $this->connection->fetchAllAssociative(
             "SELECT o.customer_id,
             c.name,
@@ -138,11 +156,12 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
        AND o.created_at < :to
        AND o.status='COMPLETED'
        AND o.customer_id IS NOT NULL
+       {$filter['sql']}
      GROUP BY o.customer_id, c.name
      ORDER BY total_spent DESC, o.customer_id ASC
      LIMIT ".$input->limit,
-            $this->dateRangeParams($input),
-            $this->dateRangeTypes(),
+            $this->params($input, $filter['params']),
+            $this->dateRangeTypes($filter['params']),
         );
         return array_map(fn(array $r)=>new TopCustomer((int)$r['customer_id'],(string)$r['name'],(int)$r['order_count'],(string)$r['total_spent']),$rows);
     }
@@ -188,6 +207,15 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
         return $negative ? -$minor : $minor;
     }
 
+    private function salesPointFilter(StatisticsQueryInput $input, string $alias): array
+    {
+        if ($input->salesPointId === null) return ['sql' => '', 'params' => []];
+        return ['sql' => 'AND '.$alias.'.sales_point_id = :salesPointId', 'params' => ['salesPointId' => $input->salesPointId]];
+    }
+
+    private function params(StatisticsQueryInput $input, array $extra = []): array
+    { return array_merge($this->dateRangeParams($input), $extra); }
+
     private function dateRangeParams(StatisticsQueryInput $input): array
     {
         return [
@@ -196,11 +224,8 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
         ];
     }
 
-    private function dateRangeTypes(): array
+    private function dateRangeTypes(array $extra = []): array
     {
-        return [
-            'from' => Types::DATETIME_IMMUTABLE,
-            'to' => Types::DATETIME_IMMUTABLE,
-        ];
+        return array_merge(['from' => Types::DATETIME_IMMUTABLE, 'to' => Types::DATETIME_IMMUTABLE], $extra ? ['salesPointId' => Types::INTEGER] : []);
     }
 }

@@ -28,6 +28,8 @@ use App\Domain\Order\ValueObject\OrderNumber;
 use App\Domain\Payment\Enum\PaymentMethod;
 use App\Domain\Payment\PaymentBankAccount;
 use App\Domain\Payment\Repository\PaymentBankAccountRepositoryInterface;
+use App\Domain\SalesPoint\SalesPoint;
+use App\Domain\SalesPoint\Repository\SalesPointRepositoryInterface;
 use App\Application\Payment\Reference\CheckoutPaymentSessionService;
 use App\Application\Payment\Enum\BankTransferCompletionPolicy;
 use App\Domain\Product\Product;
@@ -57,6 +59,7 @@ final readonly class CheckoutHandler
         private OrderRepositoryInterface $orderRepository,
         private PaymentRepositoryInterface $paymentRepository,
         private PaymentBankAccountRepositoryInterface $paymentBankAccountRepository,
+        private SalesPointRepositoryInterface $salesPointRepository,
         private CheckoutPaymentSessionService $checkoutPaymentSessionService,
         private string $bankTransferCompletionPolicy,
         private DebtRepositoryInterface $debtRepository,
@@ -223,6 +226,7 @@ final readonly class CheckoutHandler
         $session = $this->resolveSession($actorContext);
         $customer = $this->resolveCustomer($input->customerId);
         $bankAccount = $this->resolveBankAccount($input);
+        $salesPoint = $this->resolveSalesPoint($input->salesPointId);
         $isBankTransfer = $input->payment->method === PaymentMethod::BANK_TRANSFER;
         $paymentReferenceResult = null;
 
@@ -274,6 +278,7 @@ final readonly class CheckoutHandler
                 amount: $calculatedTotal,
                 note: $input->note,
                 activeKey: $this->buildRequestFingerprint($input),
+                salesPoint: $salesPoint,
             );
 
             return new CheckoutResult(
@@ -299,6 +304,7 @@ final readonly class CheckoutHandler
             user: $user,
             customer: $customer,
             note: $input->note,
+            salesPoint: $salesPoint,
         );
 
         foreach ($productIds as $productId) {
@@ -331,8 +337,12 @@ final readonly class CheckoutHandler
             );
             $order->addPayment($payment);
             $this->paymentRepository->save($payment);
-            $order->complete();
         }
+
+        // A cash checkout may legitimately have tenderedAmount = 0 when the
+        // customer is buying on credit. The debt/customer invariant is
+        // enforced below, while the order must still become COMPLETED.
+        $order->complete();
 
         $this->orderRepository->save($order);
         $transaction->flush();
@@ -472,6 +482,18 @@ final readonly class CheckoutHandler
         );
     }
 
+    private function resolveSalesPoint(?int $salesPointId): ?SalesPoint
+    {
+        if ($salesPointId === null) {
+            return null;
+        }
+        $salesPoint = $this->salesPointRepository->findById($salesPointId);
+        if ($salesPoint === null || !$salesPoint->isActive()) {
+            throw new \DomainException('Sales point is not available.');
+        }
+        return $salesPoint;
+    }
+
     private function resolveCustomer(
         ?int $customerId,
     ): ?Customer {
@@ -571,6 +593,10 @@ final readonly class CheckoutHandler
             throw new \InvalidArgumentException('Receiving bank account is required for bank transfer.');
         }
 
+        if ($input->salesPointId !== null && $input->salesPointId <= 0) {
+            throw new \InvalidArgumentException('Sales point ID must be greater than zero.');
+        }
+
         if (trim($input->idempotencyKey) === '') {
             throw new \InvalidArgumentException(
                 'Idempotency key cannot be empty.',
@@ -619,6 +645,7 @@ final readonly class CheckoutHandler
         $payload = [
             'items' => $items,
             'customerId' => $input->customerId,
+            'salesPointId' => $input->salesPointId,
             'payment' => [
                 'method' => $input->payment->method->value,
                 'amount' => $input->payment->amount->toDecimal(),

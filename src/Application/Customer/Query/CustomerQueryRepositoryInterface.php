@@ -18,4 +18,7 @@ interface CustomerQueryRepositoryInterface
         string $query,
         int $limit,
     ): array;
+
+    /** @return list<CustomerSearchResult> */
+    public function listCustomers(int $limit): array;
 }

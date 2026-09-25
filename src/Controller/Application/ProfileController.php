@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Application;
 
+use App\Application\User\ChangePasswordService;
 use App\Domain\User\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,6 +23,7 @@ final class ProfileController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         CsrfTokenManagerInterface $csrfTokenManager,
+        ChangePasswordService $changePasswordService,
     ): Response {
         $this->denyAccessUnlessGranted('ROLE_USER');
 
@@ -34,6 +36,23 @@ final class ProfileController extends AbstractController
             $token = new CsrfToken('profile_settings', (string) $request->request->get('_token'));
             if (!$csrfTokenManager->isTokenValid($token)) {
                 throw $this->createAccessDeniedException('Invalid CSRF token.');
+            }
+
+            if ($request->request->has('current_password')) {
+                try {
+                    $changePasswordService->change(
+                        $user,
+                        (string) $request->request->get('current_password'),
+                        (string) $request->request->get('new_password'),
+                        (string) $request->request->get('confirm_password'),
+                    );
+                    $this->addFlash('success', 'Mật khẩu đã được thay đổi.');
+                } catch (\DomainException $exception) {
+                    $this->addFlash('error', $exception->getMessage());
+                } catch (\Throwable $exception) {
+                    $this->addFlash('error', 'Không thể thay đổi mật khẩu. Vui lòng thử lại.');
+                }
+                return $this->redirectToRoute('app_profile');
             }
 
             $username = trim((string) $request->request->get('username', $user->getUsername()));

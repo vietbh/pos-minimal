@@ -23,14 +23,5 @@ final readonly class CheckoutPaymentInput
             );
         }
 
-        if (
-            $this->method === PaymentMethod::CASH
-            && $this->tenderedAmount !== null
-            && !$this->tenderedAmount->isPositive()
-        ) {
-            throw new \InvalidArgumentException(
-                'Cash tendered amount must be greater than zero.',
-            );
-        }
     }
 }

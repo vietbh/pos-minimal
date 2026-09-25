@@ -23,7 +23,7 @@ final class CustomerController extends AbstractController
 {
     #[Route('/app/customers', name: 'customers_index', methods: ['GET'])]
     public function index(Request $request, SearchCustomersHandler $search): Response
-    { $this->denyAccessUnlessGranted(Permission::CUSTOMER_VIEW->value); $q=trim((string)$request->query->get('q','')); $customers=$q===''?[]:$search(new SearchCustomersInput($q,50)); return $this->render('customer/index.html.twig', compact('customers','q')); }
+    { $this->denyAccessUnlessGranted(Permission::CUSTOMER_VIEW->value); $q=trim((string)$request->query->get('q','')); $customers=$q===''?$search->list(10):$search(new SearchCustomersInput($q,10)); return $this->render('customer/index.html.twig', compact('customers','q')); }
 
     #[Route('/app/customers/new', name: 'customers_new', methods: ['GET','POST'])]
     public function new(Request $request, CreateCustomerHandler $handler, CsrfTokenManagerInterface $csrf): Response

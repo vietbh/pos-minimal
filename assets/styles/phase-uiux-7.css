@@ -604,3 +604,37 @@
         grid-column: auto;
     }
 }
+
+.pos-product-actions { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+.pos-stock-warning { font-size:14px; font-weight:800; color:#B91C1C; white-space:nowrap; }
+.pos-modal[hidden] { display:none !important; }
+.pos-modal { position:fixed; inset:0; z-index:1000; display:flex; align-items:flex-end; justify-content:center; background:rgba(15,23,42,.42); padding:12px; }
+.pos-modal-panel { width:min(100%,560px); max-height:90vh; overflow:auto; background:#FFFFFF; border:1px solid #CBD5E1; border-radius:18px 18px 0 0; padding:20px; box-shadow:0 20px 50px rgba(15,23,42,.2); }
+.pos-modal-panel label { display:block; margin:12px 0; font-weight:700; }
+.pos-modal-panel input { width:100%; min-height:48px; margin-top:6px; box-sizing:border-box; }
+.pos-modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:18px; }
+.pos-modal .pos-error { margin-top:12px; }
+@media (min-width: 700px) { .pos-modal { align-items:center; } .pos-modal-panel { border-radius:18px; } }
+
+/* POS quick quantity entry: keep the field visible and touch-friendly. */
+.pos-quantity {
+    width: 72px;
+    min-width: 72px;
+    min-height: 48px;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--color-text);
+    text-align: center;
+    font-size: 16px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.pos-quantity:focus {
+    outline: 3px solid rgba(37, 99, 235, .2);
+    outline-offset: 1px;
+    border-color: var(--color-primary);
+}

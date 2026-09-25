@@ -136,6 +136,17 @@ final class PosCheckoutUiContractTest extends TestCase
         self::assertStringContainsString('data-pos-checkout-target="paymentChange"', $this->templateSource);
     }
 
+    public function testQuickQuantityInputAndDebtCustomerGateAreRepresentedInTheUiContract(): void
+    {
+        self::assertStringContainsString('quantityChanged', $this->controllerSource);
+        self::assertStringContainsString("data-action = 'input->pos-checkout#quantityChanged change->pos-checkout#quantityChanged'", $this->controllerSource);
+        self::assertStringContainsString('const canCompleteCash = totalMinor > 0n', $this->controllerSource);
+        self::assertStringContainsString('this.customer !== null', $this->controllerSource);
+        self::assertStringContainsString('this.messagesValue.selectCustomerOrFullPayment', $this->controllerSource);
+        self::assertStringContainsString('this.messagesValue.debtWillBeCreated', $this->controllerSource);
+        self::assertStringContainsString('quantity_exceeds_stock', $this->templateSource);
+    }
+
     public function testMoneyUsesMinorUnitsWithoutFloatingPointArithmetic(): void
     {
         self::assertStringContainsString('parseMajorToMinor', $this->controllerSource);

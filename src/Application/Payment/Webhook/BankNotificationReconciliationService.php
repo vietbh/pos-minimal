@@ -239,6 +239,7 @@ final readonly class BankNotificationReconciliationService
             user: $session->getUser(),
             customer: $session->getCustomer(),
             note: $session->getNote(),
+            salesPoint: $session->getSalesPoint(),
         );
 
         foreach ($session->getCartSnapshot() as $item) {

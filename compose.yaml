@@ -31,6 +31,40 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+  database_dev:
+    image: mysql:8.0
+    container_name: dev_mobile_pos_mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_DATABASE: dev_mobile_pos
+      MYSQL_USER: dev_mobile_pos
+      MYSQL_PASSWORD: dev_mobile_pos
+      MYSQL_ROOT_PASSWORD: root_mobile_pos
+
+    ports:
+      - "3308:3306"
+
+    volumes:
+      - dev_mysql_data:/var/lib/mysql
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "dev_mobile_pos",
+          "-pdev_mobile_pos"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 
 volumes:
   mysql_data:
+  dev_mysql_data:

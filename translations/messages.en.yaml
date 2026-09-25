@@ -120,6 +120,12 @@ app:
   font_help: Choose the most readable font size. The setting is saved to your account.
   choose_font: Choose font size
   save_font: Save font size
+  change_password: Change password
+  change_password_help: Change your account password by confirming your current password.
+  current_password: Current password
+  new_password: New password
+  confirm_password: Confirm password
+  change_password_action: Change password
   security: Security
   remember_help: Remember Me is managed on the login screen. Signing out ends the current session.
   current_session: Current session
@@ -178,6 +184,7 @@ pos:
     increase: Increase
     decrease: Decrease
   customer:
+    no_customers: No customers yet.
     title: Customer
     optional: Optional
     remove: Remove
@@ -213,6 +220,11 @@ pos:
     total_orders: Total orders
     no_orders: Customer has no orders.
     no_orders_permission: You do not have permission to view order history.
+    create_quick: '+ Quick create customer'
+    created: 'Customer created and selected.'
+    create_failed: 'Unable to create customer.'
+    name_required: 'Enter the customer name.'
+    out_of_stock: 'Out of stock'
   payment:
     title: Payment
     order_total: Order total
@@ -317,6 +329,23 @@ pos:
     name_za: Name Z–A
     apply_filters: Apply filters
     low_stock: Low stock
+    sales_points: Sales points
+    pos_setup: POS setup
+    sales_points_help: Manage POS counters, tables and other checkout locations.
+    no_sales_points: No sales points configured.
+    edit_sales_point: Edit sales point
+    add_sales_point: Add sales point
+    code: Code
+    display_name: Display name
+    type: Type
+    group: Group
+    none: — None —
+    generate_code: Generate code
+    sales_point_code_help: Use Generate code to create a unique-style code automatically. The database remains the final uniqueness check.
+    sales_point_type_pos: POS / Counter
+    sales_point_type_table: Table
+    sales_point_enabled: Sales point enabled.
+    sales_point_disabled: Sales point disabled.
     stock_ok: Stock OK
     price: Price
     low_threshold: Low threshold
@@ -441,42 +470,6 @@ pos:
     product_image: Product image
     choose_image: Choose an image
     upload: Upload
-  app:
-    customize: Customize
-    settings_title: Settings
-    settings_help: Adjust how Mobile POS looks and helps you use it comfortably.
-    font_size: Font size
-    settings_saved: Settings are saved to your account and applied across the app.
-    appearance: Appearance
-    appearance_help: Choose light, dark or follow the device.
-    density: Interface density
-    density_help: Adjust spacing between elements for easier interaction.
-    accessibility: Accessibility
-    accessibility_help: These options prioritize readability and stable interaction.
-    high_contrast: High contrast
-    high_contrast_help: Increase clarity of text, borders and focus states.
-    reduce_motion: Reduce motion
-    reduce_motion_help: Reduce or remove unnecessary animation and transitions.
-    save_settings: Save settings
-    back_profile: Back to profile
-    account: Account
-    profile_title: Profile
-    profile_help: Manage basic information and how the app is displayed on this device.
-    basic_info: Basic information
-    username_help: Your username is used to sign in to Mobile POS.
-    username: Username
-    role: Role
-    status: Status
-    save_info: Save information
-    font_help: Choose the most readable font size. The setting is saved to your account.
-    choose_font: Choose font size
-    save_font: Save font size
-    security: Security
-    remember_help: Remember Me is managed on the login screen. Signing out ends the current session.
-    current_session: Current session
-    logout_help: Signing out will return you to the login screen.
-    logout: Sign out
-    locked: Locked
   order:
     title: Orders
     help: Review transaction history and open individual order details.
@@ -576,6 +569,7 @@ pos:
   configure_receiving_account: Configure a receiving account
   transfer_cannot_exceed: Transfer amount cannot exceed the order total
   enter_exact_transfer: Enter the exact transfer amount
+  quantity_exceeds_stock: Quantity exceeds current stock.
   cart_empty: Cart must contain at least one item.
   payment_invalid: Payment amount must be a valid amount.
   customer_tendered_zero: Customer tendered amount must be greater than zero.
@@ -930,6 +924,7 @@ debt:
   payment_required: Payment amount is required.
   payment_failed: Unable to complete debt payment.
   payment_recorded: 'Payment recorded. Remaining: {amount} đ'
+  payment_success: Debt payment completed successfully.
 
 stat.overview_charts: "Overview charts"
 stat.financial_overview: "Financial overview"
@@ -942,3 +937,11 @@ stat.top_products_help: "Products with the highest sold quantity."
 stat.top_customers_help: "Customers with the highest completed-order spend."
 stat.accessible_data: "View data table"
 stat.accessible_data_help: "Use the tables below if you prefer exact values or assistive technology."
+order.copy_to_pos:
+  title: Copy to POS
+  help: Copy products, customer and the customer's tendered cash (when available) into a new sale. The old order stays unchanged for audit and comparison.
+  button: Copy to POS
+pos.copy_loaded: 'Copied from order #{order}. This is a new sale; the old order remains unchanged for comparison. Product prices use current prices at checkout.'
+pos.copy_loaded_with_inactive: 'Copied from order #{order}. {count} product(s) are no longer active; review before checkout.'
+pos.copy_failed: Unable to copy the order to POS.
+pos.copy_no_items: This order has no products to copy.

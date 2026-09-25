@@ -1,0 +1,89 @@
+{% extends 'layout/authenticated.html.twig' %}
+
+{% block title %}{{ 'sales_point.title'|trans }} · Mobile POS{% endblock %}
+
+{% block authenticated_body %}
+<section class="app-header" aria-labelledby="sales-point-title">
+    <div>
+        <p class="eyebrow">{{ 'navigation.management'|trans }}</p>
+        <h1 id="sales-point-title">{{ 'sales_point.title'|trans }}</h1>
+        <p class="muted">{{ 'pos.admin.sales_points_help'|trans }}</p>
+    </div>
+</section>
+
+<div class="sales-point-admin-grid">
+    <section class="form-card" aria-labelledby="sales-point-create-title">
+        <div class="section-heading">
+            <h2 id="sales-point-create-title">{{ 'sales_point.create'|trans }}</h2>
+            <p class="muted">{{ 'sales_point.create_help'|trans }}</p>
+        </div>
+        <form method="post" action="{{ path('admin_sales_point_create') }}" class="profile-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('sales_point') }}">
+            <label for="sales-point-code">{{ 'sales_point.code'|trans }}
+                <input id="sales-point-code" name="code" maxlength="60" required placeholder="POS-01 / TABLE-A1">
+            </label>
+            <label for="sales-point-name">{{ 'sales_point.name'|trans }}
+                <input id="sales-point-name" name="name" maxlength="160" required placeholder="{{ 'sales_point.name_placeholder'|trans }}">
+            </label>
+            <label for="sales-point-type">{{ 'sales_point.type'|trans }}
+                <select id="sales-point-type" name="type">
+                    {% for type in types %}<option value="{{ type.value }}">{{ type.value == 'TABLE' ? 'sales_point.type_table'|trans : 'sales_point.type_pos'|trans }}</option>{% endfor %}
+                </select>
+            </label>
+            <label for="sales-point-group">{{ 'sales_point.group'|trans }}
+                <select id="sales-point-group" name="group_id">
+                    <option value="">{{ 'sales_point.no_group'|trans }}</option>
+                    {% for group in sales_point_groups if group.active %}<option value="{{ group.id }}">{{ group.name }}</option>{% endfor %}
+                </select>
+            </label>
+            <button class="button primary" type="submit">{{ 'sales_point.create_button'|trans }}</button>
+        </form>
+    </section>
+
+    <section class="form-card" aria-labelledby="sales-point-group-title">
+        <div class="section-heading">
+            <h2 id="sales-point-group-title">{{ 'sales_point.group_create'|trans }}</h2>
+            <p class="muted">{{ 'sales_point.group_help'|trans }}</p>
+        </div>
+        <form method="post" action="{{ path('admin_sales_point_group_create') }}" class="profile-form">
+            <input type="hidden" name="_token" value="{{ csrf_token('sales_point_group') }}">
+            <label for="sales-point-group-code">{{ 'sales_point.group_code'|trans }}
+                <input id="sales-point-group-code" name="code" maxlength="60" required placeholder="FLOOR-1">
+            </label>
+            <label for="sales-point-group-name">{{ 'sales_point.group_name'|trans }}
+                <input id="sales-point-group-name" name="name" maxlength="120" required placeholder="Tầng 1 / Quầy thu ngân">
+            </label>
+            <label for="sales-point-group-sort">{{ 'sales_point.sort_order'|trans }}
+                <input id="sales-point-group-sort" name="sort_order" type="number" value="0" min="0" step="1">
+            </label>
+            <button class="button" type="submit">{{ 'sales_point.group_create_button'|trans }}</button>
+        </form>
+    </section>
+</div>
+
+<section class="form-card sales-point-list-card" aria-labelledby="sales-point-list-title">
+    <div class="section-heading">
+        <h2 id="sales-point-list-title">{{ 'sales_point.list'|trans }}</h2>
+        <p class="muted">{{ 'sales_point.list_help'|trans }}</p>
+    </div>
+    <div class="sales-point-list">
+        {% for point in sales_points %}
+            <article class="sales-point-item">
+                <div>
+                    <div class="sales-point-item-title"><strong>{{ point.name }}</strong> <span class="status-badge">{{ point.type.value == 'TABLE' ? 'sales_point.type_table'|trans : 'sales_point.type_pos'|trans }}</span></div>
+                    <p class="muted">{{ point.code }}{% if point.group %} · {{ point.group.name }}{% endif %}</p>
+                </div>
+                {% if is_granted('SALES_POINT_MANAGE') %}
+                    <form method="post" action="{{ path('admin_sales_point_toggle', {id: point.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('sales_point_state') }}">
+                        <input type="hidden" name="state" value="{{ point.active ? 'INACTIVE' : 'ACTIVE' }}">
+                        <button class="button{% if point.active %} danger{% endif %}" type="submit">{{ point.active ? 'sales_point.deactivate'|trans : 'sales_point.activate'|trans }}</button>
+                    </form>
+                {% endif %}
+            </article>
+        {% else %}
+            <p class="statistics-empty">{{ 'sales_point.empty'|trans }}</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

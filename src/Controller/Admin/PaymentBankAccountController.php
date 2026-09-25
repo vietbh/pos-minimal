@@ -103,6 +103,20 @@ final class PaymentBankAccountController extends AbstractController
         ]);
     }
 
+
+    #[Route('/admin/settings/payment/{id<\d+>}/regenerate-webhook-token', name:'admin_payment_account_regenerate_webhook_token', methods:['POST'])]
+    public function regenerateWebhookToken(int $id, Request $request, PaymentBankAccountRepositoryInterface $accounts, CsrfTokenManagerInterface $csrf): Response
+    {
+        $this->denyAccessUnlessGranted(Permission::PAYMENT_BANK_ACCOUNT_MANAGE->value);
+        if (!$csrf->isTokenValid(new CsrfToken('admin_payment_account_webhook', (string)$request->request->get('_token','')))) throw $this->createAccessDeniedException('Invalid CSRF token.');
+        $account=$accounts->findById($id);
+        if (!$account instanceof PaymentBankAccount) throw $this->createNotFoundException('Bank account not found.');
+        $account->regenerateWebhookToken();
+        $accounts->save($account);
+        $this->addFlash('success','Webhook token regenerated. Update the bank notification client with the new token.');
+        return $this->redirectToRoute('admin_payment_accounts',['edit'=>$id]);
+    }
+
     #[Route('/admin/settings/payment/{id<\d+>}/toggle', name:'admin_payment_account_toggle', methods:['POST'])]
     public function toggle(int $id, Request $request, PaymentBankAccountRepositoryInterface $accounts, CsrfTokenManagerInterface $csrf): Response
     {

@@ -1,0 +1,10 @@
+# Mobile POS production maintenance template.
+# Install through the host's scheduler after replacing /srv/mobile-pos/current.
+SHELL=/bin/sh
+PATH=/usr/local/bin:/usr/bin:/bin
+
+*/5 * * * * cd /srv/mobile-pos/current && APP_ENV=prod php bin/console app:product-images:requeue 10 100 >> var/log/cron.log 2>&1
+*/15 * * * * cd /srv/mobile-pos/current && APP_ENV=prod php bin/console app:session:cleanup 24 200 >> var/log/cron.log 2>&1
+17 * * * * cd /srv/mobile-pos/current && APP_ENV=prod php bin/console app:idempotency:cleanup 30 500 >> var/log/cron.log 2>&1
+23 3 * * * cd /srv/mobile-pos/current && APP_ENV=prod php bin/console app:product-images:cleanup 24 500 >> var/log/cron.log 2>&1
+47 2 * * * cd /srv/mobile-pos/current && APP_ENV=prod php bin/console app:backup:database scheduled >> var/log/cron.log 2>&1
