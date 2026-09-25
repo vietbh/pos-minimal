@@ -68,6 +68,10 @@ final readonly class CheckoutHandler
     ) {
     }
 
+    /**
+     * @throws \Throwable
+     * @throws \JsonException
+     */
     public function __invoke(CheckoutInput $input): CheckoutResult
     {
         $this->validateInput($input);

@@ -288,8 +288,8 @@ pos:
     search: Tìm kiếm
     apply: Áp dụng
     loading: Đang tải…
-    previous: "<<"
-    next: ">>"
+    previous: Trước
+    next: Sau
     edit: Chỉnh sửa
     active: Đang hoạt động
     inactive: Không hoạt động
@@ -300,9 +300,9 @@ pos:
     reason: Lý do
     date: Ngày
     type: Loại
-    before: "<<"
+    before: Trước
     change: Thay đổi
-    after: ">>"
+    after: Sau
     amount: Số tiền
     product: Sản phẩm
     products: Sản phẩm
@@ -625,8 +625,8 @@ common:
   search: Tìm kiếm
   apply: Áp dụng
   loading: Đang tải…
-  previous: "<<"
-  next: ">>"
+  previous: Trước
+  next: Sau
   edit: Chỉnh sửa
   active: Đang hoạt động
   inactive: Không hoạt động
@@ -637,9 +637,9 @@ common:
   reason: Lý do
   date: Ngày
   type: Loại
-  before: "<<"
+  before: Trước
   change: Thay đổi
-  after: ">>"
+  after: Sau
   amount: Số tiền
   product: Sản phẩm
   products: Sản phẩm
@@ -945,3 +945,40 @@ pos.copy_loaded: 'Đã sao chép từ đơn #{order}. Đây là lượt bán m�
 pos.copy_loaded_with_inactive: 'Đã sao chép từ đơn #{order}. Có {count} sản phẩm hiện đã ngừng bán; hãy kiểm tra lại trước khi thanh toán.'
 pos.copy_failed: Không thể sao chép đơn sang POS.
 pos.copy_no_items: Đơn này không có sản phẩm để sao chép.
+
+sales_point:
+  title: Điểm bán hàng
+  help: Quản lý nhóm, quầy POS, bàn và các địa điểm bán hàng.
+  create: Thêm điểm bán hàng
+  edit: Sửa điểm bán hàng
+  create_help: Cấu hình quầy POS hoặc bàn và nhóm của điểm bán hàng.
+  create_button: Thêm điểm bán hàng
+  save_button: Lưu thay đổi
+  code: Mã
+  name: Tên hiển thị
+  name_placeholder: Quầy thu ngân / Bàn A1
+  type: Loại
+  type_pos: POS / Quầy
+  type_table: Bàn
+  group: Nhóm
+  no_group: — Không có —
+  generate_code: Tạo mã
+  activate: Bật
+  deactivate: Tắt
+  enabled: Đã bật điểm bán hàng.
+  disabled: Đã tắt điểm bán hàng.
+  empty: Chưa có điểm bán hàng nào.
+  list: Danh sách điểm bán hàng
+  list_help: Mỗi điểm bán hàng có thể thuộc một nhóm để quản lý theo quầy, tầng hoặc khu vực.
+  group_create: Tạo nhóm điểm bán hàng
+  group_edit: Sửa nhóm điểm bán hàng
+  group_help: Nhóm dùng để gom các POS hoặc bàn theo quầy, tầng, khu vực hoặc mô hình bán hàng.
+  group_code: Mã nhóm
+  group_name: Tên nhóm
+  sort_order: Thứ tự
+  group_create_button: Tạo nhóm
+  group_list: Nhóm điểm bán hàng
+  group_list_help: Quản lý nhóm và trạng thái hoạt động. Nhóm đang tắt không thể được chọn cho điểm bán hàng mới.
+  group_empty: Chưa có nhóm điểm bán hàng nào.
+  group_enabled: Đã bật nhóm điểm bán hàng.
+  group_disabled: Đã tắt nhóm điểm bán hàng.

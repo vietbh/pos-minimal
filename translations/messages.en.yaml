@@ -945,3 +945,40 @@ pos.copy_loaded: 'Copied from order #{order}. This is a new sale; the old order 
 pos.copy_loaded_with_inactive: 'Copied from order #{order}. {count} product(s) are no longer active; review before checkout.'
 pos.copy_failed: Unable to copy the order to POS.
 pos.copy_no_items: This order has no products to copy.
+
+sales_point:
+  title: Sales points
+  help: Manage groups, POS counters, tables and other selling locations.
+  create: Add sales point
+  edit: Edit sales point
+  create_help: Configure a POS counter or table and its sales point group.
+  create_button: Add sales point
+  save_button: Save changes
+  code: Code
+  name: Display name
+  name_placeholder: Cashier counter / Table A1
+  type: Type
+  type_pos: POS / Counter
+  type_table: Table
+  group: Group
+  no_group: — None —
+  generate_code: Generate code
+  activate: Enable
+  deactivate: Disable
+  enabled: Sales point enabled.
+  disabled: Sales point disabled.
+  empty: No sales points configured.
+  list: Sales points
+  list_help: A sales point can belong to a group for counter, floor, area or sales-model management.
+  group_create: Create sales point group
+  group_edit: Edit sales point group
+  group_help: Group POS counters or tables by counter, floor, area or sales model.
+  group_code: Group code
+  group_name: Group name
+  sort_order: Sort order
+  group_create_button: Create group
+  group_list: Sales point groups
+  group_list_help: Manage groups and their active state. An inactive group cannot be selected for new sales points.
+  group_empty: No sales point groups configured.
+  group_enabled: Sales point group enabled.
+  group_disabled: Sales point group disabled.

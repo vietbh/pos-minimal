@@ -13,10 +13,10 @@ final readonly class CheckoutInput
         public array $items,
         public ?int $customerId,
         public CheckoutPaymentInput $payment,
+        public string $idempotencyKey,
         public ?int $bankAccountId = null,
         public ?string $paymentReference = null,
-        public ?string $note,
-        public string $idempotencyKey,
+        public ?string $note = null,
         public ?int $salesPointId = null,
     ) {
     }

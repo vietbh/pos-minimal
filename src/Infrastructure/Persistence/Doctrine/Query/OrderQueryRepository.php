@@ -151,11 +151,36 @@ final class OrderQueryRepository implements OrderQueryRepositoryInterface
             ->getQuery()
             ->getArrayResult();
 
+        $orderIds = array_map(static fn (array $row): int => (int) $row['id'], $rows);
+        $debtByOrderId = [];
+        if ($orderIds !== []) {
+            $debts = $this->entityManager->createQueryBuilder()
+                ->select('d')
+                ->from(Debt::class, 'd')
+                ->where('IDENTITY(d.order) IN (:orderIds)')
+                ->setParameter('orderIds', $orderIds)
+                ->getQuery()
+                ->getResult();
+            foreach ($debts as $debtEntity) {
+                if ($debtEntity instanceof Debt && $debtEntity->getOrder()->getId() !== null) {
+                    $debtByOrderId[$debtEntity->getOrder()->getId()] = $debtEntity;
+                }
+            }
+        }
+
         $items = [];
         foreach ($rows as $row) {
             $total = Money::fromDecimal((string) $row['total'])->toDecimal();
-            $paid = Money::fromDecimal((string) $row['paidAmount'])->toDecimal();
-            $debt = $this->subtractDecimal($total, $paid);
+            $paid = Money::fromDecimal((string) $row['paidAmount']);
+            $debtEntity = $debtByOrderId[(int) $row['id']] ?? null;
+            if ($debtEntity instanceof Debt) {
+                $paid = $paid->add($debtEntity->getPaidAmount());
+            }
+            $paid = $paid->isGreaterThanOrEqual(Money::fromDecimal($total))
+                ? Money::fromDecimal($total)
+                : $paid;
+            $paidDecimal = $paid->toDecimal();
+            $debt = $this->subtractDecimal($total, $paidDecimal);
 
             $items[] = new OrderListItemResult(
                 id: (int) $row['id'],
@@ -164,7 +189,7 @@ final class OrderQueryRepository implements OrderQueryRepositoryInterface
                 customerId: $row['customerId'] !== null ? (int) $row['customerId'] : null,
                 customerName: $row['customerName'] !== null ? (string) $row['customerName'] : null,
                 total: $total,
-                paidAmount: $paid,
+                paidAmount: $paidDecimal,
                 debtAmount: $debt,
                 createdAt: $this->toDateTimeImmutable($row['createdAt']),
             );
@@ -252,6 +277,15 @@ final class OrderQueryRepository implements OrderQueryRepositoryInterface
             : null;
 
         $debt = $this->findDebtForOrder($order);
+        $orderPaid = $order->getPaidAmount();
+        if ($debt instanceof OrderDebtResult) {
+            $orderPaid = $orderPaid->add(Money::fromDecimal($debt->paidAmount));
+        }
+        if ($orderPaid->isGreaterThanOrEqual($order->getTotal())) {
+            $orderPaid = $order->getTotal();
+        }
+        $orderPaidDecimal = $orderPaid->toDecimal();
+        $orderDebtDecimal = $this->subtractDecimal($order->getTotal()->toDecimal(), $orderPaidDecimal);
 
         return new OrderDetailResult(
             id: $order->getId(),
@@ -262,8 +296,8 @@ final class OrderQueryRepository implements OrderQueryRepositoryInterface
             createdBy: $order->getUser()->getUserIdentifier(),
             subtotal: $order->getSubtotal()->toDecimal(),
             total: $order->getTotal()->toDecimal(),
-            paidAmount: $order->getPaidAmount()->toDecimal(),
-            debtAmount: $order->getDebtAmount()->toDecimal(),
+            paidAmount: $orderPaidDecimal,
+            debtAmount: $orderDebtDecimal,
             note: $order->getNote(),
             createdAt: $order->getCreatedAt(),
             completedAt: $order->getCompletedAt(),
