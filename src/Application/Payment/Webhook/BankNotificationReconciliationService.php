@@ -167,6 +167,13 @@ final readonly class BankNotificationReconciliationService
             if (!$order->isDraft()) {
                 throw new \DomainException('Order is no longer awaiting bank payment.');
             }
+
+            // Recalculate the draft order from its persisted item/discount state
+            // before comparing it with the payment reference. This keeps the
+            // final discounted payable amount as the single reconciliation value
+            // even when a draft order was loaded with a stale total field.
+            $order->recalculateTotals();
+
             if (!$order->getTotal()->equals($expectedAmount)) {
                 throw new \DomainException('Order amount does not match the payment reference amount.');
             }

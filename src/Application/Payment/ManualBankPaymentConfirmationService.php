@@ -97,7 +97,15 @@ final readonly class ManualBankPaymentConfirmationService
                 $order = $this->orders->findByIdForUpdate($order->getId() ?? 0) ?? $order;
             }
 
-            if (!$order->isDraft() || !$order->getTotal()->equals($money)) {
+            if (!$order->isDraft()) {
+                throw new \DomainException('Order is not in a valid paid draft state.');
+            }
+
+            // The payment must reconcile against the order's current final
+            // discounted total, not a stale persisted total.
+            $order->recalculateTotals();
+
+            if (!$order->getTotal()->equals($money)) {
                 throw new \DomainException('Order is not in a valid paid draft state.');
             }
 
