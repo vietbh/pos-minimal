@@ -499,13 +499,9 @@ export default class extends Controller {
             add.dataset.productId = String(product.id);
             add.addEventListener('click', (event) => this.addToCart(event));
 
-            if (stock <= 0) {
-                const unavailable = document.createElement('span');
-                unavailable.className = 'pos-stock-warning';
-                unavailable.textContent = this.messagesValue.outOfStock;
-                unavailable.setAttribute('role', 'status');
-                actions.append(unavailable);
-            }
+            // Stock state is already represented by the compact badge rendered
+            // in the product meta area. Keep the action column to the single
+            // plus button so the mobile card does not repeat "Hết hàng".
             actions.append(add);
             row.append(thumb, info, actions);
             return row;

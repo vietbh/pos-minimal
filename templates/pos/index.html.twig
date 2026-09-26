@@ -277,29 +277,40 @@
     </div>
 
     {% if is_granted('CUSTOMER_CREATE') %}
-    <div class="pos-modal" data-pos-checkout-target="customerCreateModal" hidden role="dialog" aria-modal="true" aria-labelledby="pos-customer-create-title">
-        <div class="pos-modal-panel">
-            <div class="pos-section-header">
-                <div>
-                    <p class="pos-eyebrow">{{ 'pos.customer.title'|trans }}</p>
-                    <h2 id="pos-customer-create-title">{{ 'pos.customer.create_quick'|trans }}</h2>
+    <div class="pos-modal pos-customer-modal" data-pos-checkout-target="customerCreateModal" hidden role="dialog" aria-modal="true" aria-labelledby="pos-customer-create-title">
+        <div class="pos-modal-panel pos-customer-modal-panel">
+            <header class="pos-customer-modal-header">
+                <div class="pos-customer-modal-heading">
+                    <span class="pos-customer-modal-icon" aria-hidden="true">+</span>
+                    <div>
+                        <p class="pos-eyebrow">{{ 'pos.customer.title'|trans }}</p>
+                        <h2 id="pos-customer-create-title">{{ 'pos.customer.create_quick'|trans }}</h2>
+                        <p class="pos-customer-modal-subtitle">{{ 'pos.customer.optional'|trans }}</p>
+                    </div>
                 </div>
-                <button type="button" class="button" data-action="click->pos-checkout#closeCustomerCreate" aria-label="{{ 'pos.close'|trans }}">×</button>
+                <button type="button" class="pos-customer-modal-close" data-action="click->pos-checkout#closeCustomerCreate" aria-label="{{ 'pos.close'|trans }}">×</button>
+            </header>
+
+            <div class="pos-customer-modal-body">
+                <label class="pos-customer-field">
+                    <span>{{ 'pos.customer.name'|trans }} <b aria-hidden="true">*</b></span>
+                    <input data-pos-checkout-target="newCustomerName" autocomplete="name" required placeholder="{{ 'pos.customer.name'|trans }}">
+                </label>
+                <label class="pos-customer-field">
+                    <span>{{ 'pos.customer.phone'|trans }}</span>
+                    <input data-pos-checkout-target="newCustomerPhone" inputmode="tel" autocomplete="tel" placeholder="{{ 'pos.customer.phone'|trans }}">
+                </label>
+                <label class="pos-customer-field">
+                    <span>Giảm giá mặc định (%)</span>
+                    <input type="number" min="0" max="100" step="1" inputmode="numeric" value="0" data-pos-checkout-target="newCustomerDiscountPercent" placeholder="0">
+                </label>
+                <p class="pos-message pos-error pos-customer-error" data-pos-checkout-target="customerCreateError" role="alert" hidden></p>
             </div>
-            <label>{{ 'pos.customer.name'|trans }} *
-                <input data-pos-checkout-target="newCustomerName" autocomplete="name" required>
-            </label>
-            <label>{{ 'pos.customer.phone'|trans }}
-                <input data-pos-checkout-target="newCustomerPhone" inputmode="tel" autocomplete="tel">
-            </label>
-            <label>Giảm giá mặc định (%)
-                <input type="number" min="0" max="100" step="1" inputmode="numeric" value="0" data-pos-checkout-target="newCustomerDiscountPercent">
-            </label>
-            <div class="pos-modal-actions">
-                <button type="button" class="button" data-action="click->pos-checkout#closeCustomerCreate">{{ 'common.cancel'|trans }}</button>
-                <button type="button" class="button primary" data-pos-checkout-target="createCustomerButton" data-action="click->pos-checkout#createCustomer">{{ 'pos.customer.create_quick'|trans }}</button>
-            </div>
-            <p class="pos-message pos-error" data-pos-checkout-target="customerCreateError" role="alert" hidden></p>
+
+            <footer class="pos-customer-modal-footer">
+                <button type="button" class="button pos-customer-cancel" data-action="click->pos-checkout#closeCustomerCreate">{{ 'common.cancel'|trans }}</button>
+                <button type="button" class="button primary pos-customer-submit" data-pos-checkout-target="createCustomerButton" data-action="click->pos-checkout#createCustomer">{{ 'pos.customer.create_quick'|trans }}</button>
+            </footer>
         </div>
     </div>
 

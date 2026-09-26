@@ -2765,6 +2765,50 @@ select:focus {
     color: var(--web-primary) !important;
 }
 
+/* POS/authenticated mobile navigation must use the same Dark surface as the topbar. */
+html[data-appearance="dark"] .mobile-navigation,
+html[data-appearance="system"] .mobile-navigation {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .32) !important;
+}
+
+html[data-appearance="dark"] .mobile-navigation nav a,
+html[data-appearance="system"] .mobile-navigation nav a,
+html[data-appearance="dark"] .mobile-navigation nav button,
+html[data-appearance="system"] .mobile-navigation nav button {
+    color: #D5E3DF !important;
+    background: transparent !important;
+}
+
+html[data-appearance="dark"] .mobile-navigation nav a:hover,
+html[data-appearance="system"] .mobile-navigation nav a:hover,
+html[data-appearance="dark"] .mobile-navigation nav button:hover,
+html[data-appearance="system"] .mobile-navigation nav button:hover,
+html[data-appearance="dark"] .mobile-navigation nav a[aria-current="page"],
+html[data-appearance="system"] .mobile-navigation nav a[aria-current="page"] {
+    background: #1E2A27 !important;
+    color: #2BC4AE !important;
+}
+
+html[data-appearance="dark"] .mobile-navigation nav a[aria-current="page"],
+html[data-appearance="system"] .mobile-navigation nav a[aria-current="page"] {
+    box-shadow: inset 3px 0 0 #2BC4AE !important;
+}
+
+html[data-appearance="dark"] .mobile-navigation nav form button,
+html[data-appearance="system"] .mobile-navigation nav form button {
+    color: #FF8F8F !important;
+}
+
+html[data-appearance="dark"] .mobile-nav-toggle,
+html[data-appearance="system"] .mobile-nav-toggle {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+
 /* Dark surfaces: preserve readable contrast without making every component pure black. */
 html[data-appearance="dark"] .app-header-global,
 html[data-appearance="dark"] .app-nav,
@@ -4580,10 +4624,10 @@ html[data-appearance="dark"] .login-submit:hover {
 
     .pos-cart {
         position: fixed;
-        z-index: 95;
-        left: max(8px, env(safe-area-inset-left));
-        right: max(8px, env(safe-area-inset-right));
-        bottom: max(8px, env(safe-area-inset-bottom));
+        z-index: 205;
+        left: max(12px, env(safe-area-inset-left));
+        right: max(12px, env(safe-area-inset-right));
+        bottom: calc(12px + env(safe-area-inset-bottom));
         width: auto;
         max-height: 84dvh;
         margin: 0;
@@ -4601,7 +4645,56 @@ html[data-appearance="dark"] .login-submit:hover {
     }
 
     .pos-cart:not(.pos-cart-is-open) {
+        height: 74px;
         max-height: 74px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    /* Collapsed mobile cart dock: keep the primary "Xem giỏ" action
+       inside the visible 74px dock, aligned to the right. */
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header {
+        min-height: 40px;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header > div:first-child {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header h2 {
+        margin: 0;
+        font-size: .96rem;
+        line-height: 1.15;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header p {
+        margin: 2px 0 0;
+        font-size: .76rem;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header-actions {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-mobile-cart-total {
+        display: none;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-toggle {
+        display: inline-flex;
+        min-height: 40px;
+        padding: 0 12px;
+        white-space: nowrap;
     }
 
     .pos-cart-is-open {
@@ -5472,5 +5565,313 @@ html[data-appearance="dark"] .pos-payment-received-card .button:not(.primary) {
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
         touch-action: pan-y !important;
+    }
+}
+
+/* POS QUICK CUSTOMER — polished mobile-first modal. Presentation only; controller/API unchanged. */
+.pos-page .pos-customer-modal {
+    padding: 16px;
+    background: rgba(2, 8, 23, .68);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    overscroll-behavior: contain;
+}
+.pos-page .pos-customer-modal-panel {
+    width: min(100%, 520px);
+    max-height: min(88dvh, 680px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    border-radius: 24px;
+    background: #16201e;
+    color: #f2f8f6;
+    border: 1px solid #30403c;
+    box-shadow: 0 28px 90px rgba(0,0,0,.48);
+}
+.pos-customer-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid #30403c;
+}
+.pos-customer-modal-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+.pos-customer-modal-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    background: #24332f;
+    border: 1px solid #3a4c47;
+    color: #2bc4ae;
+    font-size: 1.35rem;
+    font-weight: 800;
+}
+.pos-customer-modal-heading h2 {
+    margin: 2px 0 0;
+    color: #f2f8f6;
+    font-size: 1.12rem;
+    line-height: 1.2;
+}
+.pos-customer-modal-subtitle {
+    margin: 5px 0 0;
+    color: #9fb1ac;
+    font-size: .82rem;
+    line-height: 1.35;
+}
+.pos-customer-modal-close {
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 12px;
+    background: #1e2a27;
+    color: #dce9e5;
+    border: 1px solid #3a4c47;
+    font-size: 1.25rem;
+    line-height: 1;
+}
+.pos-customer-modal-close:hover { background: #263631; border-color: #4a5d57; }
+.pos-customer-modal-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px 18px 18px;
+}
+.pos-customer-field {
+    display: grid;
+    gap: 7px;
+    margin: 0 0 14px;
+    color: #dbe8e4;
+    font-size: .86rem;
+    font-weight: 750;
+}
+.pos-customer-field b { color: #2bc4ae; }
+.pos-page .pos-customer-field input {
+    width: 100%;
+    min-height: 50px;
+    margin: 0;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #1e2a27;
+    color: #f2f8f6;
+    border: 1px solid #3a4c47;
+    box-shadow: none;
+}
+.pos-page .pos-customer-field input::placeholder { color: #71837e; opacity: 1; }
+.pos-page .pos-customer-field input:focus {
+    border-color: #2bc4ae;
+    box-shadow: 0 0 0 3px rgba(43,196,174,.14);
+    outline: none;
+}
+.pos-customer-error { margin: 4px 0 0; }
+.pos-customer-modal-footer {
+    display: grid;
+    grid-template-columns: minmax(96px, .7fr) minmax(0, 1.7fr);
+    gap: 10px;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid #30403c;
+    background: #16201e;
+}
+.pos-customer-modal-footer .button { width: 100%; min-height: 50px; }
+.pos-customer-cancel { background: #1e2a27; color: #dce9e5; border-color: #3a4c47; }
+.pos-customer-cancel:hover { background: #263631; }
+.pos-customer-submit { background: #2bc4ae !important; border-color: #2bc4ae !important; color: #06221c !important; }
+.pos-customer-submit:hover { background: #24b39f !important; border-color: #24b39f !important; }
+
+html[data-appearance="light"] .pos-page .pos-customer-modal-panel,
+html[data-appearance="system"] .pos-page .pos-customer-modal-panel {
+    background: #fff;
+    color: #172033;
+    border-color: #dbe3ee;
+}
+html[data-appearance="light"] .pos-customer-modal-header,
+html[data-appearance="system"] .pos-customer-modal-header,
+html[data-appearance="light"] .pos-customer-modal-footer,
+html[data-appearance="system"] .pos-customer-modal-footer { border-color: #dbe3ee; background: #fff; }
+html[data-appearance="light"] .pos-customer-modal-heading h2,
+html[data-appearance="system"] .pos-customer-modal-heading h2 { color: #172033; }
+html[data-appearance="light"] .pos-customer-modal-subtitle,
+html[data-appearance="system"] .pos-customer-modal-subtitle { color: #64748b; }
+html[data-appearance="light"] .pos-customer-modal-icon,
+html[data-appearance="system"] .pos-customer-modal-icon { background: #ecfdf5; border-color: #bbf7d0; color: #0f9f86; }
+html[data-appearance="light"] .pos-customer-modal-close,
+html[data-appearance="system"] .pos-customer-modal-close { background: #f8fafc; color: #172033; border-color: #dbe3ee; }
+html[data-appearance="light"] .pos-page .pos-customer-field,
+html[data-appearance="system"] .pos-page .pos-customer-field { color: #334155; }
+html[data-appearance="light"] .pos-page .pos-customer-field input,
+html[data-appearance="system"] .pos-page .pos-customer-field input { background: #f8fafc; color: #172033; border-color: #cbd5e1; }
+html[data-appearance="light"] .pos-customer-modal-footer .pos-customer-cancel,
+html[data-appearance="system"] .pos-customer-modal-footer .pos-customer-cancel { background: #fff; color: #172033; border-color: #cbd5e1; }
+
+@media (max-width: 767px) {
+    .pos-page .pos-customer-modal { padding: 0; align-items: flex-end; }
+    .pos-page .pos-customer-modal-panel {
+        width: 100%;
+        max-height: min(90dvh, 760px);
+        border-radius: 22px 22px 0 0;
+        border-bottom: 0;
+    }
+    .pos-customer-modal-header { padding: 16px 16px 13px; }
+    .pos-customer-modal-body { padding: 14px 16px 18px; }
+    .pos-customer-modal-footer { padding-left: 16px; padding-right: 16px; }
+}
+
+/* ========================================================================== 
+ * POS MOBILE CART — collapsed dock action hardening
+ * Keep "Xem giỏ" visibly inside the 74px dock on narrow mobile screens.
+ * Presentation only; no cart/business logic changes.
+ * ========================================================================== */
+@media (max-width: 767px) {
+    .pos-cart:not(.pos-cart-is-open) {
+        overflow: visible !important;
+        height: 74px !important;
+        max-height: 74px !important;
+        padding: 8px 12px !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header {
+        position: relative !important;
+        width: 100% !important;
+        min-height: 58px !important;
+        height: 58px !important;
+        padding: 0 108px 0 8px !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header > div:first-child {
+        min-width: 0 !important;
+        max-width: calc(100% - 8px) !important;
+        flex: 1 1 auto !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header h2,
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header p {
+        display: block !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header-actions {
+        position: absolute !important;
+        top: 50% !important;
+        right: 8px !important;
+        transform: translateY(-50%) !important;
+        z-index: 20 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        gap: 0 !important;
+        overflow: visible !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-mobile-cart-total {
+        display: none !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-toggle {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: auto !important;
+        min-width: 92px !important;
+        height: 42px !important;
+        min-height: 42px !important;
+        max-height: 42px !important;
+        margin: 0 !important;
+        padding: 0 14px !important;
+        border-radius: 12px !important;
+        white-space: nowrap !important;
+        overflow: visible !important;
+        position: relative !important;
+        z-index: 21 !important;
+        font-size: .9rem !important;
+        font-weight: 800 !important;
+        line-height: 1 !important;
+    }
+
+    html[data-appearance="dark"] .pos-cart:not(.pos-cart-is-open) .pos-cart-toggle,
+    html[data-appearance="system"] .pos-cart:not(.pos-cart-is-open) .pos-cart-toggle {
+        background: #2BC4AE !important;
+        border-color: #2BC4AE !important;
+        color: #0F1716 !important;
+    }
+}
+
+/* ========================================================================== 
+ * POS MOBILE CART — balanced collapsed dock
+ * Keep summary information left-aligned and action visually balanced on right.
+ * Presentation only; no business logic changes.
+ * ========================================================================== */
+@media (max-width: 767px) {
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header {
+        min-height: 58px !important;
+        height: 58px !important;
+        padding: 0 104px 0 8px !important;
+        align-items: center !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header > div:first-child {
+        text-align: left !important;
+        align-self: center !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header h2 {
+        text-align: left !important;
+        margin: 0 !important;
+        font-size: .94rem !important;
+        line-height: 1.2 !important;
+        font-weight: 800 !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header p {
+        text-align: left !important;
+        margin: 3px 0 0 !important;
+        font-size: .74rem !important;
+        line-height: 1.15 !important;
+        opacity: .72 !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-header-actions {
+        right: 8px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+    }
+
+    .pos-cart:not(.pos-cart-is-open) .pos-cart-toggle {
+        min-width: 88px !important;
+        width: 88px !important;
+        height: 42px !important;
+        min-height: 42px !important;
+        padding: 0 10px !important;
+        border-radius: 12px !important;
+        font-size: .88rem !important;
+        line-height: 1 !important;
     }
 }
