@@ -248,15 +248,17 @@ final readonly class BankNotificationReconciliationService
             note: $session->getNote(),
             salesPoint: $session->getSalesPoint(),
         );
-        $order->setDiscountPercent($session->getDiscountPercent());
-        $order->setManualDiscount($session->getManualDiscount());
-
+        // Add items before applying manual discount. setManualDiscount() recalculates
+        // and clamps the discount against the current subtotal; applying it before
+        // the snapshot items exist would permanently reduce it to zero.
         foreach ($session->getCartSnapshot() as $item) {
             $product = $this->productLocking->lock((int) $item['productId']);
             $quantity = (int) $item['quantity'];
             $snapshotPrice = Money::fromDecimal((string) $item['unitPrice']);
             $order->addItem(new OrderItem($product, $quantity, $snapshotPrice));
         }
+        $order->setDiscountPercent($session->getDiscountPercent());
+        $order->setManualDiscount($session->getManualDiscount());
         $order->recalculateTotals();
         return $order;
     }

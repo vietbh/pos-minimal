@@ -330,7 +330,6 @@ final readonly class CheckoutHandler
             salesPoint: $salesPoint,
         );
         $order->setDiscountPercent($customer?->getDefaultDiscountPercent() ?? 0);
-        $order->setManualDiscount($input->manualDiscount ?? Money::zero());
 
         foreach ($productIds as $productId) {
             $product = $products[$productId];
@@ -342,6 +341,7 @@ final readonly class CheckoutHandler
                 unitPrice: $product->getSellingPrice(),
             ));
         }
+        $order->setManualDiscount($input->manualDiscount ?? Money::zero());
         $order->recalculateTotals();
 
         $paymentAmount = $input->payment->amount;
