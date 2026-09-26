@@ -158,6 +158,7 @@ final class CustomerQueryRepository implements CustomerQueryRepositoryInterface
             $customer->getName(),
             $customer->getPhone(),
             $customer->getNote(),
+            $customer->getDefaultDiscountPercent(),
             $customer->getCreatedAt(),
             $customer->getUpdatedAt(),
             $debtCount,
@@ -184,7 +185,7 @@ final class CustomerQueryRepository implements CustomerQueryRepositoryInterface
 
         $rows = $this->entityManager
             ->createQueryBuilder()
-            ->select('c.id AS id', 'c.name AS name', 'c.phone AS phone')
+            ->select('c.id AS id', 'c.name AS name', 'c.phone AS phone', 'c.defaultDiscountPercent AS defaultDiscountPercent')
             ->from(Customer::class, 'c')
             ->orderBy('c.name', 'ASC')
             ->addOrderBy('c.id', 'ASC')
@@ -197,9 +198,23 @@ final class CustomerQueryRepository implements CustomerQueryRepositoryInterface
                 id: (int) $row['id'],
                 name: (string) $row['name'],
                 phone: $row['phone'] !== null ? (string) $row['phone'] : null,
+                defaultDiscountPercent: (int) ($row['defaultDiscountPercent'] ?? 0),
             ),
             $rows,
         );
+    }
+
+    private function toDateTimeImmutable(mixed $value): \DateTimeImmutable
+    {
+        if ($value instanceof \DateTimeImmutable) {
+            return $value;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return \DateTimeImmutable::createFromInterface($value);
+        }
+
+        return new \DateTimeImmutable((string) $value);
     }
 
     public function searchCustomers(
@@ -220,6 +235,7 @@ final class CustomerQueryRepository implements CustomerQueryRepositoryInterface
                 'c.id AS id',
                 'c.name AS name',
                 'c.phone AS phone',
+                'c.defaultDiscountPercent AS defaultDiscountPercent',
             )
             ->from(Customer::class, 'c')
             ->where(
@@ -241,6 +257,7 @@ final class CustomerQueryRepository implements CustomerQueryRepositoryInterface
                 phone: $row['phone'] !== null
                     ? (string) $row['phone']
                     : null,
+                defaultDiscountPercent: (int) ($row['defaultDiscountPercent'] ?? 0),
             );
         }
 

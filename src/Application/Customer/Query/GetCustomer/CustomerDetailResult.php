@@ -14,6 +14,7 @@ final readonly class CustomerDetailResult
         public string $name,
         public ?string $phone,
         public ?string $note,
+        public int $defaultDiscountPercent,
         public \DateTimeImmutable $createdAt,
         public \DateTimeImmutable $updatedAt,
         public int $debtCount,

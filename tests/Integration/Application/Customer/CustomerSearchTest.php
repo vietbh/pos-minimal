@@ -172,6 +172,21 @@ final class CustomerSearchTest extends IntegrationTestCase
         );
     }
 
+    public function testSearchReturnsCustomerDefaultDiscountPercentForPos(): void
+    {
+        $customerId = $this->createCustomer(
+            'Discount Customer',
+            '0907000099',
+            10,
+        );
+
+        $results = $this->search('Discount Customer');
+
+        self::assertCount(1, $results);
+        self::assertSame($customerId, $results[0]->id);
+        self::assertSame(10, $results[0]->defaultDiscountPercent);
+    }
+
     public function testSearchReturnsOnlyPosFields(): void
     {
         $customerId = $this->createCustomer(
@@ -203,6 +218,11 @@ final class CustomerSearchTest extends IntegrationTestCase
         self::assertSame(
             '0907000001',
             $result->phone,
+        );
+
+        self::assertSame(
+            0,
+            $result->defaultDiscountPercent,
         );
     }
 
@@ -252,6 +272,7 @@ final class CustomerSearchTest extends IntegrationTestCase
     private function createCustomer(
         string $name,
         ?string $phone = null,
+        int $defaultDiscountPercent = 0,
     ): int {
         $handler = new CreateCustomerHandler(
             self::getContainer()->get(
@@ -266,6 +287,7 @@ final class CustomerSearchTest extends IntegrationTestCase
             new CreateCustomerInput(
                 name: $name,
                 phone: $phone,
+                defaultDiscountPercent: $defaultDiscountPercent,
             ),
         );
 

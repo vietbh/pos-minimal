@@ -24,6 +24,19 @@ final class OrderCustomerDebtUiContractTest extends TestCase
         }
     }
 
+    public function testCompletedOrdersDoNotRenderDebtInOrderUi(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $index = file_get_contents($root.'/templates/order/index.html.twig');
+        $show = file_get_contents($root.'/templates/order/show.html.twig');
+
+        self::assertNotFalse($index);
+        self::assertNotFalse($show);
+        self::assertStringContainsString("item.status.value != 'COMPLETED' and item.debtAmount != '0.00'", $index);
+        self::assertStringContainsString("order.status.value != 'COMPLETED' and order.debtAmount != '0.00'", $show);
+        self::assertStringContainsString("order.status.value != 'COMPLETED' and order.debt and order.debtAmount != '0.00'", $show);
+    }
+
     public function testPhase6PreservesServerAuthoritativeOrderAndDebtSemantics(): void
     {
         $root = dirname(__DIR__, 2);

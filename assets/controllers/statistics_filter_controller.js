@@ -9,7 +9,7 @@ import ApexCharts from 'apexcharts';
  * Charts only visualize server-provided values; no business calculation happens here.
  */
 export default class extends Controller {
-    static targets = ['custom', 'loading', 'submit', 'financialChart', 'paymentChart'];
+    static targets = ['custom', 'loading', 'submit', 'financialChart', 'paymentChart', 'stockChart'];
 
     connect() {
         this.toggleCustomFields();
@@ -70,6 +70,17 @@ export default class extends Controller {
                 this.paymentChart.render();
             }
         }
+
+        if (this.hasStockChartTarget) {
+            const stockData = this.readJson(this.stockChartTarget.dataset.chart);
+            if (stockData.items?.length > 0) {
+                this.stockChart = new ApexCharts(
+                    this.stockChartTarget,
+                    this.stockOptions(stockData),
+                );
+                this.stockChart.render();
+            }
+        }
     }
 
     destroyCharts() {
@@ -81,6 +92,11 @@ export default class extends Controller {
         if (this.paymentChart) {
             this.paymentChart.destroy();
             this.paymentChart = null;
+        }
+
+        if (this.stockChart) {
+            this.stockChart.destroy();
+            this.stockChart = null;
         }
     }
 
@@ -202,6 +218,33 @@ export default class extends Controller {
                     legend: { fontSize: '13px' },
                 },
             }],
+        };
+    }
+
+    stockOptions(data) {
+        const items = data.items || [];
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        return {
+            chart: {
+                type: 'bar',
+                height: 280,
+                toolbar: { show: false },
+                animations: { enabled: !reducedMotion },
+                fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            },
+            series: [{
+                name: data.seriesLabel || 'Products',
+                data: items.map((item) => Number(item.value) || 0),
+            }],
+            xaxis: { categories: items.map((item) => item.label), labels: { style: { fontSize: '13px' } } },
+            yaxis: { labels: { style: { fontSize: '13px', fontWeight: 600 } } },
+            plotOptions: { bar: { borderRadius: 5, columnWidth: '52%' } },
+            dataLabels: { enabled: true, formatter: (value) => String(Number(value) || 0) },
+            tooltip: { y: { formatter: (value) => `${Number(value) || 0} products` } },
+            grid: { borderColor: '#E2E8F0', strokeDashArray: 3 },
+            legend: { show: false },
+            colors: ['#2563EB'],
         };
     }
 

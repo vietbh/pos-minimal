@@ -11,6 +11,7 @@ final readonly class UpdateCustomerInput
         public string $name,
         public ?string $phone = null,
         public ?string $note = null,
+        public int $defaultDiscountPercent = 0,
     ) {
     }
 }

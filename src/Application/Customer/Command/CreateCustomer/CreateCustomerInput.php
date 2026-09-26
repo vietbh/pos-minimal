@@ -10,6 +10,7 @@ final readonly class CreateCustomerInput
         public string $name,
         public ?string $phone = null,
         public ?string $note = null,
+        public int $defaultDiscountPercent = 0,
     ) {
     }
 }

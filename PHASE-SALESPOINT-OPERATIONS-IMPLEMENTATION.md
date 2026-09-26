@@ -15,11 +15,11 @@ Implemented on the supplied `mobile-pos-current(20260924-090954)` base.
 - Orders persist `sales_point_id`.
 - Bank-transfer checkout sessions persist `sales_point_id`, so webhook/manual confirmation-created orders retain the originating point.
 - Statistics filter by SalesPoint across sales, payments, debt, top products and top customers.
-- Per-bank-account cryptographic webhook token generated and persisted in `payment_bank_accounts`.
-- Webhook authentication now resolves `bankAccountId` and validates `X-Webhook-Token` against the persisted account token.
-- Token regeneration is available from Payment Settings; the previous token becomes invalid immediately.
-- Removed runtime dependency on `BANK_NOTIFICATION_WEBHOOK_TOKEN` and the old token-generation command.
-- Migration: `Version20260924120000`.
+- One global cryptographic webhook token generated and persisted in `payment_webhook_settings`, shared by all receiving bank accounts.
+- Webhook authentication validates the global `X-Webhook-Token`; `bankAccountId` identifies the receiving account.
+- Token regeneration is available from Payment Settings; the previous global token becomes invalid immediately for every account.
+- Removed runtime dependency on `BANK_NOTIFICATION_WEBHOOK_TOKEN`.
+- Migration: `Version20260926140500`.
 
 ## Verification
 

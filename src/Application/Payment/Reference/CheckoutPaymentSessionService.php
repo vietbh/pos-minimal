@@ -34,9 +34,11 @@ final readonly class CheckoutPaymentSessionService
         PaymentBankAccount $bankAccount,
         array $snapshot,
         Money $amount,
+        int $discountPercent,
         ?string $note,
         string $activeKey,
         ?SalesPoint $salesPoint = null,
+        ?Money $manualDiscount = null,
     ): array {
         $existing = $this->sessions->findActiveByKeyForUpdate($activeKey);
         if ($existing !== null) {
@@ -58,10 +60,12 @@ final readonly class CheckoutPaymentSessionService
             bankAccount: $bankAccount,
             cartSnapshot: $snapshot,
             amount: $amount,
+            discountPercent: $discountPercent,
             note: $note,
             activeKey: $activeKey,
             expiresAt: new \DateTimeImmutable(sprintf('+%d minutes', $this->expirationMinutes)),
             salesPoint: $salesPoint,
+            manualDiscount: $manualDiscount,
         );
         $this->sessions->save($session);
         $this->em->flush();
@@ -112,6 +116,12 @@ final readonly class CheckoutPaymentSessionService
         $transferContent = $account->transferContent($reference->getReference());
         $query = http_build_query(['amount' => $reference->getAmount()->toDecimal(), 'addInfo' => $transferContent, 'accountName' => $account->getAccountName()]);
         $qrUrl = sprintf('https://img.vietqr.io/image/%s-%s-%s.png?%s', rawurlencode($account->getBankBin()), rawurlencode($account->getAccountNumber()), rawurlencode($account->getQrTemplate()), $query);
+        $subtotal = Money::zero();
+        foreach ($session->getCartSnapshot() as $item) {
+            $subtotal = $subtotal->add(Money::fromDecimal((string) $item['unitPrice'])->multiply((int) $item['quantity']));
+        }
+        $discount = $subtotal->subtract($session->getAmount());
+
         return [
             'sessionId' => $session->getId(),
             'orderId' => $session->getOrder()?->getId(),
@@ -123,7 +133,10 @@ final readonly class CheckoutPaymentSessionService
             'bankName' => $account->getBankName(),
             'accountNumber' => $account->getAccountNumber(),
             'accountName' => $account->getAccountName(),
+            'subtotal' => $subtotal->toDecimal(),
             'amount' => $reference->getAmount()->toDecimal(),
+            'discount' => $discount->toDecimal(),
+            'discountPercent' => $session->getDiscountPercent(),
         ];
     }
 

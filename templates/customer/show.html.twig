@@ -66,7 +66,7 @@
         <h2 id="customer-info-title">{{ 'customer.info'|trans }}</h2>
         <div class="customer-contact">
             <div class="customer-contact-row"><span class="customer-label">{{ 'customer.phone'|trans }}</span><span>{{ customer.phone ?: ('customer.no_data'|trans) }}</span></div>
-            <div class="customer-contact-row"><span class="customer-label">{{ 'admin.note'|trans }}</span><span>{{ customer.note ?: ('customer.no_data'|trans) }}</span></div>
+            <div class="customer-contact-row"><span class="customer-label">{{ 'admin.note'|trans }}</span><span>{{ customer.note ?: ('customer.no_data'|trans) }}</span></div><div class="customer-contact-row"><span class="customer-label">Giảm giá mặc định</span><span>{{ customer.defaultDiscountPercent }}%</span></div>
         </div>
         <div class="customer-footer">{{ 'customer.updated_at'|trans }} {{ customer.updatedAt|date('d/m/Y H:i') }}</div>
     </section>

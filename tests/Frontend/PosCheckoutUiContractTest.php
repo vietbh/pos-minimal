@@ -39,13 +39,43 @@ final class PosCheckoutUiContractTest extends TestCase
         self::assertNotFalse($this->compiledControllerSource);
     }
 
-    public function testIdempotencyKeyIsRetainedAcrossRetry(): void
+
+    public function testCustomerDiscountIsVisibleAndAppliedToCurrentCart(): void
     {
+        foreach ([
+            'defaultDiscountPercent: Number(data.customer.defaultDiscountPercent || 0)',
+            'Giảm ${discount}%',
+            'Giảm ${customerDiscount}%',
+            'this.renderCart();',
+            'cartCustomerDiscount',
+        ] as $required) {
+            self::assertStringContainsString($required, $this->controllerSource);
+        }
+
+        foreach ([
+            'data-pos-checkout-target="cartCustomerDiscount"',
+            'data-pos-checkout-target="selectedCustomer"',
+        ] as $required) {
+            self::assertStringContainsString($required, $this->templateSource);
+        }
+    }
+
+    public function testCartStorageIsIsolatedPerSalesPoint(): void
+    {
+        self::assertStringContainsString("mobile-pos.cart.v2.sales-point.", $this->controllerSource);
+        self::assertStringContainsString('this.salesPointId = this.readCurrentSalesPointId();', $this->controllerSource);
+        self::assertStringContainsString('this.cartStorageKey = this.buildCartStorageKey(this.salesPointId);', $this->controllerSource);
+        self::assertStringContainsString('localStorage.getItem(this.cartStorageKey)', $this->controllerSource);
+        self::assertStringContainsString('localStorage.setItem(this.cartStorageKey', $this->controllerSource);
+    }
+
+    public function testIdempotencyKeyLifecycleSeparatesServerFailuresFromInFlightRetry(): void
+    {
+        self::assertStringContainsString("if (errorCode !== 'IDEMPOTENCY_IN_PROGRESS')", $this->controllerSource);
         self::assertStringContainsString('this.idempotencyKey = null;', $this->controllerSource);
-        self::assertStringContainsString('if (this.idempotencyKey === null)', $this->controllerSource);
         self::assertStringContainsString("'Idempotency-Key': this.idempotencyKey", $this->controllerSource);
-        self::assertStringContainsString('this.submit();', $this->controllerSource);
-        self::assertStringContainsString('this.idempotencyKey = null;', $this->controllerSource);
+        self::assertStringContainsString("if (this.inFlight || this.state === 'SUCCESS') return;", $this->controllerSource);
+        self::assertStringContainsString('// submit() creates a fresh key when the previous server-side attempt', $this->controllerSource);
     }
 
     public function testPhase5InteractionLabelsAreProvidedByTranslationValues(): void
@@ -125,7 +155,6 @@ final class PosCheckoutUiContractTest extends TestCase
         self::assertStringContainsString('data-pos-checkout-target="retryButton"', $this->templateSource);
         self::assertStringContainsString('data-pos-checkout-target="requestId"', $this->templateSource);
     }
-
 
     public function testCashTenderedAndChangeAreRepresentedInTheUiContract(): void
     {

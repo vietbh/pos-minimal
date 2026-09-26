@@ -45,6 +45,12 @@ class CheckoutPaymentSession
     #[ORM\Column(type: 'money')]
     private Money $amount;
 
+    #[ORM\Column(name: 'discount_percent', type: 'smallint', options: ['unsigned' => true])]
+    private int $discountPercent = 0;
+
+    #[ORM\Column(name: 'manual_discount', type: 'money')]
+    private Money $manualDiscount;
+
     #[ORM\Column(name: 'note', type: 'text', nullable: true)]
     private ?string $note;
 
@@ -74,11 +80,13 @@ class CheckoutPaymentSession
         PaymentBankAccount $bankAccount,
         array $cartSnapshot,
         Money $amount,
+        int $discountPercent,
         ?string $note,
         string $activeKey,
         \DateTimeImmutable $expiresAt,
         ?\DateTimeImmutable $createdAt = null,
         ?SalesPoint $salesPoint = null,
+        ?Money $manualDiscount = null,
     ) {
         if (!$amount->isPositive()) {
             throw new \InvalidArgumentException('Checkout payment session amount must be greater than zero.');
@@ -99,7 +107,13 @@ class CheckoutPaymentSession
         $this->bankAccount = $bankAccount;
         $this->salesPoint = $salesPoint;
         $this->cartSnapshot = array_values($cartSnapshot);
+        if ($discountPercent < 0 || $discountPercent > 100) { throw new \InvalidArgumentException('Checkout session discount percent must be between 0 and 100.'); }
         $this->amount = $amount;
+        $this->discountPercent = $discountPercent;
+        $this->manualDiscount = $manualDiscount ?? Money::zero();
+        if ($this->manualDiscount->minorUnits() < 0) {
+            throw new \InvalidArgumentException('Checkout session manual discount cannot be negative.');
+        }
         $this->note = $note !== null ? trim($note) ?: null : null;
         $this->activeKey = hash('sha256', trim($activeKey));
         $this->status = CheckoutPaymentSessionStatus::WAITING_FOR_BANK_PAYMENT;
@@ -116,6 +130,8 @@ class CheckoutPaymentSession
     /** @return list<array{productId:int,quantity:int,unitPrice:string}> */
     public function getCartSnapshot(): array { return $this->cartSnapshot; }
     public function getAmount(): Money { return $this->amount; }
+    public function getDiscountPercent(): int { return $this->discountPercent; }
+    public function getManualDiscount(): Money { return $this->manualDiscount; }
     public function getNote(): ?string { return $this->note; }
     public function getStatus(): CheckoutPaymentSessionStatus { return $this->status; }
     public function getOrder(): ?\App\Domain\Order\Order { return $this->order; }

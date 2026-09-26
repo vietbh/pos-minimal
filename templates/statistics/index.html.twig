@@ -145,6 +145,29 @@
         <article class="statistics-card statistics-chart-card">
             <div class="statistics-card-heading">
                 <div>
+                    <h2>{{ 'stat.stock_summary'|trans }}</h2>
+                    <p>{{ 'stat.stock_summary_help'|trans }}</p>
+                </div>
+            </div>
+            <div
+                class="statistics-chart"
+                data-statistics-filter-target="stockChart"
+                data-chart="{{ {
+                    items: [
+                        {label: 'stat.active'|trans, value: dashboard.stock.activeProducts},
+                        {label: 'stat.low_stock'|trans, value: dashboard.stock.lowStockProducts},
+                        {label: 'stat.out_of_stock'|trans, value: dashboard.stock.outOfStockProducts}
+                    ],
+                    totalLabel: 'stat.total_products'|trans
+                }|json_encode|e('html_attr') }}"
+                role="img"
+                aria-label="{{ 'stat.stock_summary'|trans }}"
+            ></div>
+        </article>
+
+        <article class="statistics-card statistics-chart-card">
+            <div class="statistics-card-heading">
+                <div>
                     <h2>{{ 'stat.payment_mix'|trans }}</h2>
                     <p>{{ 'stat.payment_mix_help'|trans }}</p>
                 </div>

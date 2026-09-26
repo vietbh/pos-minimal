@@ -22,7 +22,7 @@
             {% if edit_sales_point %}<input type="hidden" name="id" value="{{ edit_sales_point.id }}">{% endif %}
             <label for="sales-point-code">{{ 'sales_point.code'|trans }}
                 <div class="input-with-action">
-                    <input id="sales-point-code" name="code" maxlength="60" required value="{{ edit_sales_point ? edit_sales_point.code : '' }}" placeholder="POS-01 / TABLE-A1" autocomplete="off">
+                    <input id="sales-point-code" name="code" maxlength="60" data-sales-point-form-target="code" required value="{{ edit_sales_point ? edit_sales_point.code : '' }}" placeholder="POS-01 / TABLE-A1" autocomplete="off">
                     {% if not edit_sales_point %}<button class="button" type="button" data-action="sales-point-form#generateCode">{{ 'sales_point.generate_code'|trans }}</button>{% endif %}
                 </div>
             </label>
@@ -30,7 +30,7 @@
                 <input id="sales-point-name" name="name" maxlength="160" required value="{{ edit_sales_point ? edit_sales_point.name : '' }}" placeholder="{{ 'sales_point.name_placeholder'|trans }}">
             </label>
             <label for="sales-point-type">{{ 'sales_point.type'|trans }}
-                <select id="sales-point-type" name="type">
+                <select id="sales-point-type" name="type" data-sales-point-form-target="type">
                     {% for type in types %}<option value="{{ type.value }}" {{ edit_sales_point and edit_sales_point.type.value == type.value ? 'selected' : '' }}>{{ type.value == 'TABLE' ? 'sales_point.type_table'|trans : 'sales_point.type_pos'|trans }}</option>{% endfor %}
                 </select>
             </label>

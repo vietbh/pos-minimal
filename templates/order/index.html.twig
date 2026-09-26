@@ -116,7 +116,7 @@
                         <div class="order-meta">{{ item.createdAt|date('d/m/Y H:i') }}</div>
                         <div class="order-total">{{ item.total|money_vnd }}</div>
                     </div>
-                    {% if item.debtAmount != '0.00' %}
+                    {% if item.status.value != 'COMPLETED' and item.debtAmount != '0.00' %}
                         <div class="order-debt">{{ 'order.debt_prefix'|trans }} {{ item.debtAmount|money_vnd }}</div>
                     {% endif %}
                 </a>

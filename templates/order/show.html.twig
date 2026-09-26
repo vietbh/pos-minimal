@@ -42,9 +42,13 @@
         {% if order.completedAt %}<div class="order-row"><span class="muted">{{ 'order.completed'|trans }}</span><span>{{ order.completedAt|date('d/m/Y H:i:s') }}</span></div>{% endif %}
         {% if order.cancelledAt %}<div class="order-row"><span class="muted">{{ 'stat.cancelled'|trans }}</span><span>{{ order.cancelledAt|date('d/m/Y H:i:s') }}</span></div>{% endif %}
         <div class="order-row"><span class="muted">{{ 'order.subtotal'|trans }}</span><span>{{ order.subtotal|money_vnd }}</span></div>
+        {% if order.discount != '0.00' %}
+            <div class="order-row"><span class="muted">{{ 'pos.cart.discount'|trans }}{% if order.discountPercent > 0 %} ({{ order.discountPercent }}%) {% endif %}</span><span>-{{ order.discount|money_vnd }}</span></div>
+            {% if order.manualDiscount != '0.00' %}<div class="order-row"><span class="muted">Giảm trực tiếp</span><span>-{{ order.manualDiscount|money_vnd }}</span></div>{% endif %}
+        {% endif %}
         <div class="order-row"><span class="strong">{{ 'order.total'|trans }}</span><span class="strong order-money-total">{{ order.total|money_vnd }}</span></div>
         <div class="order-row"><span class="muted">{{ 'order.paid'|trans }}</span><span>{{ order.paidAmount|money_vnd }}</span></div>
-        <div class="order-row"><span class="muted">{{ 'order.remaining_debt'|trans }}</span><span>{{ order.debtAmount|money_vnd }}</span></div>
+        {% if order.status.value != 'COMPLETED' and order.debtAmount != '0.00' %}<div class="order-row"><span class="muted">{{ 'order.remaining_debt'|trans }}</span><span>{{ order.debtAmount|money_vnd }}</span></div>{% endif %}
         {% if order.note %}<div class="order-row"><span class="muted">{{ 'admin.note'|trans }}</span><span>{{ order.note }}</span></div>{% endif %}
     </section>
 
@@ -127,7 +131,7 @@
         </section>
     {% endif %}
 
-    {% if order.debt %}
+    {% if order.status.value != 'COMPLETED' and order.debt and order.debtAmount != '0.00' and order.status.value != 'CANCELLED' and order.status.value != 'REFUNDED' %}
         <section class="order-section" aria-labelledby="order-debt">
             <h2 id="order-debt">{{ 'debt.title'|trans }}</h2>
             <div class="order-row"><span class="muted">{{ 'common.status'|trans }}</span><span>{{ order.debt.status|title }}</span></div>

@@ -1,18 +1,18 @@
 import { Controller } from '@hotwired/stimulus';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
-const CART_STORAGE_KEY = 'mobile-pos.cart.v1';
+const CART_STORAGE_KEY_PREFIX = 'mobile-pos.cart.v2.sales-point.';
 const SEARCH_DEBOUNCE_MS = 180;
 const MINOR_SCALE = 100n;
 
 export default class extends Controller {
     static targets = [
         'productSearch', 'productResults', 'productCategory', 'productCatalogMeta', 'productPagination', 'productPrevious', 'productNext', 'productPageIndicator', 'webhookEnrichment', 'webhookEnrichmentState', 'webhookProvider', 'webhookExternalId', 'webhookOccurredAt', 'webhookAmount', 'webhookDescription', 'customerSearch', 'customerResults',
-        'selectedCustomer', 'clearCustomer', 'openCustomerCreate', 'customerCreateModal', 'newCustomerName', 'newCustomerPhone', 'createCustomerButton', 'customerCreateError', 'cart', 'cartEmpty', 'cartCount', 'copySourceNotice',
-        'cartTotal', 'submitButton', 'message', 'success', 'requestId', 'status',
+        'selectedCustomer', 'clearCustomer', 'openCustomerCreate', 'customerCreateModal', 'newCustomerName', 'newCustomerPhone', 'newCustomerDiscountPercent', 'createCustomerButton', 'customerCreateError', 'cart', 'cartEmpty', 'cartCount', 'copySourceNotice',
+        'cartSubtotal', 'cartCustomerDiscount', 'cartManualDiscount', 'manualDiscount', 'cartDiscount', 'cartTotal', 'submitButton', 'message', 'success', 'requestId', 'status',
         'retryButton', 'paymentMethods', 'paymentAmount', 'customerTendered',
         'paymentTotal', 'paymentApplied', 'paymentDue', 'paymentChange',
-        'paymentState', 'paymentDueRow', 'clearTendered', 'bankAccount', 'bankDetails', 'bankName', 'bankNumber', 'bankAccountName', 'transferContent', 'bankQr', 'paymentChangeRow', 'quickCash', 'note', 'resultTotal', 'resultPaid',
+        'paymentState', 'paymentDueRow', 'clearTendered', 'bankAccount', 'bankDetails', 'bankName', 'bankNumber', 'bankAccountName', 'transferContent', 'bankQr', 'paymentChangeRow', 'quickCash', 'note', 'resultSubtotal', 'resultDiscount', 'resultTotal', 'resultPaid',
         'resultDebt', 'resultTendered', 'resultChange', 'resultOrder',
         'resultTenderedRow', 'resultChangeRow', 'resultDebtRow', 'saleView', 'paymentReferenceResult', 'resultPaymentReference', 'resultPaymentReferenceExpiresAt', 'resultPaymentReferenceCountdown', 'regeneratePaymentReferenceButton', 'paymentReferenceHint', 'manualBankConfirmButton', 'resultPaymentReferenceTransferContent', 'resultPaymentReferenceQr', 'bankQrPlaceholder', 'completePaidSaleButton', 'paymentReceivedBanner', 'paymentReceivedBannerAmount', 'paymentReceivedModal', 'paymentReceivedModalAmount', 'paymentReceivedModalReference', 'paymentReceivedCountdown', 'speakerButton', 'speakerStatus', 'currentTime', 'qrModal', 'qrModalImage', 'qrModalReference', 'qrModalAmount', 'qrModalCountdown', 'qrModalClose',
     ];
@@ -48,8 +48,11 @@ export default class extends Controller {
         this.state = 'IDLE';
         this.inFlight = false;
         this.idempotencyKey = null;
+        this.salesPointId = this.readCurrentSalesPointId();
+        this.cartStorageKey = this.buildCartStorageKey(this.salesPointId);
         this.cartItems = this.loadCart();
         this.customer = null;
+        this.manualDiscountMinorValue = 0n;
         this.customerTenderedAuto = true;
         this.products = new Map();
         this.customers = new Map();
@@ -141,6 +144,7 @@ export default class extends Controller {
                     id: Number(data.customer.id),
                     name: String(data.customer.name || ''),
                     phone: data.customer.phone ? String(data.customer.phone) : null,
+                    defaultDiscountPercent: Number(data.customer.defaultDiscountPercent || 0),
                 };
                 this.selectedCustomerTarget.hidden = false;
                 this.selectedCustomerTarget.textContent = this.customer.phone
@@ -536,7 +540,15 @@ export default class extends Controller {
         this.cartEmptyTarget.hidden = itemCount > 0;
         this.cartCountTarget.textContent = String(itemCount);
 
-        const total = this.cartTotalMinor();
+        const subtotal = this.cartSubtotalMinor();
+        const percentDiscount = this.cartPercentDiscountMinor(subtotal);
+        const manualDiscount = this.cartManualDiscountMinor(subtotal);
+        const discount = percentDiscount + manualDiscount;
+        const total = subtotal - discount;
+        if (this.hasCartSubtotalTarget) this.cartSubtotalTarget.textContent = this.formatMinor(subtotal);
+        if (this.hasCartCustomerDiscountTarget) this.cartCustomerDiscountTarget.textContent = percentDiscount > 0n ? `-${this.formatMinor(percentDiscount)}` : this.formatMinor(0n);
+        if (this.hasCartManualDiscountTarget) this.cartManualDiscountTarget.textContent = manualDiscount > 0n ? `-${this.formatMinor(manualDiscount)}` : this.formatMinor(0n);
+        if (this.hasCartDiscountTarget) this.cartDiscountTarget.textContent = discount > 0n ? `-${this.formatMinor(discount)}` : this.formatMinor(0n);
         this.cartTotalTarget.textContent = this.formatMinor(total);
         this.updatePaymentState(total);
     }
@@ -553,11 +565,49 @@ export default class extends Controller {
         return button;
     }
 
-    cartTotalMinor() {
+    cartSubtotalMinor() {
         return this.cartItems.reduce(
             (sum, item) => sum + this.parseMajorToMinor(item.unitPrice) * BigInt(item.quantity),
             0n,
         );
+    }
+
+    cartDiscountPercent() {
+        const percent = Number(this.customer?.defaultDiscountPercent || 0);
+        return Number.isFinite(percent) ? Math.max(0, Math.min(100, Math.trunc(percent))) : 0;
+    }
+
+    cartPercentDiscountMinor(subtotalMinor = this.cartSubtotalMinor()) {
+        const percent = this.cartDiscountPercent();
+        const discount = (subtotalMinor * BigInt(percent) + 50n) / 100n;
+        return discount > subtotalMinor ? subtotalMinor : discount;
+    }
+
+    cartManualDiscountMinor(subtotalMinor = this.cartSubtotalMinor()) {
+        const percentDiscount = this.cartPercentDiscountMinor(subtotalMinor);
+        const remaining = subtotalMinor - percentDiscount;
+        return this.manualDiscountMinorValue > remaining ? remaining : this.manualDiscountMinorValue;
+    }
+
+    cartDiscountMinor(subtotalMinor = this.cartSubtotalMinor()) {
+        return this.cartPercentDiscountMinor(subtotalMinor) + this.cartManualDiscountMinor(subtotalMinor);
+    }
+
+    cartTotalMinor() {
+        const subtotal = this.cartSubtotalMinor();
+        const discount = this.cartDiscountMinor(subtotal);
+        return subtotal - (discount > subtotal ? subtotal : discount);
+    }
+
+    setManualDiscount(event) {
+        const raw = String(event?.target?.value || '').trim();
+        try {
+            const minor = raw === '' ? 0n : this.parseMajorToMinor(raw);
+            this.manualDiscountMinorValue = minor < 0n ? 0n : minor;
+        } catch (_) {
+            this.manualDiscountMinorValue = 0n;
+        }
+        this.renderCart();
     }
 
     searchCustomers() {
@@ -598,7 +648,8 @@ export default class extends Controller {
                 const name = document.createElement('strong');
                 name.textContent = customer.name;
                 const phone = document.createElement('small');
-                phone.textContent = customer.phone || '';
+                const discount = Number(customer.defaultDiscountPercent || 0);
+                phone.textContent = `${customer.phone || ''}${discount > 0 ? ` · Giảm ${discount}%` : ''}`;
                 button.append(name, phone);
                 return button;
             }));
@@ -616,12 +667,11 @@ export default class extends Controller {
 
         this.customer = customer;
         this.selectedCustomerTarget.hidden = false;
-        this.selectedCustomerTarget.textContent = customer.phone
-            ? `${customer.name} · ${customer.phone}`
-            : customer.name;
+        const customerDiscount = Number(customer.defaultDiscountPercent || 0);
+        this.selectedCustomerTarget.textContent = `${customer.phone ? `${customer.name} · ${customer.phone}` : customer.name}${customerDiscount > 0 ? ` · Giảm ${customerDiscount}%` : ''}`;
         this.clearCustomerTarget.hidden = false;
         this.customerSearchTarget.value = '';
-        this.updatePaymentState(this.cartTotalMinor());
+        this.renderCart();
         this.customerResultsTarget.replaceChildren();
     }
 
@@ -629,7 +679,7 @@ export default class extends Controller {
         this.customer = null;
         this.selectedCustomerTarget.hidden = true;
         this.clearCustomerTarget.hidden = true;
-        this.updatePaymentState(this.cartTotalMinor());
+        this.renderCart();
     }
 
     openCustomerCreate() {
@@ -638,6 +688,7 @@ export default class extends Controller {
         this.customerCreateErrorTarget.textContent = '';
         this.newCustomerNameTarget.value = '';
         this.newCustomerPhoneTarget.value = '';
+        this.newCustomerDiscountPercentTarget.value = '0';
         this.customerCreateModalTarget.hidden = false;
         this.newCustomerNameTarget.focus();
     }
@@ -652,6 +703,7 @@ export default class extends Controller {
         if (this.inFlight) return;
         const name = this.newCustomerNameTarget.value.trim();
         const phone = this.newCustomerPhoneTarget.value.trim();
+        const discountPercent = Math.max(0, Math.min(100, Math.trunc(Number(this.newCustomerDiscountPercentTarget.value || 0))));
 
         if (!name) {
             this.customerCreateErrorTarget.textContent = this.messagesValue.customerNameRequired;
@@ -672,7 +724,7 @@ export default class extends Controller {
                     'X-CSRF-TOKEN': this.csrfTokenValue,
                 },
                 credentials: 'same-origin',
-                body: JSON.stringify({ name, phone: phone || null }),
+                body: JSON.stringify({ name, phone: phone || null, defaultDiscountPercent: discountPercent }),
             });
             const body = await response.json().catch(() => ({}));
             if (!response.ok) {
@@ -684,16 +736,16 @@ export default class extends Controller {
                 id: Number(customer.id),
                 name: String(customer.name || name),
                 phone: customer.phone ? String(customer.phone) : null,
+                defaultDiscountPercent: Number(customer.defaultDiscountPercent || 0),
             };
             this.selectedCustomerTarget.hidden = false;
-            this.selectedCustomerTarget.textContent = this.customer.phone
-                ? `${this.customer.name} · ${this.customer.phone}`
-                : this.customer.name;
+            const customerDiscount = Number(this.customer.defaultDiscountPercent || 0);
+            this.selectedCustomerTarget.textContent = `${this.customer.phone ? `${this.customer.name} · ${this.customer.phone}` : this.customer.name}${customerDiscount > 0 ? ` · Giảm ${customerDiscount}%` : ''}`;
             this.clearCustomerTarget.hidden = false;
             this.customerSearchTarget.value = '';
             this.customerResultsTarget.replaceChildren();
             this.closeCustomerCreate();
-            this.updatePaymentState(this.cartTotalMinor());
+            this.renderCart();
             this.setStatus(this.messagesValue.customerCreated);
         } catch (error) {
             this.customerCreateErrorTarget.textContent = error instanceof Error
@@ -1045,6 +1097,7 @@ export default class extends Controller {
         const payload = {
             items: this.cartItems.map((item) => ({ productId: item.productId, quantity: item.quantity })),
             customerId: this.customer?.id ?? null,
+            manualDiscount: this.formatMinorApi(this.cartManualDiscountMinor(this.cartSubtotalMinor())),
             payment,
             note: this.noteTarget.value.trim() || null,
         };
@@ -1073,9 +1126,24 @@ export default class extends Controller {
 
             const body = await response.json().catch(() => ({}));
             if (!response.ok) {
+                const errorCode = body.errorCode || this.errorCodeForStatus(response.status);
+
+                // A completed HTTP response means the server has finished this
+                // checkout attempt. Business/validation failures may have
+                // permanently marked the current idempotency key as FAILED.
+                // Retrying that same key would deterministically return
+                // "This idempotency key belongs to a failed operation."
+                //
+                // Keep the key only while the original operation may still be
+                // running (409 IDEMPOTENCY_IN_PROGRESS). Network/timeout errors
+                // are handled separately below and also retain the key.
+                if (errorCode !== 'IDEMPOTENCY_IN_PROGRESS') {
+                    this.idempotencyKey = null;
+                }
+
                 this.handleError({
                     status: response.status,
-                    errorCode: body.errorCode || this.errorCodeForStatus(response.status),
+                    errorCode,
                     message: body.message || this.messagesValue.unableCheckout,
                     requestId: body.requestId || response.headers.get('X-Request-ID'),
                 });
@@ -1106,7 +1174,9 @@ export default class extends Controller {
 
     retry(event) {
         event?.preventDefault();
-        if (this.inFlight || this.state === 'SUCCESS' || this.idempotencyKey === null) return;
+        if (this.inFlight || this.state === 'SUCCESS') return;
+        // submit() creates a fresh key when the previous server-side attempt
+        // has already finished and was rejected.
         this.submit();
     }
 
@@ -1124,6 +1194,8 @@ export default class extends Controller {
         this.cartItems = [];
         this.persistCart();
         this.customer = null;
+        this.manualDiscountMinorValue = 0n;
+        if (this.hasManualDiscountTarget) this.manualDiscountTarget.value = '0';
         this.customerTenderedTarget.value = '';
         this.customerTenderedAuto = true;
         this.paymentAmountTarget.value = '';
@@ -1169,6 +1241,8 @@ export default class extends Controller {
 
         this.resultOrderTarget.textContent = String(data.orderNumber ?? '');
         this.renderPaymentReference(data);
+        if (this.hasResultSubtotalTarget) this.resultSubtotalTarget.textContent = this.formatMajor(data.subtotal ?? '0');
+        if (this.hasResultDiscountTarget) this.resultDiscountTarget.textContent = data.discount && data.discount !== '0.00' ? `-${this.formatMajor(data.discount)}` : this.formatMajor('0');
         this.resultTotalTarget.textContent = this.formatMajor(data.total ?? '0');
         this.resultPaidTarget.textContent = this.formatMajor(data.paidAmount ?? '0');
         this.resultDebtTarget.textContent = this.formatMajor(data.debtAmount ?? '0');
@@ -1886,9 +1960,22 @@ export default class extends Controller {
         try { return this.parseMajorToMinor(value) > 0n; } catch { return false; }
     }
 
+    readCurrentSalesPointId() {
+        const select = document.querySelector('[data-sales-point-target="select"]');
+        const id = Number(select?.value || 0);
+        return Number.isInteger(id) && id > 0 ? id : null;
+    }
+
+    buildCartStorageKey(salesPointId) {
+        if (!Number.isInteger(Number(salesPointId)) || Number(salesPointId) <= 0) {
+            return `${CART_STORAGE_KEY_PREFIX}unassigned`;
+        }
+        return `${CART_STORAGE_KEY_PREFIX}${Number(salesPointId)}`;
+    }
+
     loadCart() {
         try {
-            const raw = localStorage.getItem(CART_STORAGE_KEY);
+            const raw = localStorage.getItem(this.cartStorageKey);
             const parsed = raw ? JSON.parse(raw) : [];
             if (!Array.isArray(parsed)) return [];
             return parsed.filter((item) =>
@@ -1902,7 +1989,7 @@ export default class extends Controller {
     }
 
     persistCart() {
-        try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(this.cartItems)); } catch { /* optional persistence */ }
+        try { localStorage.setItem(this.cartStorageKey, JSON.stringify(this.cartItems)); } catch { /* optional persistence */ }
     }
 
     newIdempotencyKey() {

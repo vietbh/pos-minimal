@@ -84,6 +84,15 @@ class Order
     )]
     private Money $subtotal;
 
+    #[ORM\Column(name: 'discount', type: 'money')]
+    private Money $discount;
+
+    #[ORM\Column(name: 'discount_percent', type: 'smallint', options: ['unsigned' => true])]
+    private int $discountPercent = 0;
+
+    #[ORM\Column(name: 'manual_discount', type: 'money')]
+    private Money $manualDiscount;
+
     #[ORM\Column(
         type: 'money',
     )]
@@ -158,6 +167,8 @@ class Order
         $this->status = OrderStatus::DRAFT;
 
         $this->subtotal = Money::zero();
+        $this->discount = Money::zero();
+        $this->manualDiscount = Money::zero();
         $this->total = Money::zero();
 
         $this->note = self::normalizeNullableString($note);
@@ -280,28 +291,66 @@ class Order
         return $this->subtotal;
     }
 
+    public function getDiscount(): Money
+    {
+        return $this->discount;
+    }
+
+    public function getDiscountPercent(): int
+    {
+        return $this->discountPercent;
+    }
+
+    public function getManualDiscount(): Money
+    {
+        return $this->manualDiscount;
+    }
+
+    public function setManualDiscount(Money $discount): void
+    {
+        if (!$this->isDraft()) {
+            throw new \DomainException('Discount can only be changed while order is draft.');
+        }
+        if ($discount->minorUnits() < 0) {
+            throw new \InvalidArgumentException('Manual order discount cannot be negative.');
+        }
+        $this->manualDiscount = $discount;
+        $this->recalculateTotals();
+    }
+
+    public function setDiscountPercent(int $percent): void
+    {
+        if (!$this->isDraft()) {
+            throw new \DomainException('Discount can only be changed while order is draft.');
+        }
+        if ($percent < 0 || $percent > 100) {
+            throw new \InvalidArgumentException('Order discount percent must be between 0 and 100.');
+        }
+        $this->discountPercent = $percent;
+        $this->recalculateTotals();
+    }
+
     public function getTotal(): Money
     {
         return $this->total;
     }
 
-    /**
-     * No discount field in MVP.
-     *
-     * total = subtotal
-     */
     public function recalculateTotals(): void
     {
         $subtotal = Money::zero();
 
         foreach ($this->items as $item) {
-            $subtotal = $subtotal->add(
-                $item->getSubtotal(),
-            );
+            $subtotal = $subtotal->add($item->getSubtotal());
         }
 
         $this->subtotal = $subtotal;
-        $this->total = $subtotal;
+        $percentDiscountMinor = intdiv($subtotal->minorUnits() * $this->discountPercent + 50, 100);
+        $percentDiscountMinor = min($percentDiscountMinor, $subtotal->minorUnits());
+        $remainingMinor = $subtotal->minorUnits() - $percentDiscountMinor;
+        $manualDiscountMinor = min($this->manualDiscount->minorUnits(), $remainingMinor);
+        $this->manualDiscount = Money::fromInt($manualDiscountMinor);
+        $this->discount = Money::fromInt($percentDiscountMinor + $manualDiscountMinor);
+        $this->total = $subtotal->subtract($this->discount);
     }
 
     /**

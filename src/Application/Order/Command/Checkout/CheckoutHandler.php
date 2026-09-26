@@ -201,8 +201,13 @@ final readonly class CheckoutHandler
             orderId: $result['orderId'],
             orderNumber: null,
             total: $total,
+            subtotal: Money::fromDecimal((string) ($result['subtotal'] ?? $result['amount'])),
+            discount: Money::fromDecimal((string) ($result['discount'] ?? '0.00')),
             paidAmount: Money::zero(),
-            debtAmount: $total,
+            // A bank-transfer session is still awaiting payment; it is not
+            // customer debt. Debt is created only from a completed order
+            // whose paid amount is below the final discounted total.
+            debtAmount: Money::zero(),
             tenderedAmount: Money::zero(),
             changeAmount: Money::zero(),
             status: null,
@@ -256,7 +261,7 @@ final readonly class CheckoutHandler
             }
 
             $snapshot = [];
-            $calculatedTotal = Money::zero();
+            $calculatedSubtotal = Money::zero();
             foreach ($productIds as $productId) {
                 $product = $products[$productId];
                 $quantity = $quantities[$productId];
@@ -267,8 +272,16 @@ final readonly class CheckoutHandler
                     'quantity' => $quantity,
                     'unitPrice' => $unitPrice->toDecimal(),
                 ];
-                $calculatedTotal = $calculatedTotal->add($unitPrice->multiply($quantity));
+                $calculatedSubtotal = $calculatedSubtotal->add($unitPrice->multiply($quantity));
             }
+
+            $discountPercent = $customer?->getDefaultDiscountPercent() ?? 0;
+            $percentDiscountAmount = Money::fromInt(intdiv($calculatedSubtotal->minorUnits() * $discountPercent + 50, 100));
+            $percentDiscountAmount = Money::fromInt(min($percentDiscountAmount->minorUnits(), $calculatedSubtotal->minorUnits()));
+            $manualDiscountAmount = $input->manualDiscount ?? Money::zero();
+            $manualDiscountAmount = Money::fromInt(min($manualDiscountAmount->minorUnits(), max(0, $calculatedSubtotal->minorUnits() - $percentDiscountAmount->minorUnits())));
+            $discountAmount = $percentDiscountAmount->add($manualDiscountAmount);
+            $calculatedTotal = $calculatedSubtotal->subtract($discountAmount);
 
             if (!$input->payment->amount->equals($calculatedTotal)) {
                 throw new \DomainException('Bank transfer amount must equal the order total.');
@@ -281,7 +294,9 @@ final readonly class CheckoutHandler
                 snapshot: $snapshot,
                 amount: $calculatedTotal,
                 note: $input->note,
+                discountPercent: $discountPercent,
                 activeKey: $this->buildRequestFingerprint($input),
+                manualDiscount: $manualDiscountAmount,
                 salesPoint: $salesPoint,
             );
 
@@ -289,8 +304,12 @@ final readonly class CheckoutHandler
                 orderId: $sessionResult['orderId'],
                 orderNumber: null,
                 total: $calculatedTotal,
+                subtotal: $calculatedSubtotal,
+                discount: $discountAmount,
                 paidAmount: Money::zero(),
-                debtAmount: $calculatedTotal,
+                // The transfer has not been completed yet. The amount due
+                // here is a pending payment, not customer debt.
+                debtAmount: Money::zero(),
                 tenderedAmount: Money::zero(),
                 changeAmount: Money::zero(),
                 status: null,
@@ -310,6 +329,8 @@ final readonly class CheckoutHandler
             note: $input->note,
             salesPoint: $salesPoint,
         );
+        $order->setDiscountPercent($customer?->getDefaultDiscountPercent() ?? 0);
+        $order->setManualDiscount($input->manualDiscount ?? Money::zero());
 
         foreach ($productIds as $productId) {
             $product = $products[$productId];
@@ -438,6 +459,8 @@ final readonly class CheckoutHandler
                 ->getOrderNumber()
                 ->value(),
             total: $order->getTotal(),
+            subtotal: $order->getSubtotal(),
+            discount: $order->getDiscount(),
             paidAmount: $order->getPaidAmount(),
             debtAmount: $order->getDebtAmount(),
             tenderedAmount: $tenderedAmount,
@@ -650,6 +673,7 @@ final readonly class CheckoutHandler
             'items' => $items,
             'customerId' => $input->customerId,
             'salesPointId' => $input->salesPointId,
+            'manualDiscount' => $input->manualDiscount?->toDecimal(),
             'payment' => [
                 'method' => $input->payment->method->value,
                 'amount' => $input->payment->amount->toDecimal(),
@@ -698,7 +722,9 @@ final readonly class CheckoutHandler
         return new CheckoutResult(
             orderId: isset($body['orderId']) ? (int) $body['orderId'] : null,
             orderNumber: isset($body['orderNumber']) ? (string) $body['orderNumber'] : null,
-            total: Money::fromDecimal((string) $body['total']),
+            total: Money::fromDecimal((string) ($body['total'] ?? $body['subtotal'])),
+            subtotal: Money::fromDecimal((string) ($body['subtotal'] ?? $body['total'])),
+            discount: Money::fromDecimal((string) ($body['discount'] ?? '0.00')),
             paidAmount: Money::fromDecimal((string) $body['paidAmount']),
             debtAmount: Money::fromDecimal((string) $body['debtAmount']),
             tenderedAmount: Money::fromDecimal((string) ($body['tenderedAmount'] ?? $body['paidAmount'])),
@@ -722,7 +748,9 @@ final readonly class CheckoutHandler
         return [
             'orderId' => $result->orderId,
             'orderNumber' => $result->orderNumber,
+            'subtotal' => $result->subtotal->toDecimal(),
             'total' => $result->total->toDecimal(),
+            'discount' => $result->discount->toDecimal(),
             'paidAmount' => $result->paidAmount->toDecimal(),
             'debtAmount' => $result->debtAmount->toDecimal(),
             'tenderedAmount' => $result->tenderedAmount->toDecimal(),

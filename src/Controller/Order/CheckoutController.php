@@ -127,6 +127,7 @@ final class CheckoutController extends AbstractController
                     'id' => $result->customerId,
                     'name' => $result->customerName,
                     'phone' => $result->customerPhone,
+                    'defaultDiscountPercent' => $result->customerDefaultDiscountPercent,
                 ],
                 'cashTenderedAmount' => $result->cashTenderedAmount,
                 'items' => array_map(static fn ($item): array => [
@@ -230,6 +231,7 @@ final class CheckoutController extends AbstractController
                 'id' => $customer->id,
                 'name' => $customer->name,
                 'phone' => $customer->phone,
+                'defaultDiscountPercent' => $customer->defaultDiscountPercent,
             ], $results),
         ]);
     }
@@ -263,6 +265,7 @@ final class CheckoutController extends AbstractController
                 name: trim((string) ($payload['name'] ?? '')),
                 phone: isset($payload['phone']) ? trim((string) $payload['phone']) : null,
                 note: isset($payload['note']) ? trim((string) $payload['note']) : null,
+                defaultDiscountPercent: isset($payload['defaultDiscountPercent']) ? (int) $payload['defaultDiscountPercent'] : 0,
             ));
 
             return $this->json([
@@ -272,6 +275,7 @@ final class CheckoutController extends AbstractController
                     'phone' => isset($payload['phone']) && trim((string) $payload['phone']) !== ''
                         ? trim((string) $payload['phone'])
                         : null,
+                    'defaultDiscountPercent' => isset($payload['defaultDiscountPercent']) ? (int) $payload['defaultDiscountPercent'] : 0,
                 ],
             ], Response::HTTP_CREATED);
         } catch (\InvalidArgumentException | \DomainException $e) {
@@ -625,11 +629,22 @@ final class CheckoutController extends AbstractController
             throw new \InvalidArgumentException('note must be a string or null.');
         }
 
+        $manualDiscount = $payload['manualDiscount'] ?? null;
+        if ($manualDiscount !== null && !is_string($manualDiscount) && !is_int($manualDiscount)) {
+            throw new \InvalidArgumentException('manualDiscount must be a string, integer, or null.');
+        }
+
         try {
             $money = Money::fromDecimal((string) $amount);
             $tenderedMoney = $tenderedAmount === null
                 ? null
                 : Money::fromDecimal((string) $tenderedAmount);
+            $manualDiscountMoney = $manualDiscount === null
+                ? null
+                : Money::fromDecimal((string) $manualDiscount);
+            if ($manualDiscountMoney !== null && $manualDiscountMoney->minorUnits() < 0) {
+                throw new \InvalidArgumentException('manualDiscount cannot be negative.');
+            }
         } catch (\InvalidArgumentException $exception) {
             throw new \InvalidArgumentException($exception->getMessage(), previous: $exception);
         }
@@ -643,6 +658,7 @@ final class CheckoutController extends AbstractController
             note: $note,
             idempotencyKey: $idempotencyKey,
             salesPointId: $salesPointId,
+            manualDiscount: $manualDiscountMoney,
         );
     }
 

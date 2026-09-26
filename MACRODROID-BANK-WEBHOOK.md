@@ -15,22 +15,22 @@ https://your-pos.example.com/webhooks/bank-notification
 Authentication:
 
 ```http
-X-Webhook-Token: <WEBHOOK_TOKEN_OF_THE_RECEIVING_BANK_ACCOUNT>
+X-Webhook-Token: <GLOBAL_WEBHOOK_TOKEN>
 Content-Type: application/json
 ```
 
 ## 2. Bank-account webhook token
 
-Each receiving bank account in **Payment Settings** has its own cryptographically generated webhook token persisted in the database.
+All receiving bank accounts share one cryptographically generated webhook token persisted in `payment_webhook_settings`.
 
 1. Open Payment Settings.
-2. Copy the webhook token for the receiving bank account.
-3. Configure MacroDroid with that token in `X-Webhook-Token`.
-4. Include the matching `bankAccountId` in the JSON body.
+2. Copy the global webhook token.
+3. Configure MacroDroid with that token in `X-Webhook-Token` for every receiving bank.
+4. Include the receiving `bankAccountId` in every JSON body.
 
-Use **Regenerate webhook token** when the token must be rotated. The previous token becomes invalid immediately after regeneration.
+Use **Regenerate global webhook token** when the token must be rotated. The previous token becomes invalid immediately after regeneration for every bank account.
 
-The application no longer reads `BANK_NOTIFICATION_WEBHOOK_TOKEN` from `.env`.
+The application does not read `BANK_NOTIFICATION_WEBHOOK_TOKEN` from `.env`; the token is persisted in the database and shared by all receiving accounts.
 
 ## 3. MacroDroid request body
 

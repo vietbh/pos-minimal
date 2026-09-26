@@ -11,6 +11,8 @@ export default class extends Controller {
     }
 
     generateCode() {
+        if (!this.hasCodeTarget) return;
+
         const type = this.hasTypeTarget ? this.typeTarget.value : "POS";
         const prefix = type === "TABLE" ? "TABLE" : "POS";
         const random = Math.random().toString(36).slice(2, 8).toUpperCase();

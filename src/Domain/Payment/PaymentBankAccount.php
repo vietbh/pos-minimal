@@ -7,7 +7,6 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 #[ORM\Table(name: 'payment_bank_accounts')]
 #[ORM\Index(name: 'idx_payment_bank_account_active', columns: ['is_active'])]
-#[ORM\UniqueConstraint(name: 'UNIQ_PAYMENT_BANK_ACCOUNT_WEBHOOK_TOKEN', columns: ['webhook_token'])]
 class PaymentBankAccount
 {
     #[ORM\Id, ORM\GeneratedValue]
@@ -30,7 +29,7 @@ class PaymentBankAccount
     private ?string $cassoSubAccountId;
     #[ORM\Column(name: 'is_active', type: 'boolean')]
     private bool $isActive;
-    #[ORM\Column(name: 'webhook_token', length: 64)]
+    /** @deprecated Webhook authentication is global; kept as a transient compatibility helper for old domain tests/callers. */
     private string $webhookToken;
     #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;

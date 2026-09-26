@@ -36,6 +36,9 @@ class Customer
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $note = null;
 
+    #[ORM\Column(name: 'default_discount_percent', type: 'smallint', options: ['unsigned' => true])]
+    private int $defaultDiscountPercent = 0;
+
     #[ORM\Column(
         name: 'created_at',
         type: 'datetime_immutable',
@@ -52,6 +55,7 @@ class Customer
         string  $name,
         ?string $phone = null,
         ?string $note = null,
+        int $defaultDiscountPercent = 0,
     )
     {
         $name = trim($name);
@@ -65,6 +69,7 @@ class Customer
         $this->name = $name;
         $this->phone = self::normalizePhone($phone);
         $this->note = self::normalizeNote($note);
+        $this->setDefaultDiscountPercent($defaultDiscountPercent);
 
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = $this->createdAt;
@@ -130,6 +135,25 @@ class Customer
 
         $this->note = $normalizedNote;
         $this->touch();
+    }
+
+    public function getDefaultDiscountPercent(): int
+    {
+        return $this->defaultDiscountPercent;
+    }
+
+    public function changeDefaultDiscountPercent(int $percent): void
+    {
+        $this->setDefaultDiscountPercent($percent);
+        $this->touch();
+    }
+
+    private function setDefaultDiscountPercent(int $percent): void
+    {
+        if ($percent < 0 || $percent > 100) {
+            throw new \InvalidArgumentException('Customer discount percent must be between 0 and 100.');
+        }
+        $this->defaultDiscountPercent = $percent;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

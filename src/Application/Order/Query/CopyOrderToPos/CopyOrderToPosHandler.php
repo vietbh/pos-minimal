@@ -54,6 +54,7 @@ final readonly class CopyOrderToPosHandler
             customerId: $order->getCustomer()?->getId(),
             customerName: $order->getCustomer()?->getName(),
             customerPhone: $order->getCustomer()?->getPhone(),
+            customerDefaultDiscountPercent: $order->getCustomer()?->getDefaultDiscountPercent() ?? 0,
             cashTenderedAmount: $this->resolveCashTenderedAmount($order),
             items: $items,
         );

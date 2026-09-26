@@ -13,6 +13,7 @@ final readonly class CopyOrderToPosResult
         public ?int $customerId,
         public ?string $customerName,
         public ?string $customerPhone,
+        public int $customerDefaultDiscountPercent,
         public ?string $cashTenderedAmount,
         public array $items,
     ) {

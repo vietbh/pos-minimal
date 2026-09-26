@@ -10,6 +10,7 @@ final readonly class CustomerSearchResult
         public int $id,
         public string $name,
         public ?string $phone,
+        public int $defaultDiscountPercent = 0,
     ) {
     }
 }

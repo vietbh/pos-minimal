@@ -52,6 +52,7 @@ final readonly class UpdateCustomerHandler
                 $customer->rename($input->name);
                 $customer->changePhone($phone);
                 $customer->changeNote($input->note);
+                $customer->changeDefaultDiscountPercent($input->defaultDiscountPercent);
 
                 $this->customerRepository->save($customer);
                 $transaction->flush();
@@ -71,6 +72,10 @@ final readonly class UpdateCustomerHandler
             throw new \InvalidArgumentException(
                 'Customer name cannot be empty.',
             );
+        }
+
+        if ($input->defaultDiscountPercent < 0 || $input->defaultDiscountPercent > 100) {
+            throw new \InvalidArgumentException('Customer discount percent must be between 0 and 100.');
         }
 
         $phone = $this->normalizePhone($input->phone);

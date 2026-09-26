@@ -38,6 +38,7 @@ final readonly class CreateCustomerHandler
                     name: $input->name,
                     phone: $phone,
                     note: $input->note,
+                    defaultDiscountPercent: $input->defaultDiscountPercent,
                 );
 
                 $this->customerRepository->save($customer);
@@ -62,6 +63,10 @@ final readonly class CreateCustomerHandler
             throw new \InvalidArgumentException(
                 'Customer name cannot be empty.',
             );
+        }
+
+        if ($input->defaultDiscountPercent < 0 || $input->defaultDiscountPercent > 100) {
+            throw new \InvalidArgumentException('Customer discount percent must be between 0 and 100.');
         }
 
         $phone = $this->normalizePhone($input->phone);

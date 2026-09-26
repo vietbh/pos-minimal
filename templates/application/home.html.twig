@@ -31,7 +31,7 @@
             <div class="dashboard-kpi-grid">
                 <article class="dashboard-kpi dashboard-kpi-primary">
                     <span>{{ 'app.sales_today'|trans }}</span>
-                    <strong>{{ dashboard.sales.netSales }} ₫</strong>
+                    <strong>{{ dashboard.sales.netSales|money_vnd }}</strong>
                     <small>{{ dashboard.sales.qualifyingOrders }} {{ 'app.valid_orders'|trans }}</small>
                 </article>
                 <article class="dashboard-kpi">
@@ -41,7 +41,7 @@
                 </article>
                 <article class="dashboard-kpi">
                     <span>{{ 'app.outstanding_debt'|trans }}</span>
-                    <strong>{{ dashboard.debt.outstandingAmount }} ₫</strong>
+                    <strong>{{ dashboard.debt.outstandingAmount|money_vnd }}</strong>
                     <small>{{ dashboard.debt.debtCount }} {{ 'app.debt_records_today'|trans }}</small>
                 </article>
                 <article class="dashboard-kpi {% if dashboard.stock.lowStockProducts > 0 or dashboard.stock.outOfStockProducts > 0 %}dashboard-kpi-warning{% endif %}">
@@ -81,7 +81,7 @@
                                 <strong>{{ product.name }}</strong>
                                 <span>{{ product.quantity }} {{ 'app.units'|trans }}</span>
                             </div>
-                            <strong>{{ product.salesAmount }} ₫</strong>
+                            <strong>{{ product.salesAmount|money_vnd }}</strong>
                         </div>
                     {% endfor %}
                 </div>

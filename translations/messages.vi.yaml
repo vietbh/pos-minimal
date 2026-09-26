@@ -174,6 +174,8 @@ pos:
     next: '>>'
     page_indicator: Trang %page% / %total%
   cart:
+    subtotal: Tạm tính
+    discount: Giảm giá
     title: Giao dịch hiện tại
     items: sản phẩm
     clear: Xóa
@@ -252,6 +254,7 @@ pos:
     enabled: Đã bật âm thanh thanh toán
     payment_received_speech: 'Đã nhận thanh toán %amount%.'
   success:
+    subtotal: Tạm tính
     completed: Đã hoàn tất
     sale_completed: Giao dịch đã hoàn tất
     order: Đơn hàng
@@ -795,6 +798,7 @@ stat:
   payment_breakdown: Phân bổ thanh toán
   debt_summary: Tổng quan công nợ
   stock_summary: Tổng quan tồn kho
+  stock_summary_help: Phân bố tồn kho hiện tại theo trạng thái.
 upload:
   product_image: Hình ảnh sản phẩm
   choose_image: Chọn hình ảnh

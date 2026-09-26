@@ -106,7 +106,10 @@
                 </div>
                 <div class="pos-cart-list" data-pos-checkout-target="cart"></div>
                 <div class="pos-empty" data-pos-checkout-target="cartEmpty">{{ 'pos.cart.empty'|trans }}</div>
-                <div class="pos-cart-total"><span>{{ 'pos.cart.total'|trans }}</span><strong data-pos-checkout-target="cartTotal">0</strong></div>
+                <div class="pos-cart-summary"><div><span>{{ 'pos.cart.subtotal'|trans }}</span><strong data-pos-checkout-target="cartSubtotal">0</strong></div><div><span>Giảm khách hàng</span><strong data-pos-checkout-target="cartCustomerDiscount">0</strong></div><div><span>Giảm trực tiếp</span><strong data-pos-checkout-target="cartManualDiscount">0</strong></div><div><span>{{ 'pos.cart.discount'|trans }}</span><strong data-pos-checkout-target="cartDiscount">0</strong></div><div class="pos-cart-total"><span>{{ 'pos.cart.total'|trans }}</span><strong data-pos-checkout-target="cartTotal">0</strong></div></div>
+                <label>Giảm trực tiếp (VNĐ)
+                    <input type="number" min="0" step="1000" inputmode="decimal" value="0" data-pos-checkout-target="manualDiscount" data-action="input->pos-checkout#setManualDiscount">
+                </label>
                 <p class="pos-total-note">{{ 'pos.cart.server_total_note'|trans }}</p>
             </section>
 
@@ -258,6 +261,9 @@
             <label>{{ 'pos.customer.phone'|trans }}
                 <input data-pos-checkout-target="newCustomerPhone" inputmode="tel" autocomplete="tel">
             </label>
+            <label>Giảm giá mặc định (%)
+                <input type="number" min="0" max="100" step="1" inputmode="numeric" value="0" data-pos-checkout-target="newCustomerDiscountPercent">
+            </label>
             <div class="pos-modal-actions">
                 <button type="button" class="button" data-action="click->pos-checkout#closeCustomerCreate">{{ 'common.cancel'|trans }}</button>
                 <button type="button" class="button primary" data-pos-checkout-target="createCustomerButton" data-action="click->pos-checkout#createCustomer">{{ 'pos.customer.create_quick'|trans }}</button>
@@ -297,7 +303,7 @@
             <p data-pos-checkout-target="webhookDescription"></p>
         </section>
         <dl class="pos-result-grid">
-            <div><dt>{{ 'pos.success.total'|trans }}</dt><dd data-pos-checkout-target="resultTotal"></dd></div>
+            <div><dt>{{ 'pos.success.subtotal'|trans }}</dt><dd data-pos-checkout-target="resultSubtotal"></dd></div><div><dt>{{ 'pos.cart.discount'|trans }}</dt><dd data-pos-checkout-target="resultDiscount"></dd></div><div><dt>{{ 'pos.success.total'|trans }}</dt><dd data-pos-checkout-target="resultTotal"></dd></div>
             <div><dt>{{ 'pos.success.paid'|trans }}</dt><dd data-pos-checkout-target="resultPaid"></dd></div>
             <div data-pos-checkout-target="resultTenderedRow"><dt>{{ 'pos.success.customer_gave'|trans }}</dt><dd data-pos-checkout-target="resultTendered"></dd></div>
             <div data-pos-checkout-target="resultChangeRow"><dt>{{ 'pos.success.change_due'|trans }}</dt><dd data-pos-checkout-target="resultChange"></dd></div>

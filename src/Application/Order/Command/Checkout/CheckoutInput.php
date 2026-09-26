@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Order\Command\Checkout;
 
+use App\Domain\Shared\ValueObject\Money;
+
 final readonly class CheckoutInput
 {
     /**
@@ -18,6 +20,7 @@ final readonly class CheckoutInput
         public ?string $paymentReference = null,
         public ?string $note = null,
         public ?int $salesPointId = null,
+        public ?Money $manualDiscount = null,
     ) {
     }
 }

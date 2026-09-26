@@ -13,6 +13,8 @@ final readonly class CheckoutResult
         public ?int $orderId,
         public ?string $orderNumber,
         public Money $total,
+        public Money $subtotal,
+        public Money $discount,
         public Money $paidAmount,
         public Money $debtAmount,
         public Money $tenderedAmount,

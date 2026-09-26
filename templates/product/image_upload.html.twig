@@ -4,11 +4,14 @@
 <main class="product-image-upload" data-controller="product-image-upload" data-product-image-upload-choose-required-message-value="{{ 'upload.choose_required'|trans }}" data-product-image-upload-uploading-message-value="{{ 'upload.uploading'|trans }}" data-product-image-upload-failed-message-value="{{ 'upload.upload_failed'|trans }}" data-product-image-upload-uploaded-message-value="{{ 'upload.uploaded'|trans }}">
     <h1>{{ 'upload.product_image'|trans }}</h1>
 
-    <form action="{{ path('product_image_upload', {productId: productId}) }}" data-product-image-upload-target="form" data-action="submit->product-image-upload#submit" enctype="multipart/form-data">
-        <label for="product-image-file">{{ 'upload.choose_image'|trans }}</label>
+    <form class="product-image-upload__form" action="{{ path('product_image_upload', {productId: productId}) }}" data-product-image-upload-target="form" data-action="submit->product-image-upload#submit" enctype="multipart/form-data">
         <input type="hidden" name="_token" value="{{ csrf_token('product_image_upload') }}" data-product-image-upload-target="token">
-        <input id="product-image-file" type="file" name="image" accept="image/jpeg,image/png,image/webp" required data-product-image-upload-target="input">
-        <button type="submit" data-product-image-upload-target="submit">{{ 'upload.upload'|trans }}</button>
+        <label class="product-image-upload__picker" for="product-image-file">
+            <span class="product-image-upload__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Z"/><circle cx="8.5" cy="9" r="1.5"/><path stroke-linecap="round" stroke-linejoin="round" d="m5.5 17 4-4 3 3 2-2 4 4"/></svg></span>
+            <span class="product-image-upload__filename" data-product-image-upload-target="filename">{{ 'upload.choose_image'|trans }}</span>
+        </label>
+        <input id="product-image-file" class="product-image-upload__input" type="file" name="image" accept="image/jpeg,image/png,image/webp" required data-product-image-upload-target="input" data-action="change->product-image-upload#fileChanged">
+        <button class="button primary" type="submit" data-product-image-upload-target="submit">{{ 'upload.upload'|trans }}</button>
     </form>
 
     <p role="status" aria-live="polite" data-product-image-upload-target="status"></p>

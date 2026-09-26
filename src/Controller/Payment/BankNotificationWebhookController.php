@@ -5,6 +5,7 @@ namespace App\Controller\Payment;
 
 use App\Application\Payment\Webhook\BankNotificationWebhookHandler;
 use App\Domain\Payment\Repository\PaymentBankAccountRepositoryInterface;
+use App\Domain\Payment\Repository\PaymentWebhookSettingsRepositoryInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,11 +17,10 @@ final class BankNotificationWebhookController extends AbstractController
     public function __construct() {}
 
     #[Route('/webhooks/bank-notification', name: 'webhook_bank_notification', methods: ['POST'], format: 'json')]
-    public function __invoke(Request $request, BankNotificationWebhookHandler $handler, PaymentBankAccountRepositoryInterface $accounts): JsonResponse
+    public function __invoke(Request $request, BankNotificationWebhookHandler $handler, PaymentBankAccountRepositoryInterface $accounts, PaymentWebhookSettingsRepositoryInterface $webhookSettingsRepository): JsonResponse
     {
 
         $provided = (string)$request->headers->get('X-Webhook-Token', '');
-        dump($provided);
         try {
             $payload = $request->toArray();
             if ($provided === '') {
@@ -30,36 +30,47 @@ final class BankNotificationWebhookController extends AbstractController
                 ], Response::HTTP_UNAUTHORIZED);
             }
 
-            // The persisted account token is sufficient to identify the receiving
-            // account. bankAccountId remains supported and, when supplied, must
-            // agree with the account identified by the token. This keeps older
-            // notification clients working while preserving account isolation.
-            $account = $accounts->findByWebhookToken($provided);
-            if ($account === null) {
+            $webhookSettings = $webhookSettingsRepository->getOrCreate();
+            if (!$webhookSettings->matchesToken($provided)) {
                 return $this->json([
                     'errorCode' => 'WEBHOOK_UNAUTHORIZED',
                     'message' => 'Invalid webhook token.',
                 ], Response::HTTP_UNAUTHORIZED);
             }
 
-            $payloadBankAccountId = filter_var(
-                $payload['bankAccountId'] ?? null,
-                FILTER_VALIDATE_INT,
-                ['options' => ['min_range' => 1]],
-            );
-            if ($payloadBankAccountId !== false && $payloadBankAccountId !== null) {
-                $accountId = $account->getId();
-                if ($accountId === null || (int) $payloadBankAccountId !== $accountId) {
+            $rawBankAccountId = $payload['bankAccountId'] ?? null;
+            $payloadBankAccountId = null;
+            if ($rawBankAccountId !== null && $rawBankAccountId !== '') {
+                $payloadBankAccountId = filter_var(
+                    $rawBankAccountId,
+                    FILTER_VALIDATE_INT,
+                    ['options' => ['min_range' => 1]],
+                );
+                if ($payloadBankAccountId === false) {
                     return $this->json([
-                        'errorCode' => 'WEBHOOK_UNAUTHORIZED',
-                        'message' => 'Webhook token does not belong to the supplied bank account.',
-                    ], Response::HTTP_UNAUTHORIZED);
+                        'errorCode' => 'BANK_ACCOUNT_INVALID',
+                        'message' => 'bankAccountId is invalid.',
+                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
-            } elseif (array_key_exists('bankAccountId', $payload) && $payload['bankAccountId'] !== null && $payload['bankAccountId'] !== '') {
-                return $this->json([
-                    'errorCode' => 'BANK_ACCOUNT_INVALID',
-                    'message' => 'bankAccountId is invalid.',
-                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            if ($payloadBankAccountId === null) {
+                $activeAccounts = $accounts->findActive();
+                if (count($activeAccounts) !== 1) {
+                    return $this->json([
+                        'errorCode' => 'BANK_ACCOUNT_REQUIRED',
+                        'message' => 'bankAccountId is required when more than one receiving bank account exists.',
+                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
+                $account = $activeAccounts[0];
+            } else {
+                $account = $accounts->findById((int) $payloadBankAccountId);
+                if ($account === null) {
+                    return $this->json([
+                        'errorCode' => 'BANK_ACCOUNT_NOT_FOUND',
+                        'message' => 'Receiving bank account not found.',
+                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
             }
 
             $payload['bankAccountId'] = $account->getId();

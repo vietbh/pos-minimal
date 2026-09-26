@@ -1,8 +1,13 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['form', 'input', 'submit', 'status', 'token'];
+    static targets = ['form', 'input', 'submit', 'status', 'token', 'filename'];
     static values = { chooseRequiredMessage: String, uploadingMessage: String, failedMessage: String, uploadedMessage: String };
+
+    fileChanged() {
+        const file = this.inputTarget.files[0];
+        if (file && this.hasFilenameTarget) this.filenameTarget.textContent = file.name;
+    }
 
     async submit(event) {
         event.preventDefault();
@@ -35,6 +40,7 @@ export default class extends Controller {
 
             this.statusTarget.textContent = this.uploadedMessageValue;
             this.formTarget.reset();
+            if (this.hasFilenameTarget) this.filenameTarget.textContent = this.chooseRequiredMessageValue;
         } catch (error) {
             this.statusTarget.textContent = error.message;
         } finally {

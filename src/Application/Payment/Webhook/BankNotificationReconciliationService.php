@@ -241,6 +241,8 @@ final readonly class BankNotificationReconciliationService
             note: $session->getNote(),
             salesPoint: $session->getSalesPoint(),
         );
+        $order->setDiscountPercent($session->getDiscountPercent());
+        $order->setManualDiscount($session->getManualDiscount());
 
         foreach ($session->getCartSnapshot() as $item) {
             $product = $this->productLocking->lock((int) $item['productId']);

@@ -48,6 +48,42 @@ final class CheckoutCashTenderTest extends IntegrationTestCase
         self::assertSame(OrderStatus::COMPLETED, $result->status);
     }
 
+    public function testCustomerDiscountReducesOrderTotalWithoutCreatingDebt(): void
+    {
+        $user = new User('cash-discount-'.bin2hex(random_bytes(4)));
+        $customer = new Customer('Discount customer', null, null, 10);
+        $product = new Product('Discount product', Money::fromDecimal('135000.00'));
+        $product->setStockQuantityForAdjustment(5);
+
+        $this->entityManager->persist($user);
+        $this->entityManager->persist($customer);
+        $this->entityManager->persist($product);
+        $this->entityManager->flush();
+
+        $result = $this->checkout(
+            $user,
+            $product,
+            '121500.00',
+            '121500.00',
+            $customer,
+        );
+
+        self::assertSame('135000.00', $result->subtotal->toDecimal());
+        self::assertSame('13500.00', $result->discount->toDecimal());
+        self::assertSame('121500.00', $result->total->toDecimal());
+        self::assertSame('121500.00', $result->paidAmount->toDecimal());
+        self::assertSame('0.00', $result->debtAmount->toDecimal());
+        self::assertSame(OrderStatus::COMPLETED, $result->status);
+
+        $this->entityManager->clear();
+
+        $order = $this->entityManager->find(Order::class, $result->orderId);
+        self::assertNotNull($order);
+        self::assertSame(10, $order->getDiscountPercent());
+        self::assertSame('13500.00', $order->getDiscount()->toDecimal());
+        self::assertSame('0.00', $order->getDebtAmount()->toDecimal());
+    }
+
     public function testZeroCashTenderCompletesAsDebtWhenCustomerIsProvided(): void
     {
         $user = new User('cash-zero-debt-'.bin2hex(random_bytes(4)));
