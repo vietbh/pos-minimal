@@ -1994,3 +1994,978 @@ body {
 .product-image-upload__input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 
 .pos-cart-summary{display:grid;gap:6px;margin-top:12px}.pos-cart-summary>div{display:flex;justify-content:space-between;gap:12px;align-items:baseline}.pos-cart-summary>div>strong{font-variant-numeric:tabular-nums}.pos-cart-summary .pos-cart-total{margin-top:6px}
+
+
+/* ================================================================
+ * POS WEB UX — responsive web application, not iPhone-style UI
+ * ================================================================
+ * The product is a business web application. Mobile adapts the page
+ * layout; it does not replace navigation with a tab bar, gestures,
+ * full-screen sheets, or phone-like floating controls.
+ */
+:root {
+    --web-primary: #2563eb;
+    --web-primary-dark: #1d4ed8;
+    --web-bg: #f4f6f8;
+    --web-surface: #ffffff;
+    --web-border: #d7dde5;
+    --web-text: #172033;
+    --web-muted: #5b6575;
+    --web-radius: 8px;
+}
+
+body {
+    background: var(--web-bg);
+    color: var(--web-text);
+}
+
+.button, button,
+input, textarea, select {
+    border-radius: var(--web-radius);
+}
+
+.button.primary, button.primary {
+    background: var(--web-primary) !important;
+    border-color: var(--web-primary) !important;
+    box-shadow: none;
+}
+.button.primary:hover, button.primary:hover {
+    background: var(--web-primary-dark) !important;
+    border-color: var(--web-primary-dark) !important;
+}
+
+.pos-card,
+.card,
+.form-card,
+.search-bar,
+.inline-form,
+.admin-section,
+.admin-form,
+.statistics-card {
+    border-radius: var(--web-radius);
+    box-shadow: none;
+}
+
+.pos-state,
+.status,
+.status-pill {
+    border-radius: 6px;
+}
+
+/* Mobile navigation is a normal web menu below the top bar. */
+.mobile-bottom-nav { display: none !important; }
+.app-content-shell { padding-bottom: 0 !important; }
+
+.mobile-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    background: #fff !important;
+    border-bottom: 1px solid var(--web-border);
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.mobile-navigation {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 70;
+    margin: 0;
+    padding: 8px 12px 12px;
+    background: #fff;
+    border-bottom: 1px solid var(--web-border);
+    box-shadow: none !important;
+    border-radius: 0;
+}
+.mobile-navigation nav {
+    display: grid;
+    gap: 4px;
+}
+.mobile-navigation nav a,
+.mobile-navigation nav button {
+    width: 100%;
+    min-height: 46px;
+    justify-content: flex-start;
+    padding: 10px 12px;
+    border-radius: 6px;
+    text-align: left;
+}
+.mobile-navigation nav a[aria-current="page"] {
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 800;
+}
+
+/* POS behaves like a web register: sections, columns and ordinary dialogs. */
+.pos-page {
+    background: transparent;
+}
+.pos-layout {
+    grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr);
+    gap: 20px;
+}
+.pos-card {
+    border-color: var(--web-border);
+}
+.pos-results {
+    max-height: none;
+    overflow: visible;
+}
+.pos-product-result,
+.pos-customer-result,
+.pos-cart-item {
+    border-radius: 7px;
+}
+.pos-result-main strong,
+.pos-cart-main strong,
+.pos-result-main small,
+.pos-cart-main small {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+}
+.pos-product-result {
+    align-items: flex-start;
+}
+.pos-touch-button {
+    min-width: 92px;
+}
+.pos-payment-card {
+    position: sticky;
+    top: 76px;
+}
+
+/* QR/payment feedback remains a dialog. On a phone it gets narrower,
+   but never becomes a fake iPhone screen or full-screen sheet. */
+.pos-qr-modal,
+.pos-payment-received-modal {
+    padding: 20px;
+    background: rgba(15, 23, 42, .42);
+}
+.pos-qr-modal-backdrop,
+.pos-payment-received-backdrop {
+    background: transparent;
+}
+.pos-qr-modal-card,
+.pos-payment-received-card {
+    width: min(520px, calc(100vw - 40px));
+    max-height: calc(100dvh - 40px);
+    min-height: 0;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(15,23,42,.18);
+    padding: 22px;
+}
+.pos-payment-received-card {
+    width: min(460px, calc(100vw - 40px));
+    border-radius: 10px;
+}
+.pos-payment-received-check {
+    animation: none;
+}
+.pos-payment-received-check span {
+    animation: none;
+}
+
+@media (max-width: 900px) {
+    .app-main {
+        padding: 18px 14px 32px;
+    }
+    .pos-frame .pos-page {
+        padding: 16px 14px 32px;
+    }
+    .pos-layout {
+        grid-template-columns: 1fr;
+    }
+    .pos-payment-card {
+        position: static;
+    }
+}
+
+@media (max-width: 600px) {
+    .mobile-topbar {
+        min-height: 56px;
+        padding: 6px 12px;
+    }
+    .app-main,
+    .pos-frame .pos-page {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    .pos-card {
+        padding: 14px;
+    }
+    .pos-product-filters {
+        grid-template-columns: 1fr;
+    }
+    .pos-product-result {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+    }
+    .pos-touch-button {
+        min-width: 84px;
+    }
+    .pos-qr-modal,
+    .pos-payment-received-modal {
+        padding: 12px;
+    }
+    .pos-qr-modal-card,
+    .pos-payment-received-card {
+        width: min(520px, calc(100vw - 24px));
+        max-height: calc(100dvh - 24px);
+        border-radius: 9px;
+        padding: 18px 16px;
+    }
+    .pos-qr-modal-image {
+        width: min(360px, 100%);
+        max-height: 48vh;
+        object-fit: contain;
+    }
+}
+
+@media (max-width: 380px) {
+    .app-main,
+    .pos-frame .pos-page {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    .pos-product-result {
+        grid-template-columns: 1fr;
+    }
+    .pos-touch-button {
+        width: 100%;
+    }
+    .pos-qr-modal-card,
+    .pos-payment-received-card {
+        width: calc(100vw - 20px);
+    }
+}
+
+/* ================================================================
+ * FINAL POS VISUAL TOKENS — neutral base + restrained red primary
+ * ================================================================ */
+:root {
+    --color-surface: #f5f5f4;
+    --color-surface-raised: #ffffff;
+    --color-text: #292524;
+    --color-text-muted: #57534e;
+    --color-border: #d6d3d1;
+    --color-primary: #b42318;
+    --color-primary-strong: #8f1d14;
+    --ux-primary: #b42318;
+    --ux-primary-dark: #8f1d14;
+    --shell-primary: #b42318;
+    --shell-primary-dark: #8f1d14;
+    --shell-primary-soft: #fef2f2;
+    --web-primary: #b42318;
+    --web-primary-dark: #8f1d14;
+    --web-bg: #f5f5f4;
+    --web-surface: #ffffff;
+    --web-border: #d6d3d1;
+    --ui-bg: #f5f5f4;
+    --ui-surface: #ffffff;
+    --ui-surface-soft: #f5f5f4;
+    --ui-border: #d6d3d1;
+    --ui-primary: #b42318;
+    --ui-focus: #b42318;
+}
+
+body { background: var(--web-bg); color: var(--color-text); }
+
+.button.primary, button.primary,
+.login-submit {
+    background: var(--web-primary) !important;
+    border-color: var(--web-primary) !important;
+}
+.button.primary:hover, button.primary:hover,
+.login-submit:hover {
+    background: var(--web-primary-dark) !important;
+    border-color: var(--web-primary-dark) !important;
+}
+
+.button:focus-visible, button:focus-visible,
+input:focus, textarea:focus, select:focus {
+    border-color: var(--web-primary);
+    box-shadow: 0 0 0 3px rgba(180, 35, 24, .14);
+}
+
+.app-brand-mark,
+.sidebar-nav a.sidebar-pos,
+.mobile-bottom-nav a.mobile-bottom-nav-primary {
+    background: var(--web-primary) !important;
+}
+
+.app-brand-mark { color: #fff; }
+.sidebar-nav a.sidebar-pos:hover,
+.mobile-bottom-nav a.mobile-bottom-nav-primary[aria-current="page"] {
+    background: var(--web-primary-dark) !important;
+}
+
+.sidebar-nav a[aria-current="page"],
+.sidebar-nav a.active {
+    background: #fef2f2;
+    color: var(--web-primary-dark);
+}
+.sidebar-nav a[aria-current="page"] > span:first-child,
+.sidebar-nav a.active > span:first-child {
+    color: var(--web-primary);
+}
+
+/* Restore the established mobile bottom navigation on all authenticated pages. */
+@media (max-width: 900px) {
+    .app-content-shell { padding-bottom: calc(78px + env(safe-area-inset-bottom)) !important; }
+    .mobile-bottom-nav {
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        z-index: 120 !important;
+        display: grid !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        align-items: end;
+        gap: 2px;
+        padding: 7px max(8px, env(safe-area-inset-left)) calc(7px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
+        box-sizing: border-box;
+        background: #ffffff !important;
+        border-top: 1px solid var(--web-border) !important;
+        box-shadow: 0 -4px 16px rgba(28, 25, 23, .08) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    .mobile-bottom-nav a {
+        min-width: 0;
+        min-height: 52px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 4px 2px;
+        border-radius: 7px;
+        color: #78716c;
+        text-decoration: none;
+        font-size: .72rem;
+        font-weight: 800;
+    }
+    .mobile-bottom-nav a > span {
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        font-size: 1rem;
+        line-height: 1;
+    }
+    .mobile-bottom-nav a[aria-current="page"] {
+        color: var(--web-primary) !important;
+        background: #fef2f2 !important;
+    }
+    .mobile-bottom-nav a.mobile-bottom-nav-primary {
+        min-height: 54px;
+        margin: -3px 4px 2px;
+        border-radius: 8px;
+        color: #fff !important;
+        background: var(--web-primary) !important;
+        box-shadow: none !important;
+    }
+    .mobile-bottom-nav a.mobile-bottom-nav-primary[aria-current="page"] {
+        color: #fff !important;
+        background: var(--web-primary-dark) !important;
+    }
+}
+
+/* Password visibility control: keep the eye anchored to the input's right edge.
+ * This is deliberately explicit because the stylesheet has accumulated several
+ * historical login rules and mobile browsers are less forgiving about them. */
+.login-password-wrap {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+.login-input-password {
+    width: 100% !important;
+    padding-right: 60px !important;
+    box-sizing: border-box !important;
+}
+.login-password-toggle {
+    position: absolute !important;
+    inset-inline-end: 6px !important;
+    inset-block-start: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+    border: 0 !important;
+    border-radius: 7px !important;
+    background: transparent !important;
+    color: #57534e !important;
+    z-index: 2;
+    flex: 0 0 44px !important;
+}
+.login-password-toggle svg {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+    flex: 0 0 20px !important;
+}
+.login-password-toggle:hover {
+    background: #fef2f2 !important;
+    color: var(--web-primary) !important;
+}
+
+@media (max-width: 430px) {
+    .login-password-toggle {
+        inset-inline-end: 5px !important;
+        width: 42px !important;
+        min-width: 42px !important;
+        height: 42px !important;
+        min-height: 42px !important;
+    }
+    .login-input-password { padding-right: 56px !important; }
+}
+
+/* Neutral login canvas with the same restrained red primary. */
+.login-page { background: #f5f5f4 !important; }
+.login-brand { background: var(--web-primary) !important; box-shadow: none !important; }
+.login-kicker { color: var(--web-primary-dark) !important; }
+
+
+/* ================================================================
+ * FINAL CALM PALETTE — muted slate blue
+ * Chosen as the single application primary: low-saturation, readable,
+ * neutral enough for long POS sessions, while preserving semantic
+ * success / warning / danger colors separately.
+ * ================================================================ */
+:root {
+    --color-surface: #f4f6f7;
+    --color-surface-raised: #ffffff;
+    --color-text: #27323a;
+    --color-text-muted: #66727b;
+    --color-border: #d7dee3;
+    --color-primary: #5d7285;
+    --color-primary-strong: #465b6b;
+    --ux-primary: #5d7285;
+    --ux-primary-dark: #465b6b;
+    --shell-primary: #5d7285;
+    --shell-primary-dark: #465b6b;
+    --shell-primary-soft: #edf2f5;
+    --web-primary: #5d7285;
+    --web-primary-dark: #465b6b;
+    --web-bg: #f4f6f7;
+    --web-surface: #ffffff;
+    --web-border: #d7dee3;
+    --ui-bg: #f4f6f7;
+    --ui-surface: #ffffff;
+    --ui-surface-soft: #f4f6f7;
+    --ui-border: #d7dee3;
+    --ui-primary: #5d7285;
+    --ui-focus: #5d7285;
+}
+
+body { background: var(--web-bg); color: var(--color-text); }
+.button.primary, button.primary, .login-submit {
+    background: var(--web-primary) !important;
+    border-color: var(--web-primary) !important;
+}
+.button.primary:hover, button.primary:hover, .login-submit:hover {
+    background: var(--web-primary-dark) !important;
+    border-color: var(--web-primary-dark) !important;
+}
+.button:focus-visible, button:focus-visible,
+input:focus, textarea:focus, select:focus {
+    border-color: var(--web-primary) !important;
+    box-shadow: 0 0 0 3px rgba(93, 114, 133, .16) !important;
+}
+.app-brand-mark,
+.sidebar-nav a.sidebar-pos,
+.mobile-bottom-nav a.mobile-bottom-nav-primary {
+    background: var(--web-primary) !important;
+}
+.sidebar-nav a.sidebar-pos:hover,
+.mobile-bottom-nav a.mobile-bottom-nav-primary[aria-current="page"] {
+    background: var(--web-primary-dark) !important;
+}
+.sidebar-nav a[aria-current="page"],
+.sidebar-nav a.active {
+    background: #edf2f5 !important;
+    color: var(--web-primary-dark) !important;
+}
+.sidebar-nav a[aria-current="page"] > span:first-child,
+.sidebar-nav a.active > span:first-child {
+    color: var(--web-primary) !important;
+}
+.mobile-bottom-nav a[aria-current="page"] {
+    color: var(--web-primary) !important;
+    background: #edf2f5 !important;
+}
+.mobile-bottom-nav a.mobile-bottom-nav-primary {
+    color: #fff !important;
+    background: var(--web-primary) !important;
+}
+.mobile-bottom-nav a.mobile-bottom-nav-primary[aria-current="page"] {
+    color: #fff !important;
+    background: var(--web-primary-dark) !important;
+}
+.login-page { background: var(--web-bg) !important; }
+.login-brand { background: var(--web-primary) !important; }
+.login-kicker { color: var(--web-primary-dark) !important; }
+.login-password-toggle:hover { background: #edf2f5 !important; color: var(--web-primary) !important; }
+
+/* Role-aware home shortcuts: presentation only. Server permissions remain authoritative. */
+.home-role-badge {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 12px;
+    padding: 7px 10px;
+    border: 1px solid var(--web-border);
+    border-radius: 8px;
+    background: #edf2f5;
+    color: var(--web-primary-dark);
+    flex-wrap: wrap;
+}
+.home-role-badge span { color: var(--color-text-muted); font-size: .82rem; font-weight: 700; }
+.home-role-badge strong { font-size: .92rem; }
+.home-grid-role .home-card { min-height: 132px; }
+.home-role-functions .home-section-heading { margin-bottom: 12px; }
+
+@media (max-width: 640px) {
+    .home-role-badge { width: 100%; box-sizing: border-box; }
+    .home-grid-role { grid-template-columns: 1fr; }
+}
+
+/* ================================================================
+ * FINAL DESIGN SYSTEM — Modern Teal
+ * Light + Dark
+ * Brand/primary is teal; semantic danger remains red.
+ * ================================================================ */
+:root {
+    --color-surface: #f4f8f7;
+    --color-surface-raised: #ffffff;
+    --color-surface-soft: #eaf2f0;
+    --color-text: #172522;
+    --color-text-muted: #64736f;
+    --color-border: #d4e0dd;
+    --color-primary: #0f9d8a;
+    --color-primary-strong: #087c6d;
+    --color-primary-soft: #e0f5f1;
+    --ux-bg: #f4f8f7;
+    --ux-surface: #ffffff;
+    --ux-text: #172522;
+    --ux-muted: #64736f;
+    --ux-border: #d4e0dd;
+    --ux-primary: #0f9d8a;
+    --ux-primary-dark: #087c6d;
+    --shell-primary: #0f9d8a;
+    --shell-primary-dark: #087c6d;
+    --shell-primary-soft: #e0f5f1;
+    --web-primary: #0f9d8a;
+    --web-primary-dark: #087c6d;
+    --web-bg: #f4f8f7;
+    --web-surface: #ffffff;
+    --web-border: #d4e0dd;
+    --ui-bg: #f4f8f7;
+    --ui-surface: #ffffff;
+    --ui-surface-soft: #eaf2f0;
+    --ui-border: #d4e0dd;
+    --ui-primary: #0f9d8a;
+    --ui-focus: #0f9d8a;
+}
+
+html[data-appearance="light"] {
+    color-scheme: light;
+    --color-surface: #f4f8f7;
+    --color-surface-raised: #ffffff;
+    --color-surface-soft: #eaf2f0;
+    --color-text: #172522;
+    --color-text-muted: #64736f;
+    --color-border: #d4e0dd;
+    --color-primary: #0f9d8a;
+    --color-primary-strong: #087c6d;
+    --color-primary-soft: #e0f5f1;
+    --ux-bg: #f4f8f7;
+    --ux-surface: #ffffff;
+    --ux-text: #172522;
+    --ux-muted: #64736f;
+    --ux-border: #d4e0dd;
+    --ux-primary: #0f9d8a;
+    --ux-primary-dark: #087c6d;
+    --shell-primary: #0f9d8a;
+    --shell-primary-dark: #087c6d;
+    --shell-primary-soft: #e0f5f1;
+    --web-primary: #0f9d8a;
+    --web-primary-dark: #087c6d;
+    --web-bg: #f4f8f7;
+    --web-surface: #ffffff;
+    --web-border: #d4e0dd;
+    --ui-bg: #f4f8f7;
+    --ui-surface: #ffffff;
+    --ui-surface-soft: #eaf2f0;
+    --ui-border: #d4e0dd;
+    --ui-primary: #0f9d8a;
+    --ui-focus: #0f9d8a;
+}
+
+html[data-appearance="dark"] {
+    color-scheme: dark;
+    --color-surface: #0f1716;
+    --color-surface-raised: #16201e;
+    --color-surface-soft: #1e2a27;
+    --color-text: #f2f8f6;
+    --color-text-muted: #9aaea9;
+    --color-border: #30403c;
+    --color-primary: #2bc4ae;
+    --color-primary-strong: #45d4c0;
+    --color-primary-soft: #173c36;
+    --ux-bg: #0f1716;
+    --ux-surface: #16201e;
+    --ux-text: #f2f8f6;
+    --ux-muted: #9aaea9;
+    --ux-border: #30403c;
+    --ux-primary: #2bc4ae;
+    --ux-primary-dark: #45d4c0;
+    --shell-primary: #2bc4ae;
+    --shell-primary-dark: #45d4c0;
+    --shell-primary-soft: #173c36;
+    --web-primary: #2bc4ae;
+    --web-primary-dark: #45d4c0;
+    --web-bg: #0f1716;
+    --web-surface: #16201e;
+    --web-border: #30403c;
+    --ui-bg: #0f1716;
+    --ui-surface: #16201e;
+    --ui-surface-soft: #1e2a27;
+    --ui-border: #30403c;
+    --ui-primary: #2bc4ae;
+    --ui-focus: #2bc4ae;
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-appearance="system"] {
+        color-scheme: dark;
+        --color-surface: #0f1716;
+        --color-surface-raised: #16201e;
+        --color-surface-soft: #1e2a27;
+        --color-text: #f2f8f6;
+        --color-text-muted: #9aaea9;
+        --color-border: #30403c;
+        --color-primary: #2bc4ae;
+        --color-primary-strong: #45d4c0;
+        --color-primary-soft: #173c36;
+        --ux-bg: #0f1716;
+        --ux-surface: #16201e;
+        --ux-text: #f2f8f6;
+        --ux-muted: #9aaea9;
+        --ux-border: #30403c;
+        --ux-primary: #2bc4ae;
+        --ux-primary-dark: #45d4c0;
+        --shell-primary: #2bc4ae;
+        --shell-primary-dark: #45d4c0;
+        --shell-primary-soft: #173c36;
+        --web-primary: #2bc4ae;
+        --web-primary-dark: #45d4c0;
+        --web-bg: #0f1716;
+        --web-surface: #16201e;
+        --web-border: #30403c;
+        --ui-bg: #0f1716;
+        --ui-surface: #16201e;
+        --ui-surface-soft: #1e2a27;
+        --ui-border: #30403c;
+        --ui-primary: #2bc4ae;
+        --ui-focus: #2bc4ae;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    html[data-appearance="system"] {
+        color-scheme: light;
+    }
+}
+
+body {
+    background: var(--web-bg) !important;
+    color: var(--color-text) !important;
+}
+
+.button.primary,
+button.primary,
+.login-submit {
+    background: var(--web-primary) !important;
+    border-color: var(--web-primary) !important;
+}
+
+.button.primary:hover,
+button.primary:hover,
+.login-submit:hover {
+    background: var(--web-primary-dark) !important;
+    border-color: var(--web-primary-dark) !important;
+}
+
+.button:focus-visible,
+button:focus-visible,
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--ui-focus) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-focus) 18%, transparent) !important;
+}
+
+.app-brand-mark,
+.sidebar-nav a.sidebar-pos,
+.mobile-bottom-nav a.mobile-bottom-nav-primary {
+    background: var(--web-primary) !important;
+}
+
+.sidebar-nav a.sidebar-pos:hover,
+.mobile-bottom-nav a.mobile-bottom-nav-primary[aria-current="page"] {
+    background: var(--web-primary-dark) !important;
+}
+
+.sidebar-nav a[aria-current="page"],
+.sidebar-nav a.active,
+.mobile-bottom-nav a[aria-current="page"] {
+    background: var(--shell-primary-soft) !important;
+    color: var(--web-primary-dark) !important;
+}
+
+.sidebar-nav a[aria-current="page"] > span:first-child,
+.sidebar-nav a.active > span:first-child,
+.mobile-bottom-nav a[aria-current="page"] > span:first-child {
+    color: var(--web-primary) !important;
+}
+
+.mobile-bottom-nav a.mobile-bottom-nav-primary {
+    color: #fff !important;
+}
+
+.login-page {
+    background: var(--web-bg) !important;
+}
+
+.login-brand {
+    background: var(--web-primary) !important;
+    box-shadow: none !important;
+}
+
+.login-kicker {
+    color: var(--web-primary-dark) !important;
+}
+
+.login-password-toggle:hover {
+    background: var(--shell-primary-soft) !important;
+    color: var(--web-primary) !important;
+}
+
+/* Dark surfaces: preserve readable contrast without making every component pure black. */
+html[data-appearance="dark"] .app-header-global,
+html[data-appearance="dark"] .app-nav,
+html[data-appearance="dark"] .app-nav a,
+html[data-appearance="dark"] .home-hero,
+html[data-appearance="dark"] .home-card,
+html[data-appearance="dark"] .form-card,
+html[data-appearance="dark"] .card,
+html[data-appearance="dark"] .panel,
+html[data-appearance="dark"] .modal,
+html[data-appearance="dark"] .dialog,
+html[data-appearance="dark"] .mobile-bottom-nav,
+html[data-appearance="dark"] .profile-security-note,
+html[data-appearance="dark"] .font-size-preview {
+    background: var(--ux-surface) !important;
+    color: var(--ux-text) !important;
+    border-color: var(--ux-border) !important;
+}
+
+html[data-appearance="dark"] input,
+html[data-appearance="dark"] textarea,
+html[data-appearance="dark"] select {
+    background: var(--ux-surface) !important;
+    color: var(--ux-text) !important;
+    border-color: var(--ux-border) !important;
+}
+
+html[data-appearance="dark"] input::placeholder,
+html[data-appearance="dark"] textarea::placeholder {
+    color: var(--ux-muted) !important;
+}
+
+html[data-appearance="dark"] .mobile-bottom-nav {
+    box-shadow: 0 -1px 0 var(--ux-border) !important;
+}
+
+html[data-appearance="dark"] .sidebar-nav a[aria-current="page"],
+html[data-appearance="dark"] .sidebar-nav a.active,
+html[data-appearance="dark"] .mobile-bottom-nav a[aria-current="page"] {
+    background: var(--shell-primary-soft) !important;
+    color: var(--web-primary-dark) !important;
+}
+
+html[data-appearance="dark"] .font-size-preview,
+html[data-appearance="dark"] .profile-security-note {
+    background: var(--ux-surface-soft) !important;
+}
+
+html[data-appearance="dark"] .text-muted,
+html[data-appearance="dark"] small,
+html[data-appearance="dark"] .muted {
+    color: var(--ux-muted) !important;
+}
+
+/* Final Modern Teal cleanup: remove legacy blue/indigo presentation that survived earlier phases. */
+:root {
+    --ds-color-background: #F4F8F7;
+    --ds-color-surface: #FFFFFF;
+    --ds-color-text: #172522;
+    --ds-color-text-secondary: #64736F;
+    --ds-color-primary: #0F9D8A;
+    --ds-color-primary-hover: #087C6D;
+    --ds-color-success: #16803C;
+    --ds-color-warning: #A15C00;
+    --ds-color-danger: #C62828;
+    --ds-color-border: #D4E0DD;
+    --ds-focus-ring: rgba(15,157,138,.20);
+    --color-primary: var(--ds-color-primary);
+    --color-danger: var(--ds-color-danger);
+    --color-border: var(--ds-color-border);
+}
+
+.button.primary,
+button.primary,
+.orders-filter-actions button,
+.customer-actions .primary {
+    background: var(--web-primary) !important;
+    border-color: var(--web-primary) !important;
+    color: #fff !important;
+}
+.button.primary:hover,
+button.primary:hover,
+.orders-filter-actions button:hover,
+.customer-actions .primary:hover {
+    background: var(--web-primary-dark) !important;
+    border-color: var(--web-primary-dark) !important;
+}
+
+.button:focus-visible,
+button:focus-visible,
+input:focus,
+textarea:focus,
+select:focus {
+    outline-color: var(--ui-focus) !important;
+}
+
+.card:hover { border-color: var(--color-primary) !important; }
+.pos-selected,
+.pos-payment-total,
+.pos-payment-speaker,
+.ds-alert-info {
+    border-color: var(--color-border) !important;
+    background: var(--color-surface-soft) !important;
+}
+.pos-selected { color: var(--color-text) !important; }
+
+/* Admin/stock surfaces use the same token system as the rest of the application. */
+.admin-workspace .admin-filter,
+.admin-workspace .admin-card,
+.admin-workspace .admin-section,
+.admin-workspace .admin-form,
+.admin-workspace .admin-table-wrap,
+.admin-workspace .admin-empty {
+    background: var(--color-surface-raised) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text) !important;
+}
+.admin-workspace .admin-filter input,
+.admin-workspace .admin-filter select,
+.admin-workspace .admin-form input,
+.admin-workspace .admin-form select,
+.admin-workspace .admin-form textarea {
+    background: var(--color-surface-raised) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-border) !important;
+}
+.admin-workspace .admin-status--success { background: #E2F6EC !important; color: #176B3A !important; }
+.admin-workspace .admin-status--warning { background: #FFF2D8 !important; color: #8A5200 !important; }
+.admin-workspace .admin-status--danger { background: #FDEAEA !important; color: #A61F1F !important; }
+
+@media (max-width: 639px) {
+    .admin-filter__fields { grid-template-columns: 1fr !important; }
+}
+
+html[data-appearance="dark"] {
+    --ds-color-background: #0F1716;
+    --ds-color-surface: #16201E;
+    --ds-color-text: #F2F8F6;
+    --ds-color-text-secondary: #9AAEA9;
+    --ds-color-primary: #2BC4AE;
+    --ds-color-primary-hover: #45D4C0;
+    --ds-color-border: #30403C;
+    --ds-focus-ring: rgba(43,196,174,.25);
+}
+
+html[data-appearance="dark"] .admin-workspace .admin-status--success { background: #143A2A !important; color: #6EE7B7 !important; }
+html[data-appearance="dark"] .admin-workspace .admin-status--warning { background: #3A2D12 !important; color: #FBBF24 !important; }
+html[data-appearance="dark"] .admin-workspace .admin-status--danger { background: #3B1919 !important; color: #F87171 !important; }
+html[data-appearance="dark"] .orders-filter-actions button,
+html[data-appearance="dark"] .customer-actions .primary {
+    color: #0F1716 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-appearance="system"] .admin-workspace .admin-filter,
+    html[data-appearance="system"] .admin-workspace .admin-card,
+    html[data-appearance="system"] .admin-workspace .admin-section,
+    html[data-appearance="system"] .admin-workspace .admin-form,
+    html[data-appearance="system"] .admin-workspace .admin-table-wrap,
+    html[data-appearance="system"] .admin-workspace .admin-empty {
+        background: var(--color-surface-raised) !important;
+        color: var(--color-text) !important;
+        border-color: var(--color-border) !important;
+    }
+}
+
+/* Last-mile legacy-color overrides for components that still carry phase-era literals. */
+.pos-payment-total strong,
+.pos-cart-total strong,
+.statistics-summary-list__emphasis strong,
+.eyebrow,
+.app-profile:hover,
+.app-profile:focus-visible,
+.pagination .current,
+.pagination a[aria-current="page"],
+.login-kicker,
+.product-image-upload__icon {
+    color: var(--web-primary-dark) !important;
+}
+.pagination .current,
+.pagination a[aria-current="page"] {
+    background: var(--color-primary-soft) !important;
+    border-color: var(--color-border) !important;
+}
+.login-remember-checkbox { accent-color: var(--web-primary) !important; }
+.login-input:focus,
+.login-remember:focus-within,
+.product-image-upload__picker:focus-within {
+    border-color: var(--web-primary) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--web-primary) 14%, transparent) !important;
+}
+.login-password-toggle:hover,
+.app-nav-pos,
+.settings-option:has(input:checked),
+.product-image-upload__picker:hover {
+    background: var(--color-primary-soft) !important;
+    color: var(--web-primary-dark) !important;
+}
+.product-image-upload__picker:hover,
+.product-image-upload__picker:focus-within { border-color: var(--web-primary) !important; }
+.home-card-primary {
+    border-color: var(--web-primary) !important;
+    background: var(--color-primary-soft) !important;
+}

@@ -73,6 +73,14 @@ app:
   top_products_empty: Completed transactions will appear here when available.
   navigation: Navigation
   quick_access: Quick access
+  current_role: Current role
+  role_functions: By role
+  main_functions: Main functions
+  main_function: Main function
+  admin_function: Administration
+  role_pos_help: Open the register and process sales.
+  manage_payment_accounts: Manage bank accounts used for payments.
+  manage_sales_points: Manage sales points and operational settings.
   sales: Sales
   start_transaction: Start a new transaction.
   operations: Operations

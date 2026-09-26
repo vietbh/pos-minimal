@@ -638,3 +638,86 @@
     outline-offset: 1px;
     border-color: var(--color-primary);
 }
+
+
+/* Final UI/UX hardening — preserve business information and reset POS catalog after a sale. */
+:root {
+    --color-primary: #2563eb;
+    --color-primary-strong: #1d4ed8;
+    --ui-primary: #2563eb;
+    --ui-focus: #2563eb;
+}
+
+.app-header-global {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* Never hide business information just to keep a row on one line. */
+.pos-result-main strong,
+.pos-result-main small,
+.pos-cart-main strong,
+.pos-cart-main small,
+.pos-bank-details,
+.pos-payment-reference,
+.pos-webhook-enrichment,
+.statistics-table td,
+.statistics-table th,
+.admin-card,
+.admin-card__meta,
+.admin-table td,
+.admin-table th {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.pos-result-main strong {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+}
+
+.statistics-amount {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 799px) {
+    .pos-page { padding: 10px max(10px, env(safe-area-inset-left)) calc(24px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right)); }
+    .pos-layout { grid-template-columns: 1fr; }
+    .pos-payment-card { position: static; }
+    .pos-product-result {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+    }
+    .pos-product-actions { min-width: 0; }
+}
+
+@media (max-width: 380px) {
+    .pos-product-result {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+    .pos-product-actions,
+    .pos-product-actions .button,
+    .pos-product-actions button {
+        width: 100%;
+    }
+    .pos-header-meta {
+        width: 100%;
+        justify-content: stretch;
+    }
+    .pos-header-meta > * {
+        min-width: 0;
+    }
+    .pos-sales-point-picker,
+    .pos-sales-point-picker select {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+}

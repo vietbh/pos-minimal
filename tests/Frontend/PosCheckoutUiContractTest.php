@@ -111,6 +111,25 @@ final class PosCheckoutUiContractTest extends TestCase
         }
     }
 
+    public function testNewSaleResetsAndReloadsDefaultFiveProductCatalog(): void
+    {
+        self::assertStringContainsString("this.productSearchTarget.value = '';", $this->controllerSource);
+        self::assertStringContainsString("this.productCatalogCategory = '';", $this->controllerSource);
+        self::assertStringContainsString("this.productCategoryTarget.value = '';", $this->controllerSource);
+        self::assertStringContainsString('void this.loadProductCatalog(1);', $this->controllerSource);
+        self::assertStringContainsString("url.searchParams.set('limit', '5');", $this->controllerSource);
+        self::assertStringContainsString('this.productResultsTarget.replaceChildren();', $this->controllerSource);
+    }
+
+    public function testProductInformationWrapsInsteadOfBeingEllipsizedOnNarrowScreens(): void
+    {
+        $css = file_get_contents(dirname(__DIR__, 2) . '/assets/styles/phase-uiux-7.css');
+        self::assertNotFalse($css);
+        self::assertStringContainsString('white-space: normal;', $css);
+        self::assertStringContainsString('overflow-wrap: anywhere;', $css);
+        self::assertStringContainsString('grid-template-columns: 1fr;', $css);
+    }
+
     public function testDoubleSubmitIsBlockedWhileRequestIsInFlight(): void
     {
         self::assertStringContainsString('if (this.inFlight || this.state === \'SUCCESS\')', $this->controllerSource);

@@ -83,12 +83,22 @@
             </main>
         </div>
 
-        <nav class="mobile-bottom-nav" aria-label="{{ 'navigation.quick'|trans }}">
-            <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}><span aria-hidden="true">⌂</span><small>{{ 'navigation.home'|trans }}</small></a>
-            {% if is_granted('ORDER_VIEW') %}<a href="{{ path('orders_index') }}"{% if app.request.attributes.get('_route') starts with 'orders_' %} aria-current="page"{% endif %}><span aria-hidden="true">▤</span><small>{{ 'navigation.orders'|trans }}</small></a>{% endif %}
-            {% if is_granted('POS_ACCESS') %}<a class="mobile-bottom-nav-primary" href="{{ path('pos') }}"{% if app.request.attributes.get('_route') starts with 'pos' %} aria-current="page"{% endif %}><span aria-hidden="true">＋</span><small>{{ 'navigation.pos'|trans }}</small></a>{% endif %}
-            {% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_products_' %} aria-current="page"{% endif %}><span aria-hidden="true">□</span><small>{{ 'navigation.products'|trans }}</small></a>{% endif %}
-            <a href="{{ path('app_profile') }}"{% if app.request.attributes.get('_route') == 'app_profile' %} aria-current="page"{% endif %}><span aria-hidden="true">●</span><small>{{ 'navigation.account'|trans }}</small></a>
+        <nav class="mobile-bottom-nav app-mobile-bottom-nav" aria-label="{{ 'navigation.quick'|trans }}">
+            <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}>
+                <span aria-hidden="true">⌂</span><small>{{ 'navigation.home'|trans }}</small>
+            </a>
+            {% if is_granted('ORDER_VIEW') %}<a href="{{ path('orders_index') }}"{% if app.request.attributes.get('_route') starts with 'orders_' %} aria-current="page"{% endif %}>
+                <span aria-hidden="true">▤</span><small>{{ 'navigation.orders'|trans }}</small>
+            </a>{% endif %}
+            {% if is_granted('POS_ACCESS') %}<a class="mobile-bottom-nav-primary" href="{{ path('pos') }}"{% if app.request.attributes.get('_route') starts with 'pos' %} aria-current="page"{% endif %}>
+                <span aria-hidden="true">＋</span><small>{{ 'navigation.pos'|trans }}</small>
+            </a>{% endif %}
+            {% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_products_' %} aria-current="page"{% endif %}>
+                <span aria-hidden="true">□</span><small>{{ 'navigation.products'|trans }}</small>
+            </a>{% endif %}
+            <a href="{{ path('app_profile') }}"{% if app.request.attributes.get('_route') == 'app_profile' %} aria-current="page"{% endif %}>
+                <span aria-hidden="true">●</span><small>{{ 'navigation.account'|trans }}</small>
+            </a>
         </nav>
     </div>
 {% endblock %}

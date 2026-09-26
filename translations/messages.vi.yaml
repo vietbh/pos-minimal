@@ -73,6 +73,14 @@ app:
   top_products_empty: Khi có giao dịch hoàn tất, sản phẩm nổi bật sẽ xuất hiện ở đây.
   navigation: Điều hướng
   quick_access: Truy cập nhanh
+  current_role: Vai trò hiện tại
+  role_functions: Theo vai trò
+  main_functions: Chức năng chính
+  main_function: Chức năng chính
+  admin_function: Chức năng quản trị
+  role_pos_help: Mở quầy và thực hiện giao dịch bán hàng.
+  manage_payment_accounts: Quản lý tài khoản ngân hàng dùng cho thanh toán.
+  manage_sales_points: Quản lý điểm bán và cấu hình vận hành.
   sales: Bán hàng
   start_transaction: Bắt đầu một giao dịch mới.
   operations: Vận hành

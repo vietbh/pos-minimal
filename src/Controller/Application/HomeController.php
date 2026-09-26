@@ -7,6 +7,7 @@ namespace App\Controller\Application;
 use App\Application\Security\Permission;
 use App\Application\Statistics\Query\GetDashboardHandler;
 use App\Application\Statistics\Query\StatisticsQueryInput;
+use App\Domain\User\Enum\UserRole;
 use App\Domain\User\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,10 +43,19 @@ final class HomeController extends AbstractController
             ));
         }
 
+        $roleLabel = 'Nhân viên';
+        if ($user->hasRole(UserRole::ROOT)) {
+            $roleLabel = 'Root';
+        } elseif ($user->hasRole(UserRole::ADMIN)) {
+            $roleLabel = 'Quản trị viên';
+        }
+
         return $this->render('application/home.html.twig', [
             'user' => $user,
             'dashboard' => $dashboard,
             'can_open_pos' => $this->isGranted(Permission::POS_ACCESS->value),
+            'role_label' => $roleLabel,
+            'is_admin_role' => $user->hasRole(UserRole::ADMIN) || $user->hasRole(UserRole::ROOT),
         ]);
     }
 }

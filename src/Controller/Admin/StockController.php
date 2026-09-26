@@ -30,17 +30,27 @@ final class StockController extends AbstractController
     {
         $this->denyAccessUnlessGranted(Permission::STOCK_VIEW->value);
         $q = trim((string) $request->query->get('q', ''));
+        $stockFilter = (string) $request->query->get('stock', 'low');
+        $sort = (string) $request->query->get('sort', 'name_asc');
+        if (!in_array($sort, ['name_asc', 'name_desc'], true)) {
+            $sort = 'name_asc';
+        }
+        if (!in_array($stockFilter, ['low', 'all', 'out', 'ok'], true)) {
+            $stockFilter = 'low';
+        }
         $pageRaw = $request->query->get('page', 1);
         $page = is_numeric($pageRaw) ? max(1, (int) $pageRaw) : 1;
-        $result = $catalog(new ProductCatalogInput($q, null, 'name_asc', $page, 50));
+        $result = $catalog(new ProductCatalogInput($q, null, $sort, $page, 50, $stockFilter));
         if ($result->page > $result->totalPages && $result->total > 0) {
-            $result = $catalog(new ProductCatalogInput($q, null, 'name_asc', $result->totalPages, 50));
+            $result = $catalog(new ProductCatalogInput($q, null, $sort, $result->totalPages, 50, $stockFilter));
         }
 
         return $this->render('admin/stock/index.html.twig', [
             'products' => $result->items,
             'pagination' => $result,
             'q' => $q,
+            'stockFilter' => $stockFilter,
+            'sort' => $sort,
         ]);
     }
 

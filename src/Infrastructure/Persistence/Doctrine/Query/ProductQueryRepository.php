@@ -82,6 +82,14 @@ final class ProductQueryRepository implements ProductQueryRepositoryInterface
         if ($input->categoryId !== null && $input->categoryId > 0) {
             $base->andWhere('c.id = :categoryId')->setParameter('categoryId', $input->categoryId);
         }
+        if ($input->stockFilter === 'low') {
+            $base->andWhere('p.stockQuantity > 0')
+                ->andWhere('p.stockQuantity <= p.lowStockThreshold');
+        } elseif ($input->stockFilter === 'out') {
+            $base->andWhere('p.stockQuantity = 0');
+        } elseif ($input->stockFilter === 'ok') {
+            $base->andWhere('p.stockQuantity > p.lowStockThreshold');
+        }
         $total = (int) (clone $base)->select('COUNT(p.id)')->getQuery()->getSingleScalarResult();
         $direction = $sort === 'name_desc' ? 'DESC' : 'ASC';
         $products = $base->select('p', 'c')

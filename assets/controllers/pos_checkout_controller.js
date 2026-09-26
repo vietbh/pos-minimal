@@ -1213,8 +1213,17 @@ export default class extends Controller {
         if (this.hasCompletePaidSaleButtonTarget) this.completePaidSaleButtonTarget.hidden = true;
         if (this.hasPaymentReferenceResultTarget) this.paymentReferenceResultTarget.hidden = true;
         this.inFlight = false;
+        globalThis.clearTimeout(this.productSearchTimer);
+        this.productSearchTimer = null;
         this.productSearchTarget.value = '';
-        this.productResultsTarget.replaceChildren();
+        this.productCatalogCategory = '';
+        if (this.hasProductCategoryTarget) {
+            this.productCategoryTarget.value = '';
+        }
+        // A new sale must reopen the default product catalog immediately.
+        // The catalog endpoint already limits the first page to 5 products;
+        // do not make the cashier search/filter again just to continue selling.
+        void this.loadProductCatalog(1);
         this.renderCart();
         this.setSubmitting(false);
         this.setStatus(this.messagesValue.ready);
