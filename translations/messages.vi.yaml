@@ -184,6 +184,8 @@ pos:
     search_help: Tìm theo tên sản phẩm hoặc SKU.
     search_label: Tìm sản phẩm
     search_placeholder: Tìm sản phẩm hoặc SKU…
+    clear_search: Xóa tìm kiếm
+    stock_remaining: Còn
     all_categories: Tất cả danh mục
     pagination: Phân trang sản phẩm
     previous: '<<'
@@ -201,6 +203,9 @@ pos:
     remove: X
     increase: Tăng
     decrease: Giảm
+    view: Xem giỏ
+    close: Đóng giỏ
+    continue_payment: Thanh toán
   customer:
     no_customers: Chưa có khách hàng nào.
     title: Khách hàng

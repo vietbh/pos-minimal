@@ -721,3 +721,58 @@
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
 }
+
+/* POS payment sub-cards — dark-theme hardening.
+ * Keep the existing payment/business logic; only normalize presentation tokens.
+ */
+html[data-appearance="dark"] .pos-payment-card .pos-bank-details,
+html[data-appearance="system"] .pos-payment-card .pos-bank-details,
+html[data-appearance="dark"] .pos-payment-card .pos-payment-speaker,
+html[data-appearance="system"] .pos-payment-card .pos-payment-speaker,
+html[data-appearance="dark"] .pos-payment-card .pos-payment-total,
+html[data-appearance="system"] .pos-payment-card .pos-payment-total,
+html[data-appearance="dark"] .pos-payment-card .pos-payment-summary > div,
+html[data-appearance="system"] .pos-payment-card .pos-payment-summary > div,
+html[data-appearance="dark"] .pos-payment-card .pos-method,
+html[data-appearance="system"] .pos-payment-card .pos-method {
+    background: var(--ux-surface, #111827) !important;
+    color: var(--ux-text, #f8fafc) !important;
+    border-color: var(--ux-border, #475569) !important;
+}
+
+html[data-appearance="dark"] .pos-payment-card .pos-bank-details .muted,
+html[data-appearance="system"] .pos-payment-card .pos-bank-details .muted,
+html[data-appearance="dark"] .pos-payment-card .pos-payment-speaker .muted,
+html[data-appearance="system"] .pos-payment-card .pos-payment-speaker .muted,
+html[data-appearance="dark"] .pos-payment-card .pos-payment-summary dt,
+html[data-appearance="system"] .pos-payment-card .pos-payment-summary dt {
+    color: var(--ux-muted, #cbd5e1) !important;
+}
+
+html[data-appearance="dark"] .pos-payment-card .pos-bank-details strong,
+html[data-appearance="system"] .pos-payment-card .pos-bank-details strong,
+html[data-appearance="dark"] .pos-payment-card .pos-payment-summary dd,
+html[data-appearance="system"] .pos-payment-card .pos-payment-summary dd,
+html[data-appearance="dark"] .pos-payment-card .pos-payment-total strong,
+html[data-appearance="system"] .pos-payment-card .pos-payment-total strong {
+    color: var(--ux-text, #f8fafc) !important;
+}
+
+html[data-appearance="dark"] .pos-payment-card .pos-bank-qr-placeholder,
+html[data-appearance="system"] .pos-payment-card .pos-bank-qr-placeholder {
+    color: var(--ux-muted, #cbd5e1) !important;
+    background: transparent !important;
+    border-color: var(--ux-border, #475569) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-appearance="system"] .pos-payment-card .pos-bank-details,
+    html[data-appearance="system"] .pos-payment-card .pos-payment-speaker,
+    html[data-appearance="system"] .pos-payment-card .pos-payment-total,
+    html[data-appearance="system"] .pos-payment-card .pos-payment-summary > div,
+    html[data-appearance="system"] .pos-payment-card .pos-method {
+        background: var(--ux-surface, #111827) !important;
+        color: var(--ux-text, #f8fafc) !important;
+        border-color: var(--ux-border, #475569) !important;
+    }
+}

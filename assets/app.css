@@ -60,7 +60,9 @@ button {
 
 .pos-header-meta{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.pos-current-time{font-variant-numeric:tabular-nums;font-size:.9rem;font-weight:800;white-space:nowrap;color:var(--color-text-muted,#64748b)}
 
-/* ==========================================================================\n   Mobile POS UI/UX hardening\n   ========================================================================== */
+/* ==========================================================================
+   Mobile POS UI/UX hardening
+   ========================================================================== */
 :root {
     --ui-bg: #f8fafc;
     --ui-surface: #ffffff;

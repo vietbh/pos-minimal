@@ -6,7 +6,7 @@
 
 {% block pos_body %}
 <div class="pos-page"
-     data-controller="pos-checkout mobile-ux sales-point"
+     data-controller="pos-checkout mobile-ux sales-point pos-mobile-cart"
      data-pos-checkout-csrf-token-value="{{ checkout_csrf_token }}"
      data-sales-point-csrf-token-value="{{ checkout_csrf_token }}"
      data-sales-point-endpoint-value="{{ path('pos_current_sales_point_set') }}"
@@ -28,7 +28,7 @@
      data-pos-checkout-processing-label-value="{{ 'pos.checkout.processing'|trans }}"
      data-pos-checkout-complete-sale-label-value="{{ 'pos.checkout.complete_sale'|trans }}"
      data-pos-checkout-bank-payment-label-value="{{ 'pos.checkout.start_bank_payment'|trans }}"
-     data-pos-checkout-messages-value='{{ {ready: 'pos.ready'|trans, copyLoaded: 'pos.copy_loaded'|trans, copyLoadedWithInactive: 'pos.copy_loaded_with_inactive'|trans, copyFailed: 'pos.copy_failed'|trans, copyNoItems: 'pos.copy_no_items'|trans, allCategories: 'pos.all_categories'|trans, noSku: 'pos.no_sku'|trans, unableLoadProducts: 'pos.unable_load_products'|trans, unableSearchCustomers: 'pos.unable_search_customers'|trans, addProducts: 'pos.add_products'|trans, enterCustomerAmount: 'pos.enter_customer_amount'|trans, changeDue: 'pos.change_due'|trans, debtWillBeCreated: 'pos.debt_will_be_created'|trans, selectCustomerOrFullPayment: 'pos.select_customer_or_full_payment'|trans, createCustomer: 'pos.customer.create_quick'|trans, customerNameRequired: 'pos.customer.name_required'|trans, customerCreated: 'pos.customer.created'|trans, customerCreateFailed: 'pos.customer.create_failed'|trans, outOfStock: 'pos.customer.out_of_stock'|trans, paidInFull: 'pos.paid_in_full'|trans, configureReceivingAccount: 'pos.configure_receiving_account'|trans, transferCannotExceed: 'pos.transfer_cannot_exceed'|trans, enterExactTransfer: 'pos.enter_exact_transfer'|trans, cartEmpty: 'pos.cart_empty'|trans, quantityExceedsStock: 'pos.quantity_exceeds_stock'|trans, paymentInvalid: 'pos.payment_invalid'|trans, customerTenderedZero: 'pos.customer_tendered_zero'|trans, transferZero: 'pos.transfer_zero'|trans, bankTransferExact: 'pos.bank_transfer_exact'|trans, unableCheckout: 'pos.unable_checkout'|trans, invalidResult: 'pos.invalid_result'|trans, timeoutUnknown: 'pos.timeout_unknown'|trans, unknownResult: 'pos.unknown_result'|trans, bankTransfer: 'pos.bank_transfer'|trans, waitingPayment: 'pos.waiting_payment'|trans, waitingBankTransfer: 'pos.waiting_bank_transfer'|trans, completeSaleManually: 'pos.complete_sale_manually'|trans, missingReference: 'pos.missing_reference'|trans, manualConfirmFailed: 'pos.manual_confirm_failed'|trans, paymentNotConfirmed: 'pos.payment_not_confirmed'|trans, saleCompleted: 'pos.sale_completed'|trans, unableManualConfirm: 'pos.unable_manual_confirm'|trans, closeQr: 'pos.close_qr'|trans, paymentReceivedBanner: 'pos.payment_received_banner'|trans, bankConfirmed: 'pos.bank_confirmed'|trans, speakerEnabledLabel: 'pos.speaker.enabled'|trans, speakerDisabledLabel: 'pos.speaker.enable'|trans, paymentReceivedSpeech: 'pos.speaker.payment_received_speech'|trans, startBankPayment: 'pos.start_bank_payment'|trans, completeSaleButton: 'pos.complete_sale_button'|trans, completed: 'pos.completed'|trans, paymentReceived: 'pos.payment_received_label'|trans, paymentReceivedAutoFail: 'pos.payment_received_auto_fail'|trans, unableCompleteSale: 'pos.unable_complete_sale'|trans, unableCompleteSaleAuto: 'pos.unable_complete_sale_auto'|trans, unableCreateReference: 'pos.unable_create_reference'|trans, checkoutFailedPreserved: 'pos.checkout_failed_preserved'|trans, invalidMoney: 'pos.invalid_money'|trans, unit: 'pos.unit'|trans, errorMessages: {
+     data-pos-checkout-messages-value='{{ {ready: 'pos.ready'|trans, copyLoaded: 'pos.copy_loaded'|trans, copyLoadedWithInactive: 'pos.copy_loaded_with_inactive'|trans, copyFailed: 'pos.copy_failed'|trans, copyNoItems: 'pos.copy_no_items'|trans, allCategories: 'pos.all_categories'|trans, noSku: 'pos.no_sku'|trans, unableLoadProducts: 'pos.unable_load_products'|trans, clearSearch: 'pos.products.clear_search'|trans, stockRemaining: 'pos.products.stock_remaining'|trans, unableSearchCustomers: 'pos.unable_search_customers'|trans, addProducts: 'pos.add_products'|trans, enterCustomerAmount: 'pos.enter_customer_amount'|trans, changeDue: 'pos.change_due'|trans, debtWillBeCreated: 'pos.debt_will_be_created'|trans, selectCustomerOrFullPayment: 'pos.select_customer_or_full_payment'|trans, createCustomer: 'pos.customer.create_quick'|trans, customerNameRequired: 'pos.customer.name_required'|trans, customerCreated: 'pos.customer.created'|trans, customerCreateFailed: 'pos.customer.create_failed'|trans, outOfStock: 'pos.customer.out_of_stock'|trans, paidInFull: 'pos.paid_in_full'|trans, configureReceivingAccount: 'pos.configure_receiving_account'|trans, transferCannotExceed: 'pos.transfer_cannot_exceed'|trans, enterExactTransfer: 'pos.enter_exact_transfer'|trans, cartEmpty: 'pos.cart_empty'|trans, quantityExceedsStock: 'pos.quantity_exceeds_stock'|trans, paymentInvalid: 'pos.payment_invalid'|trans, customerTenderedZero: 'pos.customer_tendered_zero'|trans, transferZero: 'pos.transfer_zero'|trans, bankTransferExact: 'pos.bank_transfer_exact'|trans, unableCheckout: 'pos.unable_checkout'|trans, invalidResult: 'pos.invalid_result'|trans, timeoutUnknown: 'pos.timeout_unknown'|trans, unknownResult: 'pos.unknown_result'|trans, bankTransfer: 'pos.bank_transfer'|trans, waitingPayment: 'pos.waiting_payment'|trans, waitingBankTransfer: 'pos.waiting_bank_transfer'|trans, completeSaleManually: 'pos.complete_sale_manually'|trans, missingReference: 'pos.missing_reference'|trans, manualConfirmFailed: 'pos.manual_confirm_failed'|trans, paymentNotConfirmed: 'pos.payment_not_confirmed'|trans, saleCompleted: 'pos.sale_completed'|trans, unableManualConfirm: 'pos.unable_manual_confirm'|trans, closeQr: 'pos.close_qr'|trans, paymentReceivedBanner: 'pos.payment_received_banner'|trans, bankConfirmed: 'pos.bank_confirmed'|trans, speakerEnabledLabel: 'pos.speaker.enabled'|trans, speakerDisabledLabel: 'pos.speaker.enable'|trans, paymentReceivedSpeech: 'pos.speaker.payment_received_speech'|trans, startBankPayment: 'pos.start_bank_payment'|trans, completeSaleButton: 'pos.complete_sale_button'|trans, completed: 'pos.completed'|trans, paymentReceived: 'pos.payment_received_label'|trans, paymentReceivedAutoFail: 'pos.payment_received_auto_fail'|trans, unableCompleteSale: 'pos.unable_complete_sale'|trans, unableCompleteSaleAuto: 'pos.unable_complete_sale_auto'|trans, unableCreateReference: 'pos.unable_create_reference'|trans, checkoutFailedPreserved: 'pos.checkout_failed_preserved'|trans, invalidMoney: 'pos.invalid_money'|trans, unit: 'pos.unit'|trans, errorMessages: {
             AUTHENTICATION_REQUIRED: 'pos.error_authentication'|trans,
             ACCESS_DENIED: 'pos.error_access_denied'|trans,
             CSRF_INVALID: 'pos.error_csrf'|trans,
@@ -69,24 +69,34 @@
                         <p class="muted">{{ 'pos.products.search_help'|trans }}</p>
                     </div>
                 </div>
-                <div class="pos-product-filters">
-                    <label class="sr-only" for="pos-product-search">{{ 'pos.products.search_label'|trans }}</label>
-                    <input id="pos-product-search"
-                           class="pos-search"
-                           type="search"
-                           placeholder="{{ 'pos.products.search_placeholder'|trans }}"
-                           autocomplete="off"
-                           enterkeyhint="search"
-                           data-pos-checkout-target="productSearch"
-                           data-action="input->pos-checkout#searchProducts keydown->pos-checkout#productSearchKeydown">
+                <div class="pos-product-toolbar">
+                    <div class="pos-product-search-wrap">
+                        <span class="pos-product-search-icon" aria-hidden="true">⌕</span>
+                        <label class="sr-only" for="pos-product-search">{{ 'pos.products.search_label'|trans }}</label>
+                        <input id="pos-product-search"
+                               class="pos-search pos-product-search-input"
+                               type="search"
+                               placeholder="{{ 'pos.products.search_placeholder'|trans }}"
+                               autocomplete="off"
+                               enterkeyhint="search"
+                               data-pos-checkout-target="productSearch"
+                               data-action="input->pos-checkout#searchProducts keydown->pos-checkout#productSearchKeydown">
+                        <button type="button"
+                                class="pos-product-search-clear"
+                                data-pos-checkout-target="productSearchClear"
+                                data-action="click->pos-checkout#clearProductSearch"
+                                aria-label="{{ 'pos.products.clear_search'|trans }}"
+                                hidden>×</button>
+                    </div>
                     <label class="sr-only" for="pos-product-category">{{ 'pos.product_category'|trans }}</label>
                     <select id="pos-product-category"
-                            class="pos-search"
+                            class="pos-search pos-product-category-select"
                             data-pos-checkout-target="productCategory"
                             data-action="change->pos-checkout#productCategoryChanged">
                         <option value="">{{ 'pos.products.all_categories'|trans }}</option>
                     </select>
                 </div>
+                <div class="pos-product-category-chips" data-pos-checkout-target="productCategoryChips" role="group" aria-label="{{ 'pos.product_category'|trans }}"></div>
                 <div class="pos-catalog-meta" data-pos-checkout-target="productCatalogMeta" aria-live="polite"></div>
                 <div class="pos-results" data-pos-checkout-target="productResults" aria-live="polite"></div>
                 <nav class="pos-product-pagination" data-pos-checkout-target="productPagination" aria-label="{{ 'pos.products.pagination'|trans }}" hidden>
@@ -96,22 +106,37 @@
                 </nav>
             </section>
 
-            <section class="pos-card pos-cart" aria-labelledby="cart-heading">
-                <div class="pos-section-header">
+            <section id="pos-cart-sheet" class="pos-card pos-cart" data-pos-mobile-cart-target="cart" aria-labelledby="cart-heading">
+                <div class="pos-cart-sheet-handle" aria-hidden="true"><span></span></div>
+                <div class="pos-section-header pos-cart-header" data-action="click->pos-mobile-cart#headerToggle" tabindex="0" role="button" aria-label="{{ 'pos.cart.view'|trans }}">
                     <div>
                         <h2 id="cart-heading">{{ 'pos.cart.title'|trans }}</h2>
                         <p class="muted"><span data-pos-checkout-target="cartCount">0</span> {{ 'pos.cart.items'|trans }}</p>
                     </div>
-                    <button type="button" class="button" data-action="click->pos-checkout#clearCart">{{ 'pos.cart.clear'|trans }}</button>
+                    <div class="pos-cart-header-actions">
+                        <span class="pos-mobile-cart-total" data-pos-mobile-cart-total aria-live="polite">0</span>
+                        <button type="button" class="button pos-cart-toggle" data-pos-mobile-cart-target="toggle" data-action="click->pos-mobile-cart#toggle" data-open-label="{{ 'pos.cart.view'|trans }}" data-close-label="{{ 'pos.cart.close'|trans }}" aria-expanded="false" aria-controls="pos-cart-sheet">{{ 'pos.cart.view'|trans }}</button>
+                        <button type="button" class="button pos-cart-clear" data-action="click->pos-checkout#clearCart">{{ 'pos.cart.clear'|trans }}</button>
+                    </div>
                 </div>
-                <div class="pos-cart-list" data-pos-checkout-target="cart"></div>
-                <div class="pos-empty" data-pos-checkout-target="cartEmpty">{{ 'pos.cart.empty'|trans }}</div>
-                <div class="pos-cart-summary"><div><span>{{ 'pos.cart.subtotal'|trans }}</span><strong data-pos-checkout-target="cartSubtotal">0</strong></div><div><span>Giảm khách hàng</span><strong data-pos-checkout-target="cartCustomerDiscount">0</strong></div><div><span>Giảm trực tiếp</span><strong data-pos-checkout-target="cartManualDiscount">0</strong></div><div><span>{{ 'pos.cart.discount'|trans }}</span><strong data-pos-checkout-target="cartDiscount">0</strong></div><div class="pos-cart-total"><span>{{ 'pos.cart.total'|trans }}</span><strong data-pos-checkout-target="cartTotal">0</strong></div></div>
-                <label>Giảm trực tiếp (VNĐ)
-                    <input type="number" min="0" step="1000" inputmode="decimal" value="0" data-pos-checkout-target="manualDiscount" data-action="input->pos-checkout#setManualDiscount">
-                </label>
-                <p class="pos-total-note">{{ 'pos.cart.server_total_note'|trans }}</p>
+                <div class="pos-cart-scroll">
+                    <div class="pos-cart-list" data-pos-checkout-target="cartList"></div>
+                    <div class="pos-empty" data-pos-checkout-target="cartEmpty">{{ 'pos.cart.empty'|trans }}</div>
+                    <div class="pos-cart-summary"><div><span>{{ 'pos.cart.subtotal'|trans }}</span><strong data-pos-checkout-target="cartSubtotal">0</strong></div><div><span>Giảm khách hàng</span><strong data-pos-checkout-target="cartCustomerDiscount">0</strong></div><div><span>Giảm trực tiếp</span><strong data-pos-checkout-target="cartManualDiscount">0</strong></div><div><span>{{ 'pos.cart.discount'|trans }}</span><strong data-pos-checkout-target="cartDiscount">0</strong></div><div class="pos-cart-total"><span>{{ 'pos.cart.total'|trans }}</span><strong data-pos-checkout-target="cartTotal">0</strong></div></div>
+                    <label>Giảm trực tiếp (VNĐ)
+                        <input type="number" min="0" step="1000" inputmode="decimal" value="0" data-pos-checkout-target="manualDiscount" data-action="input->pos-checkout#setManualDiscount">
+                    </label>
+                    <p class="pos-total-note">{{ 'pos.cart.server_total_note'|trans }}</p>
+                </div>
+                <div class="pos-mobile-cart-actions">
+                    <div>
+                        <span>{{ 'pos.cart.total'|trans }}</span>
+                        <strong data-pos-mobile-cart-total-footer>0</strong>
+                    </div>
+                    <button type="button" class="button primary" data-pos-mobile-cart-target="payButton" data-action="click->pos-mobile-cart#focusPayment" disabled>{{ 'pos.cart.continue_payment'|trans }}</button>
+                </div>
             </section>
+            <button type="button" class="pos-cart-sheet-backdrop" data-pos-mobile-cart-target="backdrop" data-action="click->pos-mobile-cart#close" aria-label="{{ 'pos.cart.close'|trans }}" aria-hidden="true" tabindex="-1"></button>
 
             <section class="pos-card" aria-labelledby="customer-heading">
                 <div class="pos-section-header">
@@ -137,14 +162,16 @@
                 {% endif %}
             </section>
 
-            <section class="pos-card pos-payment-card" aria-labelledby="payment-heading">
+            <section class="pos-card pos-payment-card" data-pos-mobile-cart-target="paymentCard" aria-labelledby="payment-heading" aria-hidden="true">
                 <div class="pos-section-header">
                     <div>
                         <p class="pos-eyebrow">{{ 'pos.payment.title'|trans }}</p>
                         <h2 id="payment-heading">{{ 'pos.checkout.title'|trans }}</h2>
                     </div>
+                    <button type="button" class="button pos-payment-sheet-close" data-pos-mobile-cart-target="paymentClose" data-action="click->pos-mobile-cart#closePayment" aria-label="{{ 'pos.cart.close'|trans }}">×</button>
                 </div>
 
+                <div class="pos-payment-scroll">
                 <div class="pos-payment-total">
                     <span>{{ 'pos.payment.order_total'|trans }}</span>
                     <strong data-pos-checkout-target="paymentTotal">0</strong>
@@ -234,14 +261,18 @@
                 <label>{{ 'pos.payment.note'|trans }}
                     <input data-pos-checkout-target="note" maxlength="1000" autocomplete="off" enterkeyhint="done">
                 </label>
+                </div>
 
+                <div class="pos-payment-footer">
                 <button type="button" class="button primary pos-complete-button" data-pos-checkout-target="submitButton" data-action="click->pos-checkout#submit">
                     {{ 'pos.complete_sale'|trans }}
                 </button>
                 <button type="button" class="button" data-pos-checkout-target="retryButton" data-action="click->pos-checkout#retry" hidden>
                     {{ 'pos.retry_checkout'|trans }}
                 </button>
+                </div>
             </section>
+            <button type="button" class="pos-payment-sheet-backdrop" data-pos-mobile-cart-target="paymentBackdrop" data-action="click->pos-mobile-cart#closePayment" aria-label="{{ 'pos.cart.close'|trans }}" aria-hidden="true" tabindex="-1"></button>
         </main>
     </div>
 

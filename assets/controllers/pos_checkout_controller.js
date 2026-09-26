@@ -7,8 +7,8 @@ const MINOR_SCALE = 100n;
 
 export default class extends Controller {
     static targets = [
-        'productSearch', 'productResults', 'productCategory', 'productCatalogMeta', 'productPagination', 'productPrevious', 'productNext', 'productPageIndicator', 'webhookEnrichment', 'webhookEnrichmentState', 'webhookProvider', 'webhookExternalId', 'webhookOccurredAt', 'webhookAmount', 'webhookDescription', 'customerSearch', 'customerResults',
-        'selectedCustomer', 'clearCustomer', 'openCustomerCreate', 'customerCreateModal', 'newCustomerName', 'newCustomerPhone', 'newCustomerDiscountPercent', 'createCustomerButton', 'customerCreateError', 'cart', 'cartEmpty', 'cartCount', 'copySourceNotice',
+        'productSearch', 'productSearchClear', 'productResults', 'productCategory', 'productCategoryChips', 'productCatalogMeta', 'productPagination', 'productPrevious', 'productNext', 'productPageIndicator', 'webhookEnrichment', 'webhookEnrichmentState', 'webhookProvider', 'webhookExternalId', 'webhookOccurredAt', 'webhookAmount', 'webhookDescription', 'customerSearch', 'customerResults',
+        'selectedCustomer', 'clearCustomer', 'openCustomerCreate', 'customerCreateModal', 'newCustomerName', 'newCustomerPhone', 'newCustomerDiscountPercent', 'createCustomerButton', 'customerCreateError', 'cartList', 'cartEmpty', 'cartCount', 'copySourceNotice',
         'cartSubtotal', 'cartCustomerDiscount', 'cartManualDiscount', 'manualDiscount', 'cartDiscount', 'cartTotal', 'submitButton', 'message', 'success', 'requestId', 'status',
         'retryButton', 'paymentMethods', 'paymentAmount', 'customerTendered',
         'paymentTotal', 'paymentApplied', 'paymentDue', 'paymentChange',
@@ -45,6 +45,24 @@ export default class extends Controller {
     };
 
     connect() {
+        this.debugEnabled = new URLSearchParams(window.location.search).get('posDebug') === '1'
+            || window.localStorage.getItem('pos-debug') === '1';
+        this.debugErrorHandler = (event) => this.debug('window:error', {
+            message: event?.message,
+            source: event?.filename,
+            line: event?.lineno,
+            column: event?.colno,
+            error: event?.error?.stack,
+        });
+        this.debugRejectionHandler = (event) => this.debug('window:unhandledrejection', {
+            reason: event?.reason?.stack || event?.reason?.message || event?.reason,
+        });
+        window.addEventListener('error', this.debugErrorHandler);
+        window.addEventListener('unhandledrejection', this.debugRejectionHandler);
+        this.debug('connect:start', {
+            href: window.location.href,
+            controller: this.identifier,
+        });
         this.state = 'IDLE';
         this.inFlight = false;
         this.idempotencyKey = null;
@@ -84,12 +102,15 @@ export default class extends Controller {
 
         this.renderCart();
         this.paymentMethodChanged();
+        this.updateProductSearchClear();
         this.loadProductCatalog(1);
         this.setStatus(this.messagesValue.ready);
         void this.loadCopiedOrder();
     }
 
     disconnect() {
+        window.removeEventListener('error', this.debugErrorHandler);
+        window.removeEventListener('unhandledrejection', this.debugRejectionHandler);
         globalThis.clearTimeout(this.productSearchTimer);
         globalThis.clearTimeout(this.customerSearchTimer);
         this.stopPaymentReferenceCountdown();
@@ -184,12 +205,35 @@ export default class extends Controller {
         }
     }
 
+    debug(event, payload = {}) {
+        if (!this.debugEnabled) return;
+        console.groupCollapsed(`[POS][${event}]`);
+        console.log(payload);
+        console.groupEnd();
+    }
+
     searchProducts() {
+        this.updateProductSearchClear();
         globalThis.clearTimeout(this.productSearchTimer);
         this.productSearchTimer = globalThis.setTimeout(
             () => this.loadProductCatalog(1),
             SEARCH_DEBOUNCE_MS,
         );
+    }
+
+    clearProductSearch(event) {
+        event?.preventDefault();
+        this.productSearchTarget.value = '';
+        this.updateProductSearchClear();
+        globalThis.clearTimeout(this.productSearchTimer);
+        this.loadProductCatalog(1);
+        this.productSearchTarget.focus();
+    }
+
+    updateProductSearchClear() {
+        if (this.hasProductSearchClearTarget) {
+            this.productSearchClearTarget.hidden = this.productSearchTarget.value.trim() === '';
+        }
     }
 
     productSearchKeydown(event) {
@@ -202,7 +246,16 @@ export default class extends Controller {
 
     productCategoryChanged() {
         this.productCatalogCategory = this.productCategoryTarget.value || '';
+        this.syncProductCategoryChips();
         this.loadProductCatalog(1);
+    }
+
+    productCategoryChipChanged(event) {
+        event.preventDefault();
+        const value = event.currentTarget.dataset.categoryId || '';
+        this.debug('catalog:category-click', { value, text: event.currentTarget.textContent });
+        this.productCategoryTarget.value = value;
+        this.productCategoryChanged();
     }
 
     async loadProductCatalog(page = 1) {
@@ -215,6 +268,14 @@ export default class extends Controller {
         url.searchParams.set('limit', '5');
         if (category) url.searchParams.set('category', category);
 
+        this.debug('catalog:request', {
+            sequence,
+            page,
+            query,
+            category,
+            url: url.toString(),
+            targetConnected: this.hasProductResultsTarget,
+        });
         this.productResultsTarget.setAttribute('aria-busy', 'true');
         try {
             const response = await fetch(url.toString(), {
@@ -222,7 +283,17 @@ export default class extends Controller {
                 credentials: 'same-origin',
             });
             const body = await response.json().catch(() => ({}));
-            if (sequence !== this.productCatalogSequence) return;
+            this.debug('catalog:response', {
+                sequence,
+                status: response.status,
+                ok: response.ok,
+                contentType: response.headers.get('content-type'),
+                body,
+            });
+            if (sequence !== this.productCatalogSequence) {
+                this.debug('catalog:stale-response', { sequence, latest: this.productCatalogSequence });
+                return;
+            }
             if (!response.ok) throw new Error(body.message || this.messagesValue.unableLoadProducts);
 
             const products = Array.isArray(body.data) ? body.data : [];
@@ -233,7 +304,19 @@ export default class extends Controller {
             this.renderProductCategories(Array.isArray(body.categories) ? body.categories : []);
             this.renderProducts(products);
             this.renderProductPagination(pagination);
+            this.debug('catalog:rendered', {
+                products: products.length,
+                total: pagination.total,
+                page: this.productCatalogPage,
+                totalPages: this.productCatalogTotalPages,
+            });
         } catch (error) {
+            this.debug('catalog:error', {
+                sequence,
+                name: error?.name,
+                message: error?.message,
+                stack: error?.stack,
+            });
             if (sequence === this.productCatalogSequence) {
                 this.productResultsTarget.textContent = error?.message || this.messagesValue.unableLoadProducts;
                 this.renderProductPagination({ page: 1, totalPages: 1, total: 0 });
@@ -258,6 +341,37 @@ export default class extends Controller {
             this.productCategoryTarget.value = '';
             this.productCatalogCategory = '';
         }
+
+        if (this.hasProductCategoryChipsTarget) {
+            const chips = [
+                { id: '', name: this.messagesValue.allCategories },
+                ...categories.filter((category) => category?.id).map((category) => ({
+                    id: String(category.id),
+                    name: String(category.name || `Category #${category.id}`),
+                })),
+            ];
+            this.productCategoryChipsTarget.replaceChildren(...chips.map((category) => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'pos-category-chip';
+                chip.textContent = category.name;
+                chip.dataset.categoryId = category.id;
+                chip.addEventListener('click', (event) => this.productCategoryChipChanged(event));
+                chip.setAttribute('aria-pressed', 'false');
+                return chip;
+            }));
+            this.syncProductCategoryChips();
+        }
+    }
+
+    syncProductCategoryChips() {
+        if (!this.hasProductCategoryChipsTarget) return;
+        const selected = this.productCategoryTarget.value || '';
+        this.productCategoryChipsTarget.querySelectorAll('[data-category-id]').forEach((chip) => {
+            const active = chip.dataset.categoryId === selected;
+            chip.classList.toggle('is-active', active);
+            chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
     }
 
     renderProductPagination(pagination) {
@@ -270,7 +384,7 @@ export default class extends Controller {
         if (this.hasProductCatalogMetaTarget) {
             this.productCatalogMetaTarget.textContent = total === 0
                 ? 'Không có sản phẩm phù hợp.'
-                : `${total} sản phẩm · Hiển thị 5 sản phẩm mỗi trang`;
+                : `${total} sản phẩm`;
         }
         if (!this.hasProductPaginationTarget) return;
 
@@ -305,22 +419,72 @@ export default class extends Controller {
 
             const row = document.createElement('article');
             row.className = 'pos-product-result';
+            row.dataset.productId = String(product.id);
+            row.setAttribute('role', 'button');
+            row.setAttribute('tabindex', '0');
+            row.setAttribute('aria-label', `${this.messagesValue.addProducts}: ${product.name}`);
+            // Keep the card directly actionable even when it is created after
+            // Stimulus connects (the catalog is rendered asynchronously).
+            row.addEventListener('click', (event) => {
+                if (event.target.closest('button, a, input, select, textarea')) return;
+                this.addProductFromCard(event);
+            });
+            row.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                if (event.target !== row) return;
+                event.preventDefault();
+                this.addProductFromCard(event);
+            });
+
+            const thumb = document.createElement('div');
+            thumb.className = 'pos-product-thumb';
+            thumb.setAttribute('aria-hidden', 'true');
+            thumb.textContent = String(product.name || '?').trim().charAt(0).toUpperCase() || '?';
 
             const info = document.createElement('div');
             info.className = 'pos-result-main';
 
+            const top = document.createElement('div');
+            top.className = 'pos-product-result-top';
+
             const name = document.createElement('strong');
             name.textContent = product.name;
 
-            const meta = document.createElement('small');
-            meta.textContent = [
-                product.categoryName || 'Chưa phân loại',
-                product.sku || this.messagesValue.noSku,
-                `${this.formatMajor(product.sellingPrice)} / ${product.unit || this.messagesValue.unit}`,
-                `Stock ${product.stockQuantity}`,
-            ].join(' · ');
+            const price = document.createElement('strong');
+            price.className = 'pos-product-price';
+            price.textContent = this.formatMajor(product.sellingPrice);
 
-            info.append(name, meta);
+            top.append(name, price);
+
+            const meta = document.createElement('div');
+            meta.className = 'pos-product-meta';
+
+            const category = document.createElement('span');
+            category.className = 'pos-product-category';
+            category.textContent = product.categoryName || 'Chưa phân loại';
+
+            const sku = document.createElement('span');
+            sku.textContent = product.sku || this.messagesValue.noSku;
+
+            const unit = document.createElement('span');
+            unit.textContent = `/ ${product.unit || this.messagesValue.unit}`;
+
+            meta.append(category, sku, unit);
+
+            const stock = Number(product.stockQuantity);
+            const stockBadge = document.createElement('span');
+            stockBadge.className = stock <= 0 ? 'pos-product-stock is-out' : 'pos-product-stock';
+            stockBadge.textContent = stock <= 0 ? this.messagesValue.outOfStock : `${this.messagesValue.stockRemaining} ${stock}`;
+
+            const quantityInCart = this.cartItems.find((item) => item.productId === Number(product.id))?.quantity || 0;
+            if (quantityInCart > 0) {
+                const inCart = document.createElement('span');
+                inCart.className = 'pos-product-in-cart';
+                inCart.textContent = `Đã thêm ${quantityInCart}`;
+                meta.append(inCart);
+            }
+
+            info.append(top, meta, stockBadge);
 
             const actions = document.createElement('div');
             actions.className = 'pos-product-actions';
@@ -328,13 +492,12 @@ export default class extends Controller {
             const add = document.createElement('button');
             add.type = 'button';
             add.className = 'button primary pos-touch-button pos-add-product-button';
-            add.textContent = '＋';
+            add.textContent = '+';
             add.setAttribute('aria-label', `${this.messagesValue.addProducts}: ${product.name}`);
             add.title = `${this.messagesValue.addProducts}: ${product.name}`;
-            const stock = Number(product.stockQuantity);
             add.disabled = stock <= 0;
-            add.dataset.action = 'click->pos-checkout#addToCart';
             add.dataset.productId = String(product.id);
+            add.addEventListener('click', (event) => this.addToCart(event));
 
             if (stock <= 0) {
                 const unavailable = document.createElement('span');
@@ -344,14 +507,42 @@ export default class extends Controller {
                 actions.append(unavailable);
             }
             actions.append(add);
-            row.append(info, actions);
+            row.append(thumb, info, actions);
             return row;
         }));
     }
 
+    addProductFromCard(event) {
+        this.debug('catalog:card-event', {
+            type: event.type,
+            target: event.target?.tagName,
+            currentTarget: event.currentTarget?.dataset?.productId,
+        });
+        if (event.target.closest('button, a, input, select, textarea')) return;
+
+        if (event.type === 'keydown') {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+        }
+
+        const productId = String(event.currentTarget.dataset.productId || '');
+        const product = this.products.get(productId);
+        if (!product) return;
+
+        const syntheticEvent = {
+            preventDefault: () => {},
+            stopPropagation: () => {},
+            currentTarget: { dataset: { productId } },
+        };
+        this.addToCart(syntheticEvent);
+    }
+
     addToCart(event) {
         event.preventDefault();
-        const product = this.products.get(String(event.currentTarget.dataset.productId || ''));
+        event.stopPropagation();
+        const productIdKey = String(event.currentTarget.dataset.productId || '');
+        const product = this.products.get(productIdKey);
+        this.debug('cart:add-attempt', { productIdKey, found: Boolean(product), cartCount: this.cartItems.length });
         if (!product) return;
 
         const productId = Number(product.id);
@@ -487,7 +678,7 @@ export default class extends Controller {
     }
 
     renderCart() {
-        this.cartTarget.replaceChildren(...this.cartItems.map((item) => {
+        this.cartListTarget.replaceChildren(...this.cartItems.map((item) => {
             const row = document.createElement('article');
             row.className = 'pos-cart-item';
 
@@ -550,7 +741,18 @@ export default class extends Controller {
         if (this.hasCartManualDiscountTarget) this.cartManualDiscountTarget.textContent = manualDiscount > 0n ? `-${this.formatMinor(manualDiscount)}` : this.formatMinor(0n);
         if (this.hasCartDiscountTarget) this.cartDiscountTarget.textContent = discount > 0n ? `-${this.formatMinor(discount)}` : this.formatMinor(0n);
         this.cartTotalTarget.textContent = this.formatMinor(total);
+        const mobileCartTotals = this.element.querySelectorAll('[data-pos-mobile-cart-total], [data-pos-mobile-cart-total-footer]');
+        const mobileTotalText = this.formatMinor(total);
+        mobileCartTotals.forEach((node) => { node.textContent = mobileTotalText; });
+        const mobilePayButton = this.element.querySelector('[data-pos-mobile-cart-target="payButton"]');
+        if (mobilePayButton) mobilePayButton.disabled = itemCount === 0;
         this.updatePaymentState(total);
+        this.refreshVisibleProductCartBadges();
+    }
+
+    refreshVisibleProductCartBadges() {
+        if (!this.hasProductResultsTarget || this.products.size === 0) return;
+        this.renderProducts([...this.products.values()]);
     }
 
     quantityButton(label, action, item, delta) {
@@ -683,6 +885,7 @@ export default class extends Controller {
     }
 
     openCustomerCreate() {
+        this.debug('customer:create-open', { hasModalTarget: this.hasCustomerCreateModalTarget });
         if (!this.hasCustomerCreateModalTarget) return;
         this.customerCreateErrorTarget.hidden = true;
         this.customerCreateErrorTarget.textContent = '';
@@ -694,6 +897,7 @@ export default class extends Controller {
     }
 
     closeCustomerCreate() {
+        this.debug('customer:create-close', { hasModalTarget: this.hasCustomerCreateModalTarget });
         if (!this.hasCustomerCreateModalTarget) return;
         this.customerCreateModalTarget.hidden = true;
         this.customerCreateErrorTarget.hidden = true;
@@ -1181,6 +1385,7 @@ export default class extends Controller {
     }
 
     newSale() {
+        this.element.dispatchEvent(new CustomEvent('pos:checkout-complete', { bubbles: true }));
         this.stopPaymentReceivedCelebration();
         this.closeQrModal();
         this.state = 'IDLE';
@@ -1524,6 +1729,9 @@ export default class extends Controller {
             this.paymentReceivedCountdownTarget.textContent = '5';
         }
 
+        // Close the mobile cart/payment sheets as soon as checkout is confirmed.
+        // The success dialog owns the post-payment presentation.
+        this.element.dispatchEvent(new CustomEvent('pos:checkout-complete', { bubbles: true }));
         this.paymentReceivedModalTarget.hidden = false;
         this.paymentReceivedModalTarget.setAttribute('aria-hidden', 'false');
 
