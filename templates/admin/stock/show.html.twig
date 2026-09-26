@@ -4,4 +4,47 @@
 <section class="admin-summary"><div class="admin-summary__item"><span>{{ 'admin.current_stock'|trans }}</span><strong>{{ product.stockQuantity }}</strong></div><div class="admin-summary__item"><span>{{ 'admin.low_threshold'|trans }}</span><strong>{{ product.lowStockThreshold }}</strong></div></section>
 {% if is_granted('PRODUCT_EDIT') %}<form class="admin-form" method="post" action="{{ path('admin_stock_threshold',{productId:product.id}) }}"><div class="admin-form__group"><h2>{{ 'admin.low_stock_threshold'|trans }}</h2><label>{{ 'admin.threshold'|trans }}<input type="number" name="lowStockThreshold" value="{{ product.lowStockThreshold }}" min="0" step="1" required></label><p class="admin-help">{{ 'admin.threshold_help'|trans }}</p></div><input type="hidden" name="_token" value="{{ csrf_token('admin_stock_threshold') }}"><button class="primary" type="submit">{{ 'admin.update_threshold'|trans }}</button></form>{% endif %}
 {% if is_granted('STOCK_ADJUST') %}<form class="admin-form" method="post" action="{{ path('admin_stock_adjust',{productId:product.id}) }}"><div class="admin-form__group"><h2>{{ 'admin.adjust_stock'|trans }}</h2><label>{{ 'admin.quantity_change'|trans }}<input type="number" name="quantityChange" required></label><label>{{ 'common.reason'|trans }}<input name="reason" placeholder="{{ 'admin.optional'|trans }}"></label><p class="admin-help">{{ 'admin.adjust_help'|trans }}</p></div><input type="hidden" name="_token" value="{{ csrf_token('admin_stock_adjust') }}"><input type="hidden" name="idempotencyKey" value="{{ random() }}-{{ product.id }}"><button class="primary" type="submit">{{ 'admin.confirm_adjustment'|trans }}</button></form>{% endif %}
-<section class="admin-section" aria-labelledby="stock-history-title"><h2 id="stock-history-title">{{ 'admin.stock_history'|trans }}</h2><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>{{ 'common.date'|trans }}</th><th>{{ 'common.type'|trans }}</th><th>{{ 'common.before'|trans }}</th><th>{{ 'common.change'|trans }}</th><th>{{ 'common.after'|trans }}</th><th>{{ 'common.reason'|trans }}</th></tr></thead><tbody>{% for m in movements %}<tr><td>{{ m.createdAt|date('Y-m-d H:i') }}</td><td>{{ m.type.value }}</td><td>{{ m.quantityBefore }}</td><td>{{ m.quantityChange }}</td><td>{{ m.quantityAfter }}</td><td>{{ m.reason ?: '—' }}</td></tr>{% else %}<tr><td colspan="6">{{ 'admin.no_movements'|trans }}</td></tr>{% endfor %}</tbody></table></div></section></div>{% endblock %}
+<section class="admin-section stock-history-card" aria-labelledby="stock-history-title">
+    <div class="stock-history-header">
+        <div>
+            <h2 id="stock-history-title">{{ 'admin.stock_history'|trans }}</h2>
+            <p class="admin-help">{{ movementTotal }} {{ 'admin.stock_history_records'|trans }}</p>
+        </div>
+    </div>
+    <form class="stock-history-filters" method="get">
+        <label>{{ 'admin.stock_history_type'|trans }}
+            <select name="type">
+                <option value="">{{ 'admin.stock_history_all_types'|trans }}</option>
+                {% for option in ['INITIAL', 'SALE', 'SALE_REVERSAL', 'ADJUSTMENT'] %}
+                    <option value="{{ option }}"{% if movementType == option %} selected{% endif %}>{{ ('admin.stock_history_' ~ option|lower)|trans }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>{{ 'admin.stock_history_sort'|trans }}
+            <select name="sort">
+                <option value="newest"{% if movementSort == 'newest' %} selected{% endif %}>{{ 'admin.stock_history_newest'|trans }}</option>
+                <option value="oldest"{% if movementSort == 'oldest' %} selected{% endif %}>{{ 'admin.stock_history_oldest'|trans }}</option>
+            </select>
+        </label>
+        <input type="hidden" name="page" value="1">
+        <button class="primary" type="submit">{{ 'common.apply'|trans }}</button>
+        {% if movementType or movementSort != 'newest' %}<a class="button" href="{{ path('admin_stock_show', {productId: product.id}) }}">{{ 'common.clear'|trans }}</a>{% endif %}
+    </form>
+    {% if movements is empty %}
+        <div class="empty-state">{{ 'admin.no_movements'|trans }}</div>
+    {% else %}
+        <div class="admin-table-wrap stock-history-table-wrap">
+            <table class="admin-table">
+                <thead><tr><th>{{ 'common.date'|trans }}</th><th>{{ 'common.type'|trans }}</th><th>{{ 'common.before'|trans }}</th><th>{{ 'common.change'|trans }}</th><th>{{ 'common.after'|trans }}</th><th>{{ 'common.reason'|trans }}</th></tr></thead>
+                <tbody>{% for m in movements %}<tr><td>{{ m.createdAt|date('Y-m-d H:i') }}</td><td>{{ m.type.value }}</td><td>{{ m.quantityBefore }}</td><td>{{ m.quantityChange }}</td><td>{{ m.quantityAfter }}</td><td>{{ m.reason ?: '—' }}</td></tr>{% endfor %}</tbody>
+            </table>
+        </div>
+        {% if movementTotalPages > 1 %}
+            <nav class="stock-history-pagination" aria-label="{{ 'admin.stock_history'|trans }}">
+                {% if movementPage > 1 %}<a class="button" href="{{ path('admin_stock_show', {productId: product.id, type: movementType, sort: movementSort, page: movementPage - 1}) }}">{{ 'common.previous'|trans }}</a>{% endif %}
+                <span>{{ movementPage }} / {{ movementTotalPages }}</span>
+                {% if movementPage < movementTotalPages %}<a class="button" href="{{ path('admin_stock_show', {productId: product.id, type: movementType, sort: movementSort, page: movementPage + 1}) }}">{{ 'common.next'|trans }}</a>{% endif %}
+            </nav>
+        {% endif %}
+    {% endif %}
+</section></div>{% endblock %}

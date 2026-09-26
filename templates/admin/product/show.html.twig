@@ -2,9 +2,52 @@
 {% block title %}{{ product.name }}{% endblock %}
 {% block authenticated_body %}<div class="admin-workspace"><header class="admin-toolbar"><div><h1>{{ product.name }}</h1><small>SKU: {{ product.sku ?: 'Chưa có' }}{% if product.category %} · Danh mục: {{ product.category.name }}{% endif %}</small></div><a href="{{ path('admin_products_index') }}">{{ 'common.products'|trans }}</a></header>
 {% for message in app.flashes('success') %}<div class="flash success">{{ message }}</div>{% endfor %}{% for message in app.flashes('error') %}<div class="flash error">{{ message }}</div>{% endfor %}
-<section class="admin-summary"><div><small>{{ 'admin.price'|trans }}</small><strong>{{ (product.sellingPrice.minorUnits / 100)|number_format(0,'.',',') }}</strong></div><div><small>{{ 'common.stock'|trans }}</small><strong>{{ product.stockQuantity }}</strong></div><div><small>{{ 'admin.low_threshold'|trans }}</small><strong>{{ product.lowStockThreshold }}</strong></div><div><small>{{ 'admin.stock_status'|trans }}</small><strong>{{ product.stockQuantity <= product.lowStockThreshold ? 'Low stock' : 'OK' }}</strong></div><div><small>{{ 'common.status'|trans }}</small><strong>{{ product.active ? 'Active' : 'Inactive' }}</strong></div></section>
+<section class="admin-summary"><div><small>{{ 'admin.price'|trans }}</small><strong>{{ (product.sellingPrice.minorUnits / 100)|number_format(0,'.',',') }}</strong></div><div><small>{{ 'common.stock'|trans }}</small><strong>{{ product.stockQuantity }}</strong></div><div><small>{{ 'admin.low_threshold'|trans }}</small><strong>{{ product.lowStockThreshold }}</strong></div><div><small>{{ 'admin.stock_status'|trans }}</small><strong>{{ product.stockQuantity <= product.lowStockThreshold ? 'admin.stock_status_low'|trans : 'admin.stock_status_ok'|trans }}</strong></div><div><small>{{ 'common.status'|trans }}</small><strong>{{ product.active ? 'admin.product_active'|trans : 'admin.product_inactive'|trans }}</strong></div></section>
 <div class="action-grid">{% if is_granted('PRODUCT_EDIT') %}<a class="button primary" href="{{ path('admin_products_edit',{id:product.id}) }}">{{ 'admin.edit_product'|trans }}</a>{% endif %}{% if is_granted('PRODUCT_ACTIVATE') %}{% if product.active %}<form method="post" action="{{ path('admin_products_deactivate',{id:product.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('admin_product_state') }}"><button>{{ 'common.disable'|trans }}</button></form>{% else %}<form method="post" action="{{ path('admin_products_activate',{id:product.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('admin_product_state') }}"><button>{{ 'common.enable'|trans }}</button></form>{% endif %}{% endif %}{% if is_granted('PRODUCT_EDIT') %}<a class="button" href="{{ path('product_image_upload_form',{productId:product.id}) }}">{{ 'admin.images'|trans }}</a>{% endif %}</div>
 {% if is_granted('PRODUCT_PRICE_CHANGE') %}<form class="inline-form" method="post" action="{{ path('admin_products_price',{id:product.id}) }}" data-controller="money-input" data-action="submit->money-input#submit"><input type="hidden" name="_token" value="{{ csrf_token('admin_product_price') }}"><label>{{ 'admin.change_price'|trans }}<input inputmode="decimal" name="sellingPrice" value="{{ product.sellingPrice.toDecimal }}" data-money-input></label><button type="submit">{{ 'admin.update_price'|trans }}</button></form>{% endif %}
 {% if is_granted('STOCK_ADJUST') %}<form class="inline-form" method="post" action="{{ path('admin_products_stock',{id:product.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('admin_stock_adjust') }}"><input type="hidden" name="idempotencyKey" value="{{ random() }}-{{ product.id }}"><label>{{ 'admin.stock_delta'|trans }}<input type="number" name="quantityChange" required></label><label>{{ 'common.reason'|trans }}<input name="reason" placeholder="{{ 'admin.optional'|trans }}"></label><button type="submit">{{ 'admin.adjust_stock'|trans }}</button></form>{% endif %}
-<section class="admin-section"><h2>{{ 'admin.stock_history'|trans }}</h2>{% if movements is empty %}<div class="empty-state">{{ 'admin.no_stock_movements'|trans }}</div>{% else %}<div class="table-scroll"><table><thead><tr><th>{{ 'common.date'|trans }}</th><th>{{ 'common.type'|trans }}</th><th>{{ 'common.before'|trans }}</th><th>{{ 'common.change'|trans }}</th><th>{{ 'common.after'|trans }}</th><th>{{ 'common.reason'|trans }}</th></tr></thead><tbody>{% for m in movements %}<tr><td>{{ m.createdAt|date('Y-m-d H:i') }}</td><td>{{ m.type.value }}</td><td>{{ m.quantityBefore }}</td><td>{{ m.quantityChange }}</td><td>{{ m.quantityAfter }}</td><td>{{ m.reason ?: '—' }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}</section>
+<section class="admin-section stock-history-card" aria-labelledby="stock-history-title">
+    <div class="stock-history-header">
+        <div>
+            <h2 id="stock-history-title">{{ 'admin.stock_history'|trans }}</h2>
+            <p class="admin-help">{{ movementTotal }} {{ 'admin.stock_history_records'|trans }}</p>
+        </div>
+    </div>
+    <form class="stock-history-filters" method="get">
+        <label>{{ 'admin.stock_history_type'|trans }}
+            <select name="type">
+                <option value="">{{ 'admin.stock_history_all_types'|trans }}</option>
+                {% for option in ['INITIAL', 'SALE', 'SALE_REVERSAL', 'ADJUSTMENT'] %}
+                    <option value="{{ option }}"{% if movementType == option %} selected{% endif %}>{{ ('admin.stock_history_' ~ option|lower)|trans }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>{{ 'admin.stock_history_sort'|trans }}
+            <select name="sort">
+                <option value="newest"{% if movementSort == 'newest' %} selected{% endif %}>{{ 'admin.stock_history_newest'|trans }}</option>
+                <option value="oldest"{% if movementSort == 'oldest' %} selected{% endif %}>{{ 'admin.stock_history_oldest'|trans }}</option>
+            </select>
+        </label>
+        <input type="hidden" name="page" value="1">
+        <button class="primary" type="submit">{{ 'common.apply'|trans }}</button>
+        {% if movementType or movementSort != 'newest' %}<a class="button" href="{{ path('admin_products_show', {id: product.id}) }}">{{ 'common.clear'|trans }}</a>{% endif %}
+    </form>
+    {% if movements is empty %}
+        <div class="empty-state">{{ 'admin.no_stock_movements'|trans }}</div>
+    {% else %}
+        <div class="admin-table-wrap stock-history-table-wrap">
+            <table class="admin-table">
+                <thead><tr><th>{{ 'common.date'|trans }}</th><th>{{ 'common.type'|trans }}</th><th>{{ 'common.before'|trans }}</th><th>{{ 'common.change'|trans }}</th><th>{{ 'common.after'|trans }}</th><th>{{ 'common.reason'|trans }}</th></tr></thead>
+                <tbody>{% for m in movements %}<tr><td>{{ m.createdAt|date('Y-m-d H:i') }}</td><td>{{ m.type.value }}</td><td>{{ m.quantityBefore }}</td><td>{{ m.quantityChange }}</td><td>{{ m.quantityAfter }}</td><td>{{ m.reason ?: '—' }}</td></tr>{% endfor %}</tbody>
+            </table>
+        </div>
+        {% if movementTotalPages > 1 %}
+            <nav class="stock-history-pagination" aria-label="{{ 'admin.stock_history'|trans }}">
+                {% if movementPage > 1 %}<a class="button" href="{{ path('admin_products_show', {id: product.id, type: movementType, sort: movementSort, page: movementPage - 1}) }}">{{ 'common.previous'|trans }}</a>{% endif %}
+                <span>{{ movementPage }} / {{ movementTotalPages }}</span>
+                {% if movementPage < movementTotalPages %}<a class="button" href="{{ path('admin_products_show', {id: product.id, type: movementType, sort: movementSort, page: movementPage + 1}) }}">{{ 'common.next'|trans }}</a>{% endif %}
+            </nav>
+        {% endif %}
+    {% endif %}
+</section>
 </div>{% endblock %}

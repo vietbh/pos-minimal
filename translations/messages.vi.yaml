@@ -140,6 +140,14 @@ app:
   logout_help: Đăng xuất sẽ đưa bạn về màn hình đăng nhập.
   logout: Đăng xuất
   locked: Đã khóa
+  user_management: Quản lý người dùng
+  user_management_help: Chỉ quản trị viên có quyền USER_MANAGE mới có thể đổi vai trò tài khoản khác. Không cho phép tự đổi vai trò của chính mình.
+  current_account: Tài khoản hiện tại
+  role_self_locked: Không thể tự thay đổi vai trò của chính tài khoản này.
+  role_root_only: Chỉ ROLE_ROOT mới có thể quản lý tài khoản ROLE_ROOT.
+  role_for_user: Vai trò cho người dùng
+  save_role: Lưu vai trò
+  no_users_to_manage: Chưa có tài khoản khác để quản lý.
   font_small: Gọn hơn
   font_medium: Cân bằng
   font_large: Dễ đọc hơn
@@ -368,6 +376,12 @@ pos:
     stock_delta: Thay đổi tồn kho
     adjust_stock: Điều chỉnh tồn kho
     stock_history: Lịch sử tồn kho
+    stock_history_records: bản ghi
+    stock_history_type: Loại biến động
+    stock_history_all_types: Tất cả loại
+    stock_history_sort: Sắp xếp
+    stock_history_newest: Mới nhất
+    stock_history_oldest: Cũ nhất
     no_stock_movements: Chưa có biến động tồn kho.
     product_information: Thông tin sản phẩm
     keep_product_clear: Giữ thông tin sản phẩm rõ ràng và dễ cập nhật.
@@ -690,6 +704,20 @@ admin:
   stock_delta: Thay đổi tồn kho
   adjust_stock: Điều chỉnh tồn kho
   stock_history: Lịch sử tồn kho
+  stock_history_records: bản ghi
+  stock_history_type: Loại biến động
+  stock_history_all_types: Tất cả loại
+  stock_history_sort: Sắp xếp
+  stock_history_newest: Mới nhất
+  stock_history_oldest: Cũ nhất
+  stock_history_initial: Khởi tạo
+  stock_history_sale: Bán hàng
+  stock_history_sale_reversal: Hoàn tác bán hàng
+  stock_history_adjustment: Điều chỉnh
+  stock_status_low: Sắp hết hàng
+  stock_status_ok: Tồn kho ổn
+  product_active: Đang hoạt động
+  product_inactive: Đã tắt
   no_stock_movements: Chưa có biến động tồn kho.
   product_information: Thông tin sản phẩm
   keep_product_clear: Giữ thông tin sản phẩm rõ ràng và dễ cập nhật.

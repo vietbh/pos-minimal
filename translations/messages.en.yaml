@@ -140,6 +140,14 @@ app:
   logout_help: Signing out will return you to the login screen.
   logout: Sign out
   locked: Locked
+  user_management: User management
+  user_management_help: Only users with USER_MANAGE can change another account's role. Self role changes are not allowed.
+  current_account: Current account
+  role_self_locked: You cannot change the role of your own account.
+  role_root_only: Only ROLE_ROOT can manage a ROLE_ROOT account.
+  role_for_user: Role for user
+  save_role: Save role
+  no_users_to_manage: There are no other accounts to manage.
   font_small: Smaller
   font_medium: Balanced
   font_large: Easier to read
@@ -368,6 +376,12 @@ pos:
     stock_delta: Stock delta
     adjust_stock: Adjust stock
     stock_history: Stock history
+    stock_history_records: records
+    stock_history_type: Movement type
+    stock_history_all_types: All types
+    stock_history_sort: Sort
+    stock_history_newest: Newest first
+    stock_history_oldest: Oldest first
     no_stock_movements: No stock movements yet.
     product_information: Product information
     keep_product_clear: Keep product information clear and easy to update.
@@ -692,6 +706,20 @@ admin:
   stock_delta: Stock delta
   adjust_stock: Adjust stock
   stock_history: Stock history
+  stock_history_records: records
+  stock_history_type: Movement type
+  stock_history_all_types: All types
+  stock_history_sort: Sort
+  stock_history_newest: Newest first
+  stock_history_oldest: Oldest first
+  stock_history_initial: Initial
+  stock_history_sale: Sale
+  stock_history_sale_reversal: Sale reversal
+  stock_history_adjustment: Adjustment
+  stock_status_low: Low stock
+  stock_status_ok: Stock OK
+  product_active: Active
+  product_inactive: Inactive
   no_stock_movements: No stock movements yet.
   product_information: Product information
   keep_product_clear: Keep product information clear and easy to update.

@@ -14,5 +14,8 @@ interface UserRepositoryInterface
 
     public function findByUsername(string $username): ?User;
 
+    /** @return list<User> */
+    public function findAllOrderedByUsername(): array;
+
 //    public function findByGoogleSubject(string $subject): ?User;
 }

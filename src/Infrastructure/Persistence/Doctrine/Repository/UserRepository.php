@@ -39,4 +39,18 @@ final class UserRepository implements UserRepositoryInterface
             ->getQuery()
             ->getOneOrNullResult();
     }
+    /**
+     * @return list<User>
+     */
+    public function findAllOrderedByUsername(): array
+    {
+        return $this->entityManager
+            ->createQueryBuilder()
+            ->select('u')
+            ->from(User::class, 'u')
+            ->orderBy('u.username', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
 }

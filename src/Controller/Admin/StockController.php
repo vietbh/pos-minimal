@@ -16,6 +16,7 @@ use App\Application\Security\RuntimeActorContextProvider;
 use App\Domain\User\User;
 use App\Domain\Product\Repository\ProductRepositoryInterface;
 use App\Domain\Stock\Repository\StockMovementRepositoryInterface;
+use App\Domain\Stock\Enum\StockMovementType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -55,8 +56,42 @@ final class StockController extends AbstractController
     }
 
     #[Route('/admin/stock/{productId<\d+>}', name: 'admin_stock_show', methods: ['GET'])]
-    public function show(int $productId, ProductRepositoryInterface $products, StockMovementRepositoryInterface $movements): Response
-    { $this->denyAccessUnlessGranted(Permission::STOCK_VIEW->value); $product=$products->findById($productId); if($product===null)throw $this->createNotFoundException('Product not found.'); return $this->render('admin/stock/show.html.twig',['product'=>$product,'movements'=>$movements->findByProductId($productId)]); }
+    public function show(Request $request, int $productId, ProductRepositoryInterface $products, StockMovementRepositoryInterface $movements): Response
+    {
+        $this->denyAccessUnlessGranted(Permission::STOCK_VIEW->value);
+        $product = $products->findById($productId);
+        if ($product === null) {
+            throw $this->createNotFoundException('Product not found.');
+        }
+
+        $typeRaw = strtoupper(trim((string) $request->query->get('type', '')));
+        $type = $typeRaw !== '' ? StockMovementType::tryFrom($typeRaw) : null;
+        $sort = (string) $request->query->get('sort', 'newest');
+        if (!in_array($sort, ['newest', 'oldest'], true)) {
+            $sort = 'newest';
+        }
+        $pageRaw = $request->query->get('page', 1);
+        $page = is_numeric($pageRaw) ? max(1, (int) $pageRaw) : 1;
+        $perPage = 25;
+
+        $result = $movements->findByProductIdPage($productId, $type, $sort, $page, $perPage);
+        $totalPages = max(1, (int) ceil($result['total'] / $perPage));
+        if ($page > $totalPages) {
+            $page = $totalPages;
+            $result = $movements->findByProductIdPage($productId, $type, $sort, $page, $perPage);
+        }
+
+        return $this->render('admin/stock/show.html.twig', [
+            'product' => $product,
+            'movements' => $result['items'],
+            'movementTotal' => $result['total'],
+            'movementPage' => $page,
+            'movementPerPage' => $perPage,
+            'movementTotalPages' => $totalPages,
+            'movementType' => $type?->value ?? '',
+            'movementSort' => $sort,
+        ]);
+    }
 
     #[Route('/admin/stock/{productId<\d+>}/threshold', name: 'admin_stock_threshold', methods: ['POST'])]
     public function threshold(int $productId, Request $request, ChangeLowStockThresholdHandler $handler, CsrfTokenManagerInterface $csrf): Response

@@ -29,6 +29,7 @@ use App\Domain\Product\Repository\ProductRepositoryInterface;
 use App\Domain\Product\ValueObject\Sku;
 use App\Domain\Shared\ValueObject\Money;
 use App\Domain\Stock\Repository\StockMovementRepositoryInterface;
+use App\Domain\Stock\Enum\StockMovementType;
 use App\Domain\User\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -93,12 +94,41 @@ final class ProductController extends AbstractController
     }
 
     #[Route('/admin/products/{id<\d+>}', name: 'admin_products_show', methods: ['GET'])]
-    public function show(int $id, ProductRepositoryInterface $products, StockMovementRepositoryInterface $movements): Response
+    public function show(Request $request, int $id, ProductRepositoryInterface $products, StockMovementRepositoryInterface $movements): Response
     {
         $this->denyAccessUnlessGranted(Permission::PRODUCT_VIEW->value);
         $product = $products->findById($id);
-        if (!$product instanceof Product) throw $this->createNotFoundException('Product not found.');
-        return $this->render('admin/product/show.html.twig', ['product' => $product, 'movements' => $movements->findByProductId($id)]);
+        if (!$product instanceof Product) {
+            throw $this->createNotFoundException('Product not found.');
+        }
+
+        $typeRaw = strtoupper(trim((string) $request->query->get('type', '')));
+        $type = $typeRaw !== '' ? StockMovementType::tryFrom($typeRaw) : null;
+        $sort = (string) $request->query->get('sort', 'newest');
+        if (!in_array($sort, ['newest', 'oldest'], true)) {
+            $sort = 'newest';
+        }
+        $pageRaw = $request->query->get('page', 1);
+        $page = is_numeric($pageRaw) ? max(1, (int) $pageRaw) : 1;
+        $perPage = 25;
+
+        $result = $movements->findByProductIdPage($id, $type, $sort, $page, $perPage);
+        $totalPages = max(1, (int) ceil($result['total'] / $perPage));
+        if ($page > $totalPages) {
+            $page = $totalPages;
+            $result = $movements->findByProductIdPage($id, $type, $sort, $page, $perPage);
+        }
+
+        return $this->render('admin/product/show.html.twig', [
+            'product' => $product,
+            'movements' => $result['items'],
+            'movementTotal' => $result['total'],
+            'movementPage' => $page,
+            'movementPerPage' => $perPage,
+            'movementTotalPages' => $totalPages,
+            'movementType' => $type?->value ?? '',
+            'movementSort' => $sort,
+        ]);
     }
 
     #[Route('/admin/products/{id<\d+>}/edit', name: 'admin_products_edit', methods: ['GET', 'POST'])]

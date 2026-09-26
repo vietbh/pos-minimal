@@ -2969,3 +2969,1456 @@ html[data-appearance="dark"] .customer-actions .primary {
     border-color: var(--web-primary) !important;
     background: var(--color-primary-soft) !important;
 }
+
+/* ================================================================
+ * FINAL MODERN TEAL DARK THEME — system-wide shell + controls
+ * Keep Light and Dark as separate palettes; do not invert Light.
+ * ================================================================ */
+html[data-appearance="dark"],
+html[data-appearance="system"] {
+    --color-surface: #0F1716;
+    --color-surface-raised: #16201E;
+    --color-text: #F2F8F6;
+    --color-text-muted: #9AAEA9;
+    --color-border: #30403C;
+    --color-primary: #2BC4AE;
+    --color-primary-strong: #45D4C0;
+    --ux-primary: #2BC4AE;
+    --ux-primary-dark: #45D4C0;
+    --shell-bg: #0F1716;
+    --shell-surface: #16201E;
+    --shell-border: #30403C;
+    --shell-text: #F2F8F6;
+    --shell-muted: #9AAEA9;
+    --shell-primary: #2BC4AE;
+    --shell-primary-dark: #45D4C0;
+    --shell-primary-soft: #173C36;
+    --web-primary: #2BC4AE;
+    --web-primary-dark: #45D4C0;
+    --web-bg: #0F1716;
+    --web-surface: #16201E;
+    --web-border: #30403C;
+    --ui-bg: #0F1716;
+    --ui-surface: #16201E;
+    --ui-surface-soft: #1E2A27;
+    --ui-border: #30403C;
+    --ui-primary: #2BC4AE;
+    --ui-focus: #2BC4AE;
+}
+
+html[data-appearance="dark"] body,
+html[data-appearance="system"] body {
+    background: #0F1716 !important;
+    color: #F2F8F6 !important;
+}
+
+html[data-appearance="dark"] .app-frame,
+html[data-appearance="system"] .app-frame,
+html[data-appearance="dark"] .authenticated-shell,
+html[data-appearance="system"] .authenticated-shell,
+html[data-appearance="dark"] .app-content-shell,
+html[data-appearance="system"] .app-content-shell {
+    background: #0F1716 !important;
+    color: #F2F8F6 !important;
+}
+
+/* The screenshot exposed the main gap: the desktop sidebar stayed Light.
+ * Bring the complete navigation shell into the same Dark surface. */
+html[data-appearance="dark"] .desktop-sidebar,
+html[data-appearance="system"] .desktop-sidebar,
+html[data-appearance="dark"] .mobile-topbar,
+html[data-appearance="system"] .mobile-topbar,
+html[data-appearance="dark"] .pos-global-header,
+html[data-appearance="system"] .pos-global-header,
+html[data-appearance="dark"] .app-header-global,
+html[data-appearance="system"] .app-header-global {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+    box-shadow: none !important;
+}
+
+html[data-appearance="dark"] .sidebar-brand,
+html[data-appearance="system"] .sidebar-brand,
+html[data-appearance="dark"] .sidebar-footer,
+html[data-appearance="system"] .sidebar-footer {
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] .sidebar-brand,
+html[data-appearance="system"] .sidebar-brand,
+html[data-appearance="dark"] .sidebar-brand strong,
+html[data-appearance="system"] .sidebar-brand strong,
+html[data-appearance="dark"] .sidebar-user,
+html[data-appearance="system"] .sidebar-user {
+    color: #F2F8F6 !important;
+}
+
+html[data-appearance="dark"] .sidebar-brand small,
+html[data-appearance="system"] .sidebar-brand small,
+html[data-appearance="dark"] .sidebar-user small,
+html[data-appearance="system"] .sidebar-user small,
+html[data-appearance="dark"] .sidebar-label,
+html[data-appearance="system"] .sidebar-label {
+    color: #9AAEA9 !important;
+}
+
+html[data-appearance="dark"] .sidebar-nav a,
+html[data-appearance="system"] .sidebar-nav a {
+    color: #D5E3DF !important;
+}
+html[data-appearance="dark"] .sidebar-nav a > span:first-child,
+html[data-appearance="system"] .sidebar-nav a > span:first-child {
+    color: #91A6A0 !important;
+}
+html[data-appearance="dark"] .sidebar-nav a:hover,
+html[data-appearance="system"] .sidebar-nav a:hover {
+    background: #1E2A27 !important;
+    color: #F2F8F6 !important;
+}
+html[data-appearance="dark"] .sidebar-nav a[aria-current="page"],
+html[data-appearance="system"] .sidebar-nav a[aria-current="page"],
+html[data-appearance="dark"] .sidebar-nav a.active,
+html[data-appearance="system"] .sidebar-nav a.active {
+    background: #173C36 !important;
+    color: #2BC4AE !important;
+}
+html[data-appearance="dark"] .sidebar-nav a[aria-current="page"] > span:first-child,
+html[data-appearance="system"] .sidebar-nav a[aria-current="page"] > span:first-child,
+html[data-appearance="dark"] .sidebar-nav a.active > span:first-child,
+html[data-appearance="system"] .sidebar-nav a.active > span:first-child {
+    color: #2BC4AE !important;
+}
+html[data-appearance="dark"] .sidebar-nav a.sidebar-pos,
+html[data-appearance="system"] .sidebar-nav a.sidebar-pos {
+    background: #2BC4AE !important;
+    color: #06241F !important;
+}
+html[data-appearance="dark"] .sidebar-nav a.sidebar-pos > span:first-child,
+html[data-appearance="system"] .sidebar-nav a.sidebar-pos > span:first-child {
+    color: #06241F !important;
+}
+html[data-appearance="dark"] .sidebar-nav a.sidebar-pos:hover,
+html[data-appearance="system"] .sidebar-nav a.sidebar-pos:hover {
+    background: #45D4C0 !important;
+    color: #06241F !important;
+}
+html[data-appearance="dark"] .sidebar-footer > a:first-child:hover,
+html[data-appearance="system"] .sidebar-footer > a:first-child:hover {
+    background: #1E2A27 !important;
+}
+
+/* Generic web controls/cards that historically carried hard-coded white. */
+html[data-appearance="dark"] .card,
+html[data-appearance="system"] .card,
+html[data-appearance="dark"] .home-hero,
+html[data-appearance="system"] .home-hero,
+html[data-appearance="dark"] .home-card,
+html[data-appearance="system"] .home-card,
+html[data-appearance="dark"] .form-card,
+html[data-appearance="system"] .form-card,
+html[data-appearance="dark"] .table-scroll,
+html[data-appearance="system"] .table-scroll,
+html[data-appearance="dark"] .admin-filter,
+html[data-appearance="system"] .admin-filter,
+html[data-appearance="dark"] .admin-card,
+html[data-appearance="system"] .admin-card,
+html[data-appearance="dark"] .admin-section,
+html[data-appearance="system"] .admin-section,
+html[data-appearance="dark"] .admin-form,
+html[data-appearance="system"] .admin-form,
+html[data-appearance="dark"] .admin-table-wrap,
+html[data-appearance="system"] .admin-table-wrap {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] .home-card-primary,
+html[data-appearance="system"] .home-card-primary,
+html[data-appearance="dark"] .settings-option:has(input:checked),
+html[data-appearance="system"] .settings-option:has(input:checked),
+html[data-appearance="dark"] .font-size-option:has(input:checked),
+html[data-appearance="system"] .font-size-option:has(input:checked) {
+    background: #173C36 !important;
+    border-color: #2BC4AE !important;
+    color: #F2F8F6 !important;
+}
+
+html[data-appearance="dark"] .admin-fact,
+html[data-appearance="system"] .admin-fact,
+html[data-appearance="dark"] .admin-summary__item,
+html[data-appearance="system"] .admin-summary__item,
+html[data-appearance="dark"] .admin-form__group,
+html[data-appearance="system"] .admin-form__group,
+html[data-appearance="dark"] .statistics-empty,
+html[data-appearance="system"] .statistics-empty {
+    background: #1E2A27 !important;
+    border-color: #30403C !important;
+    color: #F2F8F6 !important;
+}
+
+html[data-appearance="dark"] .admin-table th,
+html[data-appearance="system"] .admin-table th,
+html[data-appearance="dark"] th,
+html[data-appearance="system"] th {
+    background: #1E2A27 !important;
+    color: #D5E3DF !important;
+    border-color: #30403C !important;
+}
+html[data-appearance="dark"] .admin-table td,
+html[data-appearance="system"] .admin-table td,
+html[data-appearance="dark"] td,
+html[data-appearance="system"] td {
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] input,
+html[data-appearance="system"] input,
+html[data-appearance="dark"] select,
+html[data-appearance="system"] select,
+html[data-appearance="dark"] textarea,
+html[data-appearance="system"] textarea {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+html[data-appearance="dark"] input::placeholder,
+html[data-appearance="system"] input::placeholder,
+html[data-appearance="dark"] textarea::placeholder,
+html[data-appearance="system"] textarea::placeholder {
+    color: #82958F !important;
+}
+
+html[data-appearance="dark"] .button:not(.primary),
+html[data-appearance="system"] .button:not(.primary),
+html[data-appearance="dark"] button:not(.primary),
+html[data-appearance="system"] button:not(.primary) {
+    background: #16201E;
+    color: #F2F8F6;
+    border-color: #30403C;
+}
+html[data-appearance="dark"] .button:not(.primary):hover,
+html[data-appearance="system"] .button:not(.primary):hover,
+html[data-appearance="dark"] button:not(.primary):hover,
+html[data-appearance="system"] button:not(.primary):hover {
+    background: #1E2A27;
+}
+html[data-appearance="dark"] .button.primary,
+html[data-appearance="system"] .button.primary,
+html[data-appearance="dark"] button.primary,
+html[data-appearance="system"] button.primary,
+html[data-appearance="dark"] .login-submit,
+html[data-appearance="system"] .login-submit {
+    background: #2BC4AE !important;
+    border-color: #2BC4AE !important;
+    color: #06241F !important;
+}
+html[data-appearance="dark"] .button.primary:hover,
+html[data-appearance="system"] .button.primary:hover,
+html[data-appearance="dark"] button.primary:hover,
+html[data-appearance="system"] button.primary:hover,
+html[data-appearance="dark"] .login-submit:hover,
+html[data-appearance="system"] .login-submit:hover {
+    background: #45D4C0 !important;
+    border-color: #45D4C0 !important;
+}
+
+/* Profile appearance page — all option cards stay inside the dark canvas. */
+html[data-appearance="dark"] .settings-option,
+html[data-appearance="system"] .settings-option,
+html[data-appearance="dark"] .settings-switch,
+html[data-appearance="system"] .settings-switch,
+html[data-appearance="dark"] .settings-actions .button,
+html[data-appearance="system"] .settings-actions .button {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+html[data-appearance="dark"] .settings-option:hover,
+html[data-appearance="system"] .settings-option:hover,
+html[data-appearance="dark"] .settings-switch:hover,
+html[data-appearance="system"] .settings-switch:hover {
+    background: #1E2A27 !important;
+}
+html[data-appearance="dark"] .settings-option:has(input:checked),
+html[data-appearance="system"] .settings-option:has(input:checked) {
+    background: #173C36 !important;
+    border-color: #2BC4AE !important;
+}
+
+/* POS cards and payment controls. */
+html[data-appearance="dark"] .pos-card,
+html[data-appearance="system"] .pos-card,
+html[data-appearance="dark"] .pos-product-result,
+html[data-appearance="system"] .pos-product-result,
+html[data-appearance="dark"] .pos-customer-result,
+html[data-appearance="system"] .pos-customer-result,
+html[data-appearance="dark"] .pos-cart-item,
+html[data-appearance="system"] .pos-cart-item,
+html[data-appearance="dark"] .pos-method,
+html[data-appearance="system"] .pos-method,
+html[data-appearance="dark"] .pos-payment-total,
+html[data-appearance="system"] .pos-payment-total {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+html[data-appearance="dark"] .pos-payment-total,
+html[data-appearance="system"] .pos-payment-total {
+    background: #173C36 !important;
+}
+html[data-appearance="dark"] .pos-selected,
+html[data-appearance="system"] .pos-selected {
+    background: #173C36 !important;
+    border-color: #2BC4AE !important;
+}
+html[data-appearance="dark"] .pos-state,
+html[data-appearance="system"] .pos-state,
+html[data-appearance="dark"] .pos-payment-summary div,
+html[data-appearance="system"] .pos-payment-summary div {
+    background: #1E2A27 !important;
+    border-color: #30403C !important;
+    color: #F2F8F6 !important;
+}
+
+/* Mobile bottom navigation must switch with the rest of the shell. */
+html[data-appearance="dark"] .mobile-bottom-nav,
+html[data-appearance="system"] .mobile-bottom-nav {
+    background: #16201E !important;
+    border-color: #30403C !important;
+    box-shadow: 0 -4px 16px rgba(0,0,0,.28) !important;
+}
+html[data-appearance="dark"] .mobile-bottom-nav a,
+html[data-appearance="system"] .mobile-bottom-nav a {
+    color: #9AAEA9 !important;
+}
+html[data-appearance="dark"] .mobile-bottom-nav a[aria-current="page"],
+html[data-appearance="system"] .mobile-bottom-nav a[aria-current="page"] {
+    color: #2BC4AE !important;
+    background: #173C36 !important;
+}
+html[data-appearance="dark"] .mobile-bottom-nav a.mobile-bottom-nav-primary,
+html[data-appearance="system"] .mobile-bottom-nav a.mobile-bottom-nav-primary {
+    background: #2BC4AE !important;
+    color: #06241F !important;
+}
+html[data-appearance="dark"] .mobile-bottom-nav a.mobile-bottom-nav-primary[aria-current="page"],
+html[data-appearance="system"] .mobile-bottom-nav a.mobile-bottom-nav-primary[aria-current="page"] {
+    background: #45D4C0 !important;
+    color: #06241F !important;
+}
+
+/* Password visibility control follows the same teal focus language. */
+html[data-appearance="dark"] .login-password-toggle,
+html[data-appearance="system"] .login-password-toggle {
+    color: #9AAEA9 !important;
+}
+html[data-appearance="dark"] .login-password-toggle:hover,
+html[data-appearance="system"] .login-password-toggle:hover {
+    background: #173C36 !important;
+    color: #2BC4AE !important;
+}
+
+/* System theme: only activate the Dark token set when the OS is actually dark. */
+@media (prefers-color-scheme: light) {
+    html[data-appearance="system"] {
+        --color-surface: #F4F8F7;
+        --color-surface-raised: #FFFFFF;
+        --color-text: #172522;
+        --color-text-muted: #64736F;
+        --color-border: #D4E0DD;
+        --color-primary: #0F9D8A;
+        --color-primary-strong: #087C6D;
+        --ux-primary: #0F9D8A;
+        --ux-primary-dark: #087C6D;
+        --shell-bg: #F4F8F7;
+        --shell-surface: #FFFFFF;
+        --shell-border: #D4E0DD;
+        --shell-text: #172522;
+        --shell-muted: #64736F;
+        --shell-primary: #0F9D8A;
+        --shell-primary-dark: #087C6D;
+        --shell-primary-soft: #E0F5F1;
+        --web-primary: #0F9D8A;
+        --web-primary-dark: #087C6D;
+        --web-bg: #F4F8F7;
+        --web-surface: #FFFFFF;
+        --web-border: #D4E0DD;
+        --ui-bg: #F4F8F7;
+        --ui-surface: #FFFFFF;
+        --ui-surface-soft: #EAF2F0;
+        --ui-border: #D4E0DD;
+        --ui-primary: #0F9D8A;
+        --ui-focus: #0F9D8A;
+    }
+}
+
+/* System appearance — restore the Modern Teal Light palette when the OS is light.
+ * (The dark rules above intentionally cover both dark/system for backwards
+ * compatibility; these final light overrides win only in a light OS.) */
+@media (prefers-color-scheme: light) {
+    html[data-appearance="system"] body,
+    html[data-appearance="system"] .app-frame,
+    html[data-appearance="system"] .authenticated-shell,
+    html[data-appearance="system"] .app-content-shell { background:#F4F8F7 !important; color:#172522 !important; }
+    html[data-appearance="system"] .desktop-sidebar,
+    html[data-appearance="system"] .mobile-topbar,
+    html[data-appearance="system"] .pos-global-header,
+    html[data-appearance="system"] .app-header-global,
+    html[data-appearance="system"] .card,
+    html[data-appearance="system"] .home-hero,
+    html[data-appearance="system"] .home-card,
+    html[data-appearance="system"] .form-card,
+    html[data-appearance="system"] .admin-filter,
+    html[data-appearance="system"] .admin-card,
+    html[data-appearance="system"] .admin-section,
+    html[data-appearance="system"] .admin-form,
+    html[data-appearance="system"] .admin-table-wrap,
+    html[data-appearance="system"] .settings-option,
+    html[data-appearance="system"] .settings-switch,
+    html[data-appearance="system"] .pos-card,
+    html[data-appearance="system"] .pos-product-result,
+    html[data-appearance="system"] .pos-customer-result,
+    html[data-appearance="system"] .pos-cart-item,
+    html[data-appearance="system"] .pos-method,
+    html[data-appearance="system"] input,
+    html[data-appearance="system"] select,
+    html[data-appearance="system"] textarea {
+        background:#FFFFFF !important;
+        color:#172522 !important;
+        border-color:#D4E0DD !important;
+    }
+    html[data-appearance="system"] .sidebar-nav a { color:#344640 !important; }
+    html[data-appearance="system"] .sidebar-nav a > span:first-child { color:#64736F !important; }
+    html[data-appearance="system"] .sidebar-nav a:hover { background:#EAF2F0 !important; color:#172522 !important; }
+    html[data-appearance="system"] .sidebar-nav a[aria-current="page"],
+    html[data-appearance="system"] .sidebar-nav a.active { background:#E0F5F1 !important; color:#087C6D !important; }
+    html[data-appearance="system"] .sidebar-nav a.sidebar-pos { background:#0F9D8A !important; color:#fff !important; }
+    html[data-appearance="system"] .mobile-bottom-nav { background:#FFFFFF !important; border-color:#D4E0DD !important; }
+    html[data-appearance="system"] .mobile-bottom-nav a { color:#64736F !important; }
+    html[data-appearance="system"] .mobile-bottom-nav a[aria-current="page"] { color:#0F9D8A !important; background:#E0F5F1 !important; }
+    html[data-appearance="system"] .mobile-bottom-nav a.mobile-bottom-nav-primary { background:#0F9D8A !important; color:#fff !important; }
+}
+
+/* ================================================================
+ * FINAL CARD SURFACE NORMALIZATION — Modern Teal
+ * All application cards/panels must use the same Light/Dark surface
+ * tokens. Component-local legacy #fff backgrounds are presentation
+ * details only and must not leak through the theme.
+ * ================================================================ */
+
+/* Shared card geometry and hierarchy. */
+.card,
+.home-hero,
+.home-card,
+.form-card,
+.search-bar,
+.search-form,
+.orders-filters,
+.inline-form,
+.table-scroll,
+.empty-state,
+.orders-empty,
+.customer-card,
+.customer-stat,
+.profile-card,
+.profile-security-note,
+.profile-readonly-grid > div,
+.settings-card,
+.settings-option,
+.settings-switch,
+.order-card,
+.order-section,
+.order-payment,
+.orders-pos-link,
+.orders-pagination a,
+.sales-point-list-card,
+.admin-filter,
+.admin-card,
+.admin-section,
+.admin-form,
+.admin-form__group,
+.admin-table-wrap,
+.admin-empty,
+.statistics-card,
+.statistics-empty,
+.statistics-chart-card,
+.statistics-kpi-card,
+.pos-card,
+.pos-product-result,
+.pos-customer-result,
+.pos-cart-item,
+.pos-method,
+.pos-payment-total,
+.pos-payment-summary div,
+.pos-result-grid div,
+.pos-webhook-enrichment,
+.pos-webhook-enrichment-grid div,
+.pos-payment-speaker,
+.product-image-upload__picker {
+    background: var(--web-surface, #FFFFFF);
+    color: var(--web-text, #172522);
+    border-color: var(--web-border, #D4E0DD);
+    box-shadow: none;
+}
+
+/* Keep nested facts/rows one level softer than their parent card. */
+.admin-fact,
+.admin-summary__item,
+.statistics-empty,
+.profile-readonly-grid > div,
+.profile-security-note,
+.pos-payment-summary div,
+.pos-result-grid div,
+.pos-webhook-enrichment-grid div,
+.dashboard-list-row {
+    background: var(--web-surface-soft, #EAF2F0);
+    color: var(--web-text, #172522);
+    border-color: var(--web-border, #D4E0DD);
+}
+
+/* Inputs and selects are surfaces too, not accidental white islands. */
+.search-bar input,
+.search-bar select,
+.search-form input,
+.search-form select,
+.orders-filters input,
+.orders-filters select,
+.form-card input,
+.form-card select,
+.form-card textarea,
+.inline-form input,
+.inline-form select,
+.inline-form textarea,
+.admin-filter input,
+.admin-filter select,
+.admin-form input,
+.admin-form select,
+.admin-form textarea,
+input,
+select,
+textarea {
+    background: var(--web-surface, #FFFFFF);
+    color: var(--web-text, #172522);
+    border-color: var(--web-border, #D4E0DD);
+}
+
+/* Tables inherit the same surface hierarchy. */
+.table-scroll,
+.admin-table-wrap {
+    overflow: auto;
+}
+
+table th,
+.admin-table th,
+.statistics-table th {
+    background: var(--web-surface-soft, #EAF2F0);
+    color: var(--web-text, #172522);
+    border-color: var(--web-border, #D4E0DD);
+}
+
+table td,
+.admin-table td,
+.statistics-table td,
+.list-row,
+.customer-contact-row {
+    border-color: var(--web-border, #D4E0DD);
+    color: var(--web-text, #172522);
+}
+
+/* Neutral buttons stay neutral; primary remains Modern Teal. */
+.button:not(.primary),
+button:not(.primary),
+.orders-pos-link,
+.orders-clear,
+.customer-actions a:not(.primary) {
+    background: var(--web-surface, #FFFFFF);
+    color: var(--web-text, #172522);
+    border-color: var(--web-border, #D4E0DD);
+}
+
+.button:not(.primary):hover,
+button:not(.primary):hover,
+.orders-pos-link:hover,
+.orders-clear:hover,
+.customer-actions a:not(.primary):hover {
+    background: var(--web-surface-soft, #EAF2F0);
+    border-color: var(--web-primary, #0F9D8A);
+}
+
+/* --------------------------- DARK --------------------------- */
+html[data-appearance="dark"] {
+    --web-bg: #0F1716;
+    --web-surface: #16201E;
+    --web-surface-soft: #1E2A27;
+    --web-border: #30403C;
+    --web-text: #F2F8F6;
+    --web-text-muted: #9AAEA9;
+    --web-primary: #2BC4AE;
+    --web-primary-dark: #45D4C0;
+}
+
+html[data-appearance="dark"] .card,
+html[data-appearance="dark"] .home-hero,
+html[data-appearance="dark"] .home-card,
+html[data-appearance="dark"] .form-card,
+html[data-appearance="dark"] .search-bar,
+html[data-appearance="dark"] .search-form,
+html[data-appearance="dark"] .orders-filters,
+html[data-appearance="dark"] .inline-form,
+html[data-appearance="dark"] .table-scroll,
+html[data-appearance="dark"] .empty-state,
+html[data-appearance="dark"] .orders-empty,
+html[data-appearance="dark"] .customer-card,
+html[data-appearance="dark"] .customer-stat,
+html[data-appearance="dark"] .profile-card,
+html[data-appearance="dark"] .profile-security-note,
+html[data-appearance="dark"] .profile-readonly-grid > div,
+html[data-appearance="dark"] .settings-card,
+html[data-appearance="dark"] .settings-option,
+html[data-appearance="dark"] .settings-switch,
+html[data-appearance="dark"] .order-card,
+html[data-appearance="dark"] .order-section,
+html[data-appearance="dark"] .order-payment,
+html[data-appearance="dark"] .orders-pos-link,
+html[data-appearance="dark"] .orders-pagination a,
+html[data-appearance="dark"] .sales-point-list-card,
+html[data-appearance="dark"] .admin-filter,
+html[data-appearance="dark"] .admin-card,
+html[data-appearance="dark"] .admin-section,
+html[data-appearance="dark"] .admin-form,
+html[data-appearance="dark"] .admin-form__group,
+html[data-appearance="dark"] .admin-table-wrap,
+html[data-appearance="dark"] .admin-empty,
+html[data-appearance="dark"] .statistics-card,
+html[data-appearance="dark"] .statistics-empty,
+html[data-appearance="dark"] .statistics-chart-card,
+html[data-appearance="dark"] .statistics-kpi-card,
+html[data-appearance="dark"] .pos-card,
+html[data-appearance="dark"] .pos-product-result,
+html[data-appearance="dark"] .pos-customer-result,
+html[data-appearance="dark"] .pos-cart-item,
+html[data-appearance="dark"] .pos-method,
+html[data-appearance="dark"] .pos-payment-total,
+html[data-appearance="dark"] .pos-payment-summary div,
+html[data-appearance="dark"] .pos-result-grid div,
+html[data-appearance="dark"] .pos-webhook-enrichment,
+html[data-appearance="dark"] .pos-webhook-enrichment-grid div,
+html[data-appearance="dark"] .pos-payment-speaker,
+html[data-appearance="dark"] .product-image-upload__picker {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] .admin-fact,
+html[data-appearance="dark"] .admin-summary__item,
+html[data-appearance="dark"] .statistics-empty,
+html[data-appearance="dark"] .profile-readonly-grid > div,
+html[data-appearance="dark"] .profile-security-note,
+html[data-appearance="dark"] .pos-payment-summary div,
+html[data-appearance="dark"] .pos-result-grid div,
+html[data-appearance="dark"] .pos-webhook-enrichment-grid div,
+html[data-appearance="dark"] .dashboard-list-row {
+    background: #1E2A27 !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] .order-section h2,
+html[data-appearance="dark"] .order-section .strong,
+html[data-appearance="dark"] .order-card strong,
+html[data-appearance="dark"] .customer-card strong,
+html[data-appearance="dark"] .customer-stat strong,
+html[data-appearance="dark"] .admin-card__title,
+html[data-appearance="dark"] .statistics-card h2,
+html[data-appearance="dark"] .statistics-card h3,
+html[data-appearance="dark"] .statistics-value,
+html[data-appearance="dark"] .statistics-kpi-label,
+html[data-appearance="dark"] .statistics-kpi-meta {
+    color: #F2F8F6 !important;
+}
+
+html[data-appearance="dark"] .muted,
+html[data-appearance="dark"] .card small,
+html[data-appearance="dark"] .card-meta,
+html[data-appearance="dark"] .admin-card__meta,
+html[data-appearance="dark"] .admin-help,
+html[data-appearance="dark"] .statistics-range,
+html[data-appearance="dark"] .statistics-section-note,
+html[data-appearance="dark"] .statistics-muted,
+html[data-appearance="dark"] .order-item-meta,
+html[data-appearance="dark"] .customer-contact,
+html[data-appearance="dark"] .customer-label {
+    color: #9AAEA9 !important;
+}
+
+html[data-appearance="dark"] .orders-filters input,
+html[data-appearance="dark"] .orders-filters select,
+html[data-appearance="dark"] .search-bar input,
+html[data-appearance="dark"] .search-bar select,
+html[data-appearance="dark"] .search-form input,
+html[data-appearance="dark"] .search-form select,
+html[data-appearance="dark"] .form-card input,
+html[data-appearance="dark"] .form-card select,
+html[data-appearance="dark"] .form-card textarea,
+html[data-appearance="dark"] .inline-form input,
+html[data-appearance="dark"] .inline-form select,
+html[data-appearance="dark"] .inline-form textarea,
+html[data-appearance="dark"] .admin-filter input,
+html[data-appearance="dark"] .admin-filter select,
+html[data-appearance="dark"] .admin-form input,
+html[data-appearance="dark"] .admin-form select,
+html[data-appearance="dark"] .admin-form textarea,
+html[data-appearance="dark"] input,
+html[data-appearance="dark"] select,
+html[data-appearance="dark"] textarea {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] table th,
+html[data-appearance="dark"] .admin-table th,
+html[data-appearance="dark"] .statistics-table th {
+    background: #1E2A27 !important;
+    color: #D5E3DF !important;
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] table td,
+html[data-appearance="dark"] .admin-table td,
+html[data-appearance="dark"] .statistics-table td,
+html[data-appearance="dark"] .list-row,
+html[data-appearance="dark"] .customer-contact-row {
+    border-color: #30403C !important;
+    color: #F2F8F6 !important;
+}
+
+html[data-appearance="dark"] .button:not(.primary),
+html[data-appearance="dark"] button:not(.primary),
+html[data-appearance="dark"] .orders-pos-link,
+html[data-appearance="dark"] .orders-clear,
+html[data-appearance="dark"] .customer-actions a:not(.primary) {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] .button:not(.primary):hover,
+html[data-appearance="dark"] button:not(.primary):hover,
+html[data-appearance="dark"] .orders-pos-link:hover,
+html[data-appearance="dark"] .orders-clear:hover,
+html[data-appearance="dark"] .customer-actions a:not(.primary):hover {
+    background: #1E2A27 !important;
+    border-color: #2BC4AE !important;
+}
+
+html[data-appearance="dark"] .order-status,
+html[data-appearance="dark"] .status,
+html[data-appearance="dark"] .status-pill,
+html[data-appearance="dark"] .admin-status--neutral {
+    background: #1E2A27 !important;
+    color: #D5E3DF !important;
+}
+
+/* ---------------------- SYSTEM / DARK OS --------------------- */
+@media (prefers-color-scheme: dark) {
+    html[data-appearance="system"] {
+        --web-bg: #0F1716;
+        --web-surface: #16201E;
+        --web-surface-soft: #1E2A27;
+        --web-border: #30403C;
+        --web-text: #F2F8F6;
+        --web-text-muted: #9AAEA9;
+        --web-primary: #2BC4AE;
+        --web-primary-dark: #45D4C0;
+    }
+
+    html[data-appearance="system"] .card,
+    html[data-appearance="system"] .home-hero,
+    html[data-appearance="system"] .home-card,
+    html[data-appearance="system"] .form-card,
+    html[data-appearance="system"] .search-bar,
+    html[data-appearance="system"] .search-form,
+    html[data-appearance="system"] .orders-filters,
+    html[data-appearance="system"] .inline-form,
+    html[data-appearance="system"] .table-scroll,
+    html[data-appearance="system"] .empty-state,
+    html[data-appearance="system"] .orders-empty,
+    html[data-appearance="system"] .customer-card,
+    html[data-appearance="system"] .customer-stat,
+    html[data-appearance="system"] .profile-card,
+    html[data-appearance="system"] .profile-security-note,
+    html[data-appearance="system"] .profile-readonly-grid > div,
+    html[data-appearance="system"] .settings-card,
+    html[data-appearance="system"] .settings-option,
+    html[data-appearance="system"] .settings-switch,
+    html[data-appearance="system"] .order-card,
+    html[data-appearance="system"] .order-section,
+    html[data-appearance="system"] .order-payment,
+    html[data-appearance="system"] .orders-pos-link,
+    html[data-appearance="system"] .orders-pagination a,
+    html[data-appearance="system"] .sales-point-list-card,
+    html[data-appearance="system"] .admin-filter,
+    html[data-appearance="system"] .admin-card,
+    html[data-appearance="system"] .admin-section,
+    html[data-appearance="system"] .admin-form,
+    html[data-appearance="system"] .admin-form__group,
+    html[data-appearance="system"] .admin-table-wrap,
+    html[data-appearance="system"] .admin-empty,
+    html[data-appearance="system"] .statistics-card,
+    html[data-appearance="system"] .statistics-empty,
+    html[data-appearance="system"] .statistics-chart-card,
+    html[data-appearance="system"] .statistics-kpi-card,
+    html[data-appearance="system"] .pos-card,
+    html[data-appearance="system"] .pos-product-result,
+    html[data-appearance="system"] .pos-customer-result,
+    html[data-appearance="system"] .pos-cart-item,
+    html[data-appearance="system"] .pos-method,
+    html[data-appearance="system"] .pos-payment-total,
+    html[data-appearance="system"] .pos-payment-summary div,
+    html[data-appearance="system"] .pos-result-grid div,
+    html[data-appearance="system"] .pos-webhook-enrichment,
+    html[data-appearance="system"] .pos-webhook-enrichment-grid div,
+    html[data-appearance="system"] .pos-payment-speaker,
+    html[data-appearance="system"] .product-image-upload__picker {
+        background: #16201E !important;
+        color: #F2F8F6 !important;
+        border-color: #30403C !important;
+    }
+
+    html[data-appearance="system"] .admin-fact,
+    html[data-appearance="system"] .admin-summary__item,
+    html[data-appearance="system"] .statistics-empty,
+    html[data-appearance="system"] .profile-readonly-grid > div,
+    html[data-appearance="system"] .profile-security-note,
+    html[data-appearance="system"] .pos-payment-summary div,
+    html[data-appearance="system"] .pos-result-grid div,
+    html[data-appearance="system"] .pos-webhook-enrichment-grid div,
+    html[data-appearance="system"] .dashboard-list-row {
+        background: #1E2A27 !important;
+        color: #F2F8F6 !important;
+        border-color: #30403C !important;
+    }
+
+    html[data-appearance="system"] input,
+    html[data-appearance="system"] select,
+    html[data-appearance="system"] textarea {
+        background: #16201E !important;
+        color: #F2F8F6 !important;
+        border-color: #30403C !important;
+    }
+
+    html[data-appearance="system"] table th,
+    html[data-appearance="system"] .admin-table th,
+    html[data-appearance="system"] .statistics-table th {
+        background: #1E2A27 !important;
+        color: #D5E3DF !important;
+        border-color: #30403C !important;
+    }
+
+    html[data-appearance="system"] table td,
+    html[data-appearance="system"] .admin-table td,
+    html[data-appearance="system"] .statistics-table td,
+    html[data-appearance="system"] .list-row,
+    html[data-appearance="system"] .customer-contact-row {
+        border-color: #30403C !important;
+        color: #F2F8F6 !important;
+    }
+
+    html[data-appearance="system"] .button:not(.primary),
+    html[data-appearance="system"] button:not(.primary),
+    html[data-appearance="system"] .orders-pos-link,
+    html[data-appearance="system"] .orders-clear,
+    html[data-appearance="system"] .customer-actions a:not(.primary) {
+        background: #16201E !important;
+        color: #F2F8F6 !important;
+        border-color: #30403C !important;
+    }
+}
+
+/* ----------------------- LIGHT EXPLICIT ----------------------- */
+html[data-appearance="light"] {
+    --web-bg: #F4F8F7;
+    --web-surface: #FFFFFF;
+    --web-surface-soft: #EAF2F0;
+    --web-border: #D4E0DD;
+    --web-text: #172522;
+    --web-text-muted: #64736F;
+    --web-primary: #0F9D8A;
+    --web-primary-dark: #087C6D;
+}
+
+
+/* Final Modern Teal card normalization + stock-history controls. */
+.stock-history-card,
+.statistics-accessible-data,
+.statistics-accessible-data details {
+    background: var(--web-surface, #FFFFFF) !important;
+    color: var(--web-text, #172522) !important;
+    border: 1px solid var(--web-border, #D4E0DD);
+    border-radius: var(--web-radius, 14px);
+    box-shadow: none !important;
+}
+
+.statistics-accessible-data {
+    padding: 14px;
+    margin-top: 16px;
+}
+
+.statistics-accessible-data details {
+    border: 0;
+    padding: 0;
+}
+
+.statistics-accessible-data summary {
+    cursor: pointer;
+    font-weight: 800;
+    color: var(--web-text, #172522);
+    padding: 4px 0 10px;
+}
+
+.statistics-accessible-data p {
+    color: var(--web-text-muted, #64736F);
+}
+
+.stock-history-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.stock-history-header h2 { margin: 0; }
+.stock-history-filters {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto auto;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid var(--web-border, #D4E0DD);
+    border-radius: var(--web-radius, 14px);
+    background: var(--web-surface-soft, #EAF2F0);
+}
+.stock-history-filters label { display: grid; gap: 6px; font-weight: 700; }
+.stock-history-filters select { min-height: 46px; }
+.stock-history-table-wrap { max-height: none; }
+.stock-history-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 14px;
+}
+.stock-history-pagination span {
+    min-width: 80px;
+    text-align: center;
+    font-weight: 800;
+    color: var(--web-text, #172522);
+}
+
+html[data-appearance="dark"] .statistics-accessible-data,
+html[data-appearance="dark"] .statistics-accessible-data details,
+html[data-appearance="dark"] .stock-history-card {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+html[data-appearance="dark"] .statistics-accessible-data summary,
+html[data-appearance="dark"] .stock-history-pagination span {
+    color: #F2F8F6 !important;
+}
+html[data-appearance="dark"] .stock-history-filters {
+    background: #1E2A27 !important;
+    border-color: #30403C !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-appearance="system"] .statistics-accessible-data,
+    html[data-appearance="system"] .statistics-accessible-data details,
+    html[data-appearance="system"] .stock-history-card {
+        background: #16201E !important;
+        color: #F2F8F6 !important;
+        border-color: #30403C !important;
+    }
+    html[data-appearance="system"] .statistics-accessible-data summary,
+    html[data-appearance="system"] .stock-history-pagination span { color: #F2F8F6 !important; }
+    html[data-appearance="system"] .stock-history-filters {
+        background: #1E2A27 !important;
+        border-color: #30403C !important;
+    }
+}
+
+@media (max-width: 760px) {
+    .stock-history-filters { grid-template-columns: 1fr; }
+    .stock-history-filters .button,
+    .stock-history-filters button { width: 100%; }
+    .stock-history-pagination { justify-content: space-between; }
+    .stock-history-pagination .button { min-width: 96px; }
+}
+
+/* Final sweep: legacy summary cards must never become white islands in Dark/System Dark. */
+.summary-grid > div,
+.stats > div {
+    background: var(--web-surface, #FFFFFF) !important;
+    color: var(--web-text, #172522) !important;
+    border-color: var(--web-border, #D4E0DD) !important;
+}
+
+html[data-appearance="dark"] .summary-grid > div,
+html[data-appearance="dark"] .stats > div,
+html[data-appearance="dark"] .card-list .card {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] .summary-grid > div .muted,
+html[data-appearance="dark"] .summary-grid > div span,
+html[data-appearance="dark"] .stats > div small {
+    color: #9AAEA9 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-appearance="system"] .summary-grid > div,
+    html[data-appearance="system"] .stats > div,
+    html[data-appearance="system"] .card-list .card {
+        background: #16201E !important;
+        color: #F2F8F6 !important;
+        border-color: #30403C !important;
+    }
+    html[data-appearance="system"] .summary-grid > div .muted,
+    html[data-appearance="system"] .summary-grid > div span,
+    html[data-appearance="system"] .stats > div small {
+        color: #9AAEA9 !important;
+    }
+}
+
+/* ================================================================
+ * FINAL PROFILE CARD / ROLE MANAGEMENT NORMALIZATION
+ * Modern Teal — remove legacy white islands in profile/settings.
+ * ================================================================ */
+.font-size-option,
+.role-management-card,
+.user-management-card,
+.user-management-readonly {
+    background: var(--web-surface, #FFFFFF);
+    color: var(--web-text, #172522);
+    border-color: var(--web-border, #D4E0DD);
+}
+
+.font-size-option {
+    border: 2px solid var(--web-border, #D4E0DD);
+}
+
+.font-size-option:has(input:checked),
+.font-size-option.is-selected {
+    background: var(--web-surface-soft, #EAF2F0);
+    border-color: var(--web-primary, #0F9D8A);
+}
+
+.font-size-option .font-size-preview,
+.font-size-option strong {
+    color: var(--web-text, #172522);
+}
+
+.user-management-list {
+    display: grid;
+    gap: 10px;
+}
+
+.user-management-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, .9fr);
+    gap: 14px;
+    align-items: center;
+    padding: 14px;
+    border: 1px solid var(--web-border, #D4E0DD);
+    border-radius: 14px;
+}
+
+.user-management-card__identity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-management-card__identity strong {
+    color: var(--web-text, #172522);
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 9px;
+    border-radius: 999px;
+    background: var(--web-surface-soft, #EAF2F0);
+    color: var(--web-text, #172522);
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.role-badge--self {
+    color: var(--web-primary, #0F9D8A);
+}
+
+.role-management-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.role-management-form label {
+    display: grid;
+    gap: 6px;
+}
+
+.role-management-form select {
+    min-height: 48px;
+}
+
+.user-management-readonly {
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    border: 1px solid var(--web-border, #D4E0DD);
+    border-radius: 12px;
+}
+
+.user-management-readonly strong {
+    color: var(--web-text, #172522);
+}
+
+@media (max-width: 720px) {
+    .user-management-card {
+        grid-template-columns: 1fr;
+    }
+
+    .role-management-form {
+        grid-template-columns: 1fr;
+    }
+
+    .role-management-form .button {
+        width: 100%;
+    }
+}
+
+html[data-appearance="dark"] .font-size-option,
+html[data-appearance="dark"] .user-management-card,
+html[data-appearance="dark"] .user-management-readonly {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] .font-size-option:has(input:checked),
+html[data-appearance="dark"] .font-size-option.is-selected {
+    background: #1E2A27 !important;
+    border-color: #2BC4AE !important;
+}
+
+html[data-appearance="dark"] .font-size-option .font-size-preview,
+html[data-appearance="dark"] .font-size-option strong,
+html[data-appearance="dark"] .user-management-card__identity strong,
+html[data-appearance="dark"] .user-management-readonly strong {
+    color: #F2F8F6 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-appearance="system"] .font-size-option,
+    html[data-appearance="system"] .user-management-card,
+    html[data-appearance="system"] .user-management-readonly {
+        background: #16201E !important;
+        color: #F2F8F6 !important;
+        border-color: #30403C !important;
+    }
+
+    html[data-appearance="system"] .font-size-option:has(input:checked),
+    html[data-appearance="system"] .font-size-option.is-selected {
+        background: #1E2A27 !important;
+        border-color: #2BC4AE !important;
+    }
+
+    html[data-appearance="system"] .font-size-option .font-size-preview,
+    html[data-appearance="system"] .font-size-option strong,
+    html[data-appearance="system"] .user-management-card__identity strong,
+    html[data-appearance="system"] .user-management-readonly strong {
+        color: #F2F8F6 !important;
+    }
+}
+
+/* ============================================================================
+ * FINAL LOGIN MODERN TEAL NORMALIZATION
+ * Fix native checkbox white island and align the complete auth form with the
+ * same Modern Teal light/dark design tokens used by the application.
+ * ============================================================================ */
+.login-page {
+    background: var(--web-bg, #F4F8F7) !important;
+    color: var(--web-text, #172522) !important;
+}
+
+.login-brand {
+    background: var(--web-primary, #0F9D8A) !important;
+    box-shadow: none !important;
+}
+
+.login-kicker {
+    color: var(--web-primary-dark, #087C6D) !important;
+}
+
+.login-title,
+.login-label {
+    color: var(--web-text, #172522) !important;
+}
+
+.login-subtitle,
+.login-field-help,
+.login-remember-help,
+.login-footer {
+    color: var(--web-text-muted, #64736F) !important;
+}
+
+.login-card {
+    background: var(--web-surface, #FFFFFF) !important;
+    border-color: var(--web-border, #D4E0DD) !important;
+    box-shadow: none !important;
+}
+
+.login-input {
+    background: var(--web-surface, #FFFFFF) !important;
+    color: var(--web-text, #172522) !important;
+    border-color: var(--web-border, #D4E0DD) !important;
+}
+
+.login-input::placeholder {
+    color: var(--web-text-muted, #64736F) !important;
+}
+
+.login-input:hover,
+.login-input:focus {
+    border-color: var(--web-primary, #0F9D8A) !important;
+}
+
+.login-input:focus {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--web-primary, #0F9D8A) 14%, transparent) !important;
+}
+
+.login-password-toggle {
+    color: var(--web-text-muted, #64736F) !important;
+}
+
+.login-password-toggle:hover {
+    background: var(--web-surface-soft, #EAF2F0) !important;
+    color: var(--web-primary-dark, #087C6D) !important;
+}
+
+.login-password-toggle:focus-visible {
+    outline-color: color-mix(in srgb, var(--web-primary, #0F9D8A) 35%, transparent) !important;
+}
+
+.login-remember {
+    background: var(--web-surface-soft, #EAF2F0) !important;
+    color: var(--web-text, #172522) !important;
+    border-color: var(--web-border, #D4E0DD) !important;
+}
+
+.login-remember:hover {
+    border-color: var(--web-primary, #0F9D8A) !important;
+}
+
+.login-remember:focus-within {
+    border-color: var(--web-primary, #0F9D8A) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--web-primary, #0F9D8A) 14%, transparent) !important;
+}
+
+/* Replace the browser-native checkbox rendering so it cannot become a white
+ * rectangle in dark mode. */
+.login-remember-checkbox {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    margin: 0 !important;
+    flex: 0 0 22px;
+    display: grid !important;
+    place-content: center;
+    border: 2px solid var(--web-border, #D4E0DD) !important;
+    border-radius: 6px !important;
+    background: var(--web-surface, #FFFFFF) !important;
+    color: #FFFFFF !important;
+    cursor: pointer;
+}
+
+.login-remember-checkbox::before {
+    content: "";
+    width: 10px;
+    height: 6px;
+    border-left: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg) scale(0);
+    transform-origin: center;
+    transition: transform 100ms ease-in-out;
+}
+
+.login-remember-checkbox:checked {
+    background: var(--web-primary, #0F9D8A) !important;
+    border-color: var(--web-primary, #0F9D8A) !important;
+}
+
+.login-remember-checkbox:checked::before {
+    transform: rotate(-45deg) scale(1);
+}
+
+.login-remember-checkbox:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--web-primary, #0F9D8A) 28%, transparent);
+    outline-offset: 2px;
+}
+
+.login-submit {
+    background: var(--web-primary, #0F9D8A) !important;
+    border-color: var(--web-primary, #0F9D8A) !important;
+    color: #FFFFFF !important;
+    box-shadow: none !important;
+}
+
+.login-submit:hover {
+    background: var(--web-primary-dark, #087C6D) !important;
+    border-color: var(--web-primary-dark, #087C6D) !important;
+}
+
+.login-submit:focus-visible {
+    outline-color: color-mix(in srgb, var(--web-primary, #0F9D8A) 35%, transparent) !important;
+}
+
+html[data-appearance="dark"] .login-page {
+    background: #0F1716 !important;
+}
+
+html[data-appearance="dark"] .login-card {
+    background: #16201E !important;
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] .login-input,
+html[data-appearance="dark"] .login-remember {
+    background: #16201E !important;
+    color: #F2F8F6 !important;
+    border-color: #30403C !important;
+}
+
+html[data-appearance="dark"] .login-remember {
+    background: #1E2A27 !important;
+}
+
+html[data-appearance="dark"] .login-input::placeholder,
+html[data-appearance="dark"] .login-subtitle,
+html[data-appearance="dark"] .login-field-help,
+html[data-appearance="dark"] .login-remember-help,
+html[data-appearance="dark"] .login-footer,
+html[data-appearance="dark"] .login-password-toggle {
+    color: #9AAEA9 !important;
+}
+
+html[data-appearance="dark"] .login-title,
+html[data-appearance="dark"] .login-label,
+html[data-appearance="dark"] .login-remember {
+    color: #F2F8F6 !important;
+}
+
+html[data-appearance="dark"] .login-remember-checkbox {
+    background: #16201E !important;
+    border-color: #4B625D !important;
+}
+
+html[data-appearance="dark"] .login-remember-checkbox:checked {
+    background: #2BC4AE !important;
+    border-color: #2BC4AE !important;
+}
+
+html[data-appearance="dark"] .login-password-toggle:hover {
+    background: #1E2A27 !important;
+    color: #45D4C0 !important;
+}
+
+html[data-appearance="dark"] .login-submit {
+    background: #2BC4AE !important;
+    border-color: #2BC4AE !important;
+    color: #0F1716 !important;
+}
+
+html[data-appearance="dark"] .login-submit:hover {
+    background: #45D4C0 !important;
+    border-color: #45D4C0 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-appearance="system"] .login-page {
+        background: #0F1716 !important;
+    }
+
+    html[data-appearance="system"] .login-card {
+        background: #16201E !important;
+        border-color: #30403C !important;
+    }
+
+    html[data-appearance="system"] .login-input,
+    html[data-appearance="system"] .login-remember {
+        background: #16201E !important;
+        color: #F2F8F6 !important;
+        border-color: #30403C !important;
+    }
+
+    html[data-appearance="system"] .login-remember {
+        background: #1E2A27 !important;
+    }
+
+    html[data-appearance="system"] .login-input::placeholder,
+    html[data-appearance="system"] .login-subtitle,
+    html[data-appearance="system"] .login-field-help,
+    html[data-appearance="system"] .login-remember-help,
+    html[data-appearance="system"] .login-footer,
+    html[data-appearance="system"] .login-password-toggle {
+        color: #9AAEA9 !important;
+    }
+
+    html[data-appearance="system"] .login-title,
+    html[data-appearance="system"] .login-label,
+    html[data-appearance="system"] .login-remember {
+        color: #F2F8F6 !important;
+    }
+
+    html[data-appearance="system"] .login-remember-checkbox {
+        background: #16201E !important;
+        border-color: #4B625D !important;
+    }
+
+    html[data-appearance="system"] .login-remember-checkbox:checked {
+        background: #2BC4AE !important;
+        border-color: #2BC4AE !important;
+    }
+
+    html[data-appearance="system"] .login-password-toggle:hover {
+        background: #1E2A27 !important;
+        color: #45D4C0 !important;
+    }
+
+    html[data-appearance="system"] .login-submit {
+        background: #2BC4AE !important;
+        border-color: #2BC4AE !important;
+        color: #0F1716 !important;
+    }
+
+    html[data-appearance="system"] .login-submit:hover {
+        background: #45D4C0 !important;
+        border-color: #45D4C0 !important;
+    }
+}

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Persistence\Doctrine\Repository;
 
 use App\Domain\Stock\Repository\StockMovementRepositoryInterface;
+use App\Domain\Stock\Enum\StockMovementType;
 use App\Domain\Stock\StockMovement;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -35,6 +36,52 @@ final class StockMovementRepository implements StockMovementRepositoryInterface
             ->addOrderBy('sm.id', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * @return array{items: list<StockMovement>, total: int}
+     */
+    public function findByProductIdPage(
+        int $productId,
+        ?StockMovementType $type,
+        string $sort,
+        int $page,
+        int $perPage,
+    ): array {
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+
+        $qb = $this->entityManager
+            ->createQueryBuilder()
+            ->from(StockMovement::class, 'sm')
+            ->where('IDENTITY(sm.product) = :productId')
+            ->setParameter('productId', $productId);
+
+        if ($type !== null) {
+            $qb->andWhere('sm.type = :type')
+                ->setParameter('type', $type);
+        }
+
+        $countQb = clone $qb;
+        $total = (int) $countQb
+            ->select('COUNT(sm.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $direction = $sort === 'oldest' ? 'ASC' : 'DESC';
+        $items = $qb
+            ->select('sm')
+            ->orderBy('sm.createdAt', $direction)
+            ->addOrderBy('sm.id', $direction)
+            ->setFirstResult(($page - 1) * $perPage)
+            ->setMaxResults($perPage)
+            ->getQuery()
+            ->getResult();
+
+        return [
+            'items' => $items,
+            'total' => $total,
+        ];
     }
 
     /**
