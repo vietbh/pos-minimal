@@ -35,6 +35,8 @@ use App\Domain\SalesPoint\Repository\SalesPointRepositoryInterface;
 use App\Application\Product\Query\ProductCatalogHandler;
 use App\Application\Product\Query\ProductCatalogInput;
 use App\Domain\Product\Repository\ProductCategoryRepositoryInterface;
+use App\Domain\Product\Repository\ProductAttributeRepositoryInterface;
+use App\Domain\Product\Repository\ProductRepositoryInterface;
 use App\Domain\Shared\ValueObject\Money;
 use App\Domain\User\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -137,6 +139,7 @@ final class CheckoutController extends AbstractController
                     'unitPrice' => $item->unitPrice,
                     'quantity' => $item->quantity,
                     'active' => $item->active,
+                    'selectedAttributes' => $item->selectedAttributes,
                 ], $result->items),
             ],
         ]);
@@ -167,6 +170,8 @@ final class CheckoutController extends AbstractController
         Request $request,
         ProductCatalogHandler $handler,
         ProductCategoryRepositoryInterface $categories,
+        ProductAttributeRepositoryInterface $productAttributes,
+        ProductRepositoryInterface $products,
     ): JsonResponse {
         $this->requirePosAccess(Permission::PRODUCT_VIEW);
 
@@ -194,8 +199,16 @@ final class CheckoutController extends AbstractController
             ));
         }
 
-        return $this->json([
-            'data' => array_map(static fn ($product): array => [
+        $data = [];
+        foreach ($result->items as $product) {
+            $domainProduct = $products->findById($product->id);
+            $attributes = [];
+            if ($domainProduct !== null) {
+                foreach ($productAttributes->findByProduct($domainProduct) as $attribute) {
+                    if ($attribute->isSelectable()) $attributes[] = ['name' => $attribute->getName(), 'value' => $attribute->getValue()];
+                }
+            }
+            $data[] = [
                 'id' => $product->id,
                 'sku' => $product->sku,
                 'name' => $product->name,
@@ -204,7 +217,12 @@ final class CheckoutController extends AbstractController
                 'stockQuantity' => $product->stockQuantity,
                 'categoryId' => $product->categoryId,
                 'categoryName' => $product->categoryName,
-            ], $result->items),
+                'attributes' => $attributes,
+            ];
+        }
+
+        return $this->json([
+            'data' => $data,
             'pagination' => [
                 'page' => $result->page,
                 'limit' => $result->limit,
@@ -577,7 +595,19 @@ final class CheckoutController extends AbstractController
                 throw new \InvalidArgumentException('productId and quantity must be integers.');
             }
 
-            $mappedItems[] = new CheckoutItemInput($productId, $quantity);
+            
+            $selectedAttributes = $item['selectedAttributes'] ?? [];
+            if (!is_array($selectedAttributes)) {
+                throw new \InvalidArgumentException('selectedAttributes must be an object.');
+            }
+            $normalizedAttributes = [];
+            foreach ($selectedAttributes as $name => $value) {
+                if (!is_string($name) || !is_string($value)) {
+                    throw new \InvalidArgumentException('selectedAttributes must contain string names and values.');
+                }
+                $normalizedAttributes[trim($name)] = trim($value);
+            }
+            $mappedItems[] = new CheckoutItemInput($productId, $quantity, $normalizedAttributes);
         }
 
         $payment = $payload['payment'] ?? null;

@@ -11,6 +11,7 @@ interface ProductCategoryRepositoryInterface
     public function save(ProductCategory $category): void;
     public function findById(int $id): ?ProductCategory;
     public function existsByName(string $name, ?int $excludeId = null): bool;
+    public function findByNormalizedName(string $name): ?ProductCategory;
     /** @return list<ProductCategory> */
     public function findActiveOrdered(): array;
     /** @return list<ProductCategory> */

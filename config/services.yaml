@@ -11,6 +11,8 @@ parameters:
     app.bank_transfer_completion_policy: '%env(default:app.bank_transfer_completion_policy_default:POS_BANK_TRANSFER_COMPLETION_POLICY)%'
     app.webhook_timezone_default: 'Asia/Ho_Chi_Minh'
     app.webhook_future_skew_seconds_default: 300
+    app.import.max_rows: 10000
+    app.import.max_file_size: 10485760
 
 services:
     # default configuration for services in *this* file
@@ -78,3 +80,8 @@ services:
     App\Application\Order\Command\Checkout\CheckoutHandler:
         arguments:
             $bankTransferCompletionPolicy: '%app.bank_transfer_completion_policy%'
+
+    App\Controller\Admin\ImportController:
+        arguments:
+            $maxRows: '%app.import.max_rows%'
+            $maxBytes: '%app.import.max_file_size%'

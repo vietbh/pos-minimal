@@ -92,7 +92,7 @@ final class ProductManagementTest extends IntegrationTestCase
         self::assertSame(0, $product->getStockQuantity());
         self::assertSame(0, $product->getLowStockThreshold());
         self::assertNotNull($product->getSku());
-        self::assertStringStartsWith('DEFAULT-PRODUCT-', $product->getSku()?->value() ?? '');
+        self::assertSame('DEFAULT-PRODUCT', $product->getSku()?->value());
         self::assertNull($product->getUnit());
         self::assertNull($product->getCostPrice());
         self::assertNull($product->getNote());
@@ -119,9 +119,35 @@ final class ProductManagementTest extends IntegrationTestCase
 
         self::assertNotNull($firstSku);
         self::assertNotNull($secondSku);
-        self::assertStringStartsWith('CA-PHE-SUA-', $firstSku);
-        self::assertStringStartsWith('CA-PHE-SUA-', $secondSku);
+        self::assertStringStartsWith('CA-PHE-SUA', $firstSku);
+        self::assertStringStartsWith('CA-PHE-SUA', $secondSku);
         self::assertNotSame($firstSku, $secondSku);
+    }
+
+    public function testCreateProductReusesCategoryCaseInsensitivelyAndGeneratesSkuFromCategoryAndName(): void
+    {
+        $handler = $this->createProductHandler();
+
+        $firstId = $handler(new CreateProductInput(
+            name: 'Bia 333',
+            sellingPrice: Money::fromDecimal('12000.00'),
+            categoryName: 'Bia',
+        ));
+
+        $secondId = $handler(new CreateProductInput(
+            name: 'Bia 333',
+            sellingPrice: Money::fromDecimal('13000.00'),
+            categoryName: ' bia ',
+        ));
+
+        $first = $this->getProduct($firstId);
+        $second = $this->getProduct($secondId);
+
+        self::assertSame('Bia', $first->getCategory()?->getName());
+        self::assertSame($first->getCategory()?->getId(), $second->getCategory()?->getId());
+        self::assertSame('BIA-333', $first->getSku()?->value());
+        self::assertNotSame($first->getSku()?->value(), $second->getSku()?->value());
+        self::assertStringStartsWith('BIA-333_', $second->getSku()?->value() ?? '');
     }
 
     public function testCreateProductRejectsDuplicateSku(): void

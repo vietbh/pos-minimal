@@ -18,9 +18,21 @@ export default class extends Controller {
         const value = String(input.value || '');
         const caret = Number.isInteger(input.selectionStart) ? input.selectionStart : value.length;
         const digitsBeforeCaret = value.slice(0, caret).replace(/[^0-9]/g, '').length;
-        const raw = value.replace(/[^0-9]/g, '');
-        if (raw === '') return;
-        const normalized = raw.replace(/^0+(?=\d)/, '');
+        const normalizedInput = value.replace(/,/g, '').trim();
+        if (normalizedInput === '') return;
+
+        // Backend Money::toDecimal() returns VND as `340000.00`.
+        // Keep the decimal point from being treated as a digit separator;
+        // otherwise 340000.00 would become 34,000,000.
+        let normalized = normalizedInput;
+        if (/^\d+\.0{1,2}$/.test(normalizedInput)) {
+            normalized = normalizedInput.split('.')[0];
+        } else if (/^\d+$/.test(normalizedInput)) {
+            normalized = normalizedInput;
+        } else {
+            return;
+        }
+        normalized = normalized.replace(/^0+(?=\d)/, '');
         const formatted = Number(normalized).toLocaleString('en-US');
         input.value = formatted;
         let digits = 0;

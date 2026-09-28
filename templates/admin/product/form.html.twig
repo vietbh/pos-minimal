@@ -7,6 +7,39 @@
 <input type="hidden" name="_token" value="{{ csrf_token('admin_product_form') }}">
 <div class="admin-form__group"><h2>{{ 'admin.product_information'|trans }}</h2><label>{{ 'admin.name'|trans }}<input required maxlength="255" name="name" value="{{ data.name }}" data-product-form-target="name" data-action="input->product-form#nameChanged" autocomplete="off" autofocus></label><label>{{ 'admin.unit'|trans }}<input name="unit" value="{{ data.unit }}" autocomplete="off"></label><label>{{ 'admin.note'|trans }}<textarea name="note">{{ data.note }}</textarea></label></div>
 <div class="admin-form__group"><h2>{{ 'admin.catalog'|trans }}</h2><label>{{ 'admin.sku'|trans }} <span class="admin-help">{{ 'admin.sku_optional'|trans }}</span><div class="input-with-action"><input name="sku" value="{{ data.sku }}" data-product-form-target="sku" data-action="input->product-form#skuChanged" autocomplete="off" maxlength="100" placeholder="Auto-generated SKU"><button class="button" type="button" data-action="product-form#generateSku">{{ 'admin.generate_sku'|trans }}</button></div></label><label>{{ 'admin.category'|trans }}<select name="categoryId" data-product-form-target="category" data-action="change->product-form#categoryChanged"><option value="">{{ 'admin.no_category'|trans }}</option>{% for category in categories %}<option value="{{ category.id }}"{% if data.categoryId == category.id %} selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></label>{% if not product %}<label>{{ 'admin.create_category'|trans }} <span class="admin-help">{{ 'admin.category_help'|trans }}</span><input name="categoryName" value="{{ data.categoryName|default('') }}" data-product-form-target="categoryName" placeholder="For example: Beverages"></label>{% endif %}</div>
+<div class="admin-form__group product-extra-info">
+<h2>Thông tin bổ sung</h2>
+<p class="admin-help">Thông tin này chỉ để mô tả sản phẩm, không ảnh hưởng SKU, giá bán, tồn kho hay logic bán hàng.</p>
+<div data-product-attributes-list>
+{% for attribute in attributes|default([]) %}
+<div class="product-attribute-row" style="display:grid;grid-template-columns:minmax(140px,1fr) minmax(180px,2fr) 140px auto;gap:10px;align-items:end;margin-bottom:10px">
+<label>Tên thuộc tính<input maxlength="100" name="attributes[{{ loop.index0 }}][name]" value="{{ attribute.name|e }}" placeholder="Size, Màu, Dung tích..."></label>
+<label>Giá trị<input maxlength="255" name="attributes[{{ loop.index0 }}][value]" value="{{ attribute.value|e }}" placeholder="500ml, Đen, XL..."></label><label class="checkbox-inline"><input type="checkbox" name="attributes[{{ loop.index0 }}][selectable]" value="1" {% if attribute.selectable|default(true) %}checked{% endif %}> Cho POS chọn</label>
+<button class="button" type="button" data-remove-product-attribute>Xóa</button>
+</div>
+{% endfor %}
+</div>
+<button class="button" type="button" data-add-product-attribute>+ Thêm thuộc tính</button>
+<div class="admin-help" style="margin-top:8px">Ví dụ: Nước → Dung tích: 500ml, 1.5L. Quần áo → Size: M, Màu: Đen. Có thể thêm nhiều dòng.</div>
+</div>
 <div class="admin-form__group"><h2>{{ 'admin.pricing_inventory'|trans }}</h2><label>{{ 'admin.selling_price'|trans }}<input required inputmode="decimal" min="0" step="1" name="sellingPrice" value="{{ data.sellingPrice }}" data-product-form-target="sellingPrice" data-action="input->product-form#moneyChanged"></label><label>{{ 'admin.cost_price'|trans }}<input inputmode="decimal" min="0" step="1" name="costPrice" value="{{ data.costPrice }}" data-product-form-target="costPrice" data-action="input->product-form#moneyChanged"></label><label>{{ 'admin.low_stock_threshold'|trans }}<input type="number" min="0" step="1" name="lowStockThreshold" value="{{ data.lowStockThreshold }}"></label></div>
 <div class="admin-form__actions"><button class="primary" type="submit">{{ product ? 'admin.save_changes'|trans : 'admin.create_product'|trans }}</button><a class="button" href="{{ product ? path('admin_products_show',{id:product.id}) : path('admin_products_index') }}">{{ 'common.cancel'|trans }}</a></div>
-</form></div>{% endblock %}
+</form>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const list = document.querySelector('[data-product-attributes-list]');
+  const add = document.querySelector('[data-add-product-attribute]');
+  if (!list || !add) return;
+  let index = list.querySelectorAll('.product-attribute-row').length;
+  const addRow = () => {
+    const row = document.createElement('div');
+    row.className = 'product-attribute-row';
+    row.style.cssText = 'display:grid;grid-template-columns:minmax(140px,1fr) minmax(180px,2fr) 140px auto;gap:10px;align-items:end;margin-bottom:10px';
+    row.innerHTML = `<label>Tên thuộc tính<input maxlength="100" name="attributes[${index}][name]" placeholder="Size, Màu, Dung tích..."></label><label>Giá trị<input maxlength="255" name="attributes[${index}][value]" placeholder="500ml, Đen, XL..."></label><label class="checkbox-inline"><input type="checkbox" name="attributes[${index}][selectable]" value="1" checked> Cho POS chọn</label><button class="button" type="button" data-remove-product-attribute>Xóa</button>`;
+    list.appendChild(row); index++;
+  };
+  add.addEventListener('click', addRow);
+  list.addEventListener('click', e => { if (e.target.matches('[data-remove-product-attribute]')) e.target.closest('.product-attribute-row')?.remove(); });
+});
+</script>
+</div>{% endblock %}

@@ -39,6 +39,7 @@ navigation:
   statistics: Statistics
   payments: Payments
   account: Account
+  import: Excel import
   open_menu: Open menu
   close_menu: Close menu
 app:
@@ -684,11 +685,54 @@ common:
   search_debts: Search debts
   filter_status: Filter by status
 admin:
+  import_excel: Excel import
+  import_product: Import products
+  import_stock: Import stock
+  download_template: Download template
+  download_product_template: Download product template
+  download_stock_template: Download stock template
+  product_import: Product import
+  stock_import: Stock import
+  import_help: Download the template, fill in the data, then upload it for validation before importing.
+  choose_excel: Choose Excel file
+  excel_file: Excel file (.xlsx)
+  import_xlsx_only: XLSX files using the system template are supported.
+  import_limits: Maximum 10 MB and 10,000 data rows.
+  stock_import_delta_help: "Stock uses quantity deltas: +10 adds 10, -3 removes 3. Do not enter an absolute stock value."
+  upload_validate: Upload & validate
+  import_history: Import history
+  import_history_help: Track product and stock import status and results.
+  no_imports: No imports yet.
+  view_import: View import
+  select_all_imports: Select all imports
+  select_import: Select import
+  delete_selected_imports: Delete selected imports
+  import_delete_confirm: Are you sure you want to delete the selected import history? The Excel files and import details will also be deleted.
+  import_cannot_delete_active: Active or queued imports cannot be deleted.
+  import_history_page_summary: 'Page %page% / %pages% · Total %total% imports'
+  import_detail: Import detail
+  import_status: Status
+  total_rows: Total rows
+  success_rows: Successful
+  failed_rows: Failed
+  confirm_import: Confirm import
+  confirm_import_help: After confirmation, the file is sent to the Messenger queue for background processing.
+  confirm_queue_import: Confirm & queue import
+  import_errors: Import errors
+  import_processing_error: Import processing error
+  import_processing_error_help: Details of the error raised while the import worker was processing this batch.
+  import_row_processing_errors: Row processing errors
+  download_error_report: Download error report
+  row: Row
+  field: Field
+  error_code: Error code
+  message: Message
   catalog: Catalog
   inventory: Inventory
   payment_settings: Payment settings
   products_title: Products
   products_help: Search, review and manage active products.
+  product_page_summary: 'Page %page% / %pages% · Total %total% products'
   new_product: New product
   categories: Categories
   search_product: Search product
@@ -1029,3 +1073,12 @@ sales_point:
   group_empty: No sales point groups configured.
   group_enabled: Sales point group enabled.
   group_disabled: Sales point group disabled.
+  import_preview: Preview & edit import data
+  import_preview_help: Review and edit each row before confirmation. Nothing is imported into the system until you confirm.
+  import_row_status: Row validation
+  import_invalid: Invalid
+  import_valid: Valid
+  save_preview_revalidate: Save changes & revalidate
+  import_preview_revalidate_note: After editing, the system revalidates every row and only allows import when all rows are valid.
+  import_needs_correction: Import is not ready
+  import_needs_correction_help: Fix the invalid rows and click “Save changes & revalidate”. The import confirmation button appears only when every row is valid.

@@ -15,5 +15,10 @@ interface ProductRepositoryInterface
 
     public function findBySku(Sku $sku): ?Product;
 
+    public function findByName(string $name): ?Product;
+
+    /** @return list<Product> */
+    public function findAllActiveOrderedByName(): array;
+
     public function existsBySku(Sku $sku, ?int $excludeId = null): bool;
 }

@@ -33,6 +33,7 @@ use App\Domain\SalesPoint\Repository\SalesPointRepositoryInterface;
 use App\Application\Payment\Reference\CheckoutPaymentSessionService;
 use App\Application\Payment\Enum\BankTransferCompletionPolicy;
 use App\Domain\Product\Product;
+use App\Domain\Product\Repository\ProductAttributeRepositoryInterface;
 use App\Domain\Shared\ValueObject\Money;
 use App\Domain\Stock\Enum\StockMovementType;
 use App\Domain\Stock\Repository\StockMovementRepositoryInterface;
@@ -52,6 +53,7 @@ final readonly class CheckoutHandler
         private TransactionManagerInterface $transactionManager,
         private IdempotencyPort $idempotency,
         private ProductLockingInterface $productLocking,
+        private ProductAttributeRepositoryInterface $productAttributes,
         private OrderNumberGeneratorInterface $orderNumberGenerator,
         private UserRepositoryInterface $userRepository,
         private UserSessionRepositoryInterface $userSessionRepository,
@@ -264,15 +266,19 @@ final readonly class CheckoutHandler
             $calculatedSubtotal = Money::zero();
             foreach ($productIds as $productId) {
                 $product = $products[$productId];
-                $quantity = $quantities[$productId];
-                $this->assertProductCanBeSold($product, $quantity);
+                $this->assertProductCanBeSold($product, $quantities[$productId]);
+            }
+            foreach ($input->items as $line) {
+                $product = $products[$line->productId];
                 $unitPrice = $product->getSellingPrice();
+                $selectedAttributes = $this->resolveSelectedAttributes($product, $line->selectedAttributes);
                 $snapshot[] = [
-                    'productId' => $productId,
-                    'quantity' => $quantity,
+                    'productId' => $line->productId,
+                    'quantity' => $line->quantity,
                     'unitPrice' => $unitPrice->toDecimal(),
+                    'selectedAttributes' => $selectedAttributes,
                 ];
-                $calculatedSubtotal = $calculatedSubtotal->add($unitPrice->multiply($quantity));
+                $calculatedSubtotal = $calculatedSubtotal->add($unitPrice->multiply($line->quantity));
             }
 
             $discountPercent = $customer?->getDefaultDiscountPercent() ?? 0;
@@ -335,11 +341,14 @@ final readonly class CheckoutHandler
             $product = $products[$productId];
             $quantity = $quantities[$productId];
             $this->assertProductCanBeSold($product, $quantity);
-            $order->addItem(new OrderItem(
-                product: $product,
-                quantity: $quantity,
-                unitPrice: $product->getSellingPrice(),
-            ));
+            foreach ($this->itemsForProduct($input->items, $productId) as $line) {
+                $order->addItem(new OrderItem(
+                    product: $product,
+                    quantity: $line['quantity'],
+                    unitPrice: $product->getSellingPrice(),
+                    selectedAttributes: $this->resolveSelectedAttributes($product, $line['selectedAttributes']),
+                ));
+            }
         }
         $order->setManualDiscount($input->manualDiscount ?? Money::zero());
         $order->recalculateTotals();
@@ -579,6 +588,57 @@ final readonly class CheckoutHandler
         return $quantities;
     }
 
+    /** @param list<CheckoutItemInput> $items */
+    private function selectedAttributesForProduct(array $items, int $productId): array
+    {
+        $merged = [];
+        foreach ($items as $item) {
+            if ($item->productId !== $productId) continue;
+            foreach ($item->selectedAttributes as $name => $value) $merged[$name] = $value;
+        }
+        return $merged;
+    }
+
+    /** @param list<CheckoutItemInput> $items @return list<array{quantity:int,selectedAttributes:array<string,string>}> */
+    private function itemsForProduct(array $items, int $productId): array
+    {
+        $result = [];
+        foreach ($items as $item) if ($item->productId === $productId) $result[] = ['quantity' => $item->quantity, 'selectedAttributes' => $item->selectedAttributes];
+        return $result;
+    }
+
+    /** @param array<string,string> $selected */
+    private function resolveSelectedAttributes(Product $product, array $selected): array
+    {
+        $available = [];
+        foreach ($this->productAttributes->findByProduct($product) as $attribute) {
+            if (!$attribute->isSelectable()) continue;
+            $available[$attribute->getName()][] = $attribute->getValue();
+        }
+        $resolved = [];
+        foreach ($available as $name => $values) {
+            if (!array_key_exists($name, $selected)) {
+                throw new \DomainException(sprintf('Please select %s for product %s.', $name, $product->getName()));
+            }
+        }
+        foreach ($selected as $name => $value) {
+            $name = trim($name); $value = trim($value);
+            if ($name === '' || $value === '') continue;
+            if (!isset($available[$name]) || !in_array($value, $available[$name], true)) {
+                throw new \DomainException(sprintf('Selected attribute "%s: %s" is not available for product %s.', $name, $value, $product->getName()));
+            }
+            $resolved[$name] = $value;
+        }
+        ksort($resolved, SORT_NATURAL | SORT_FLAG_CASE);
+        return $resolved;
+    }
+
+    /** @param array<string,string> $attributes */
+    private function canonicalAttributes(array $attributes): array
+    {
+        $copy = $attributes; ksort($copy, SORT_NATURAL | SORT_FLAG_CASE); return $copy;
+    }
+
     private function assertProductCanBeSold(
         Product $product,
         int $quantity,
@@ -658,15 +718,17 @@ final readonly class CheckoutHandler
             $items[] = [
                 'productId' => $item->productId,
                 'quantity' => $item->quantity,
+                'selectedAttributes' => $this->canonicalAttributes($item->selectedAttributes),
             ];
         }
 
         usort(
             $items,
-            static fn (
-                array $left,
-                array $right,
-            ): int => $left['productId'] <=> $right['productId'],
+            static function (array $left, array $right): int {
+                $productCompare = $left['productId'] <=> $right['productId'];
+                if ($productCompare !== 0) return $productCompare;
+                return strcmp(json_encode($left['selectedAttributes'], JSON_THROW_ON_ERROR), json_encode($right['selectedAttributes'], JSON_THROW_ON_ERROR));
+            },
         );
 
         $payload = [

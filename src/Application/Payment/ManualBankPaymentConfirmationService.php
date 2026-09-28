@@ -173,6 +173,7 @@ final readonly class ManualBankPaymentConfirmationService
                 $product,
                 (int) $item['quantity'],
                 Money::fromDecimal((string) $item['unitPrice']),
+                is_array($item['selectedAttributes'] ?? null) ? $item['selectedAttributes'] : [],
             ));
         }
         $order->setDiscountPercent($session->getDiscountPercent());

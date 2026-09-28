@@ -13,6 +13,8 @@ final readonly class CopyOrderToPosItemResult
         public string $unitPrice,
         public int $quantity,
         public bool $active,
+        /** @var array<string,string> */
+        public array $selectedAttributes = [],
     ) {
     }
 }

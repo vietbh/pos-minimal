@@ -1,0 +1,143 @@
+{% extends 'layout/authenticated.html.twig' %}
+{% block title %}{{ 'admin.import_detail'|trans }}{% endblock %}
+{% block authenticated_body %}
+{% if batch.status.value in ['QUEUED', 'PROCESSING', 'VALIDATING'] %}
+<meta http-equiv="refresh" content="2">
+{% endif %}
+<div class="admin-workspace">
+    <header class="admin-toolbar">
+        <div>
+            <p class="eyebrow">{{ batch.type.value == 'product' ? 'admin.product_import'|trans : (batch.type.value == 'stock' ? 'admin.stock_import'|trans : 'Import khách hàng') }}</p>
+            <h1>{{ 'admin.import_detail'|trans }}</h1>
+            <p>{{ batch.originalFilename }}</p>
+        </div>
+        <div class="admin-toolbar__actions">
+            {% if batch.type.value == 'product' and is_granted('PRODUCT_CREATE') %}<a class="button" href="{{ path('admin_import_product_template') }}">{{ 'admin.download_template'|trans }}</a><a class="button" href="{{ path('admin_import_product') }}">{{ 'admin.import_product'|trans }}</a>{% endif %}
+            {% if batch.type.value == 'stock' and is_granted('STOCK_ADJUST') %}<a class="button" href="{{ path('admin_import_stock_template') }}">{{ 'admin.download_template'|trans }}</a><a class="button" href="{{ path('admin_import_stock') }}">{{ 'admin.import_stock'|trans }}</a>{% endif %}
+            <a class="button" href="{{ path('admin_import_history') }}">{{ 'admin.import_history'|trans }}</a>
+        </div>
+    </header>
+
+    {% if batch.errorMessage %}
+        <section class="admin-card import-error-summary" style="margin-top:16px;border:1px solid rgba(239,68,68,.45);">
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">{{ 'admin.import_processing_error'|trans }}</h2>
+                    <div class="admin-card__meta">{{ 'admin.import_processing_error_help'|trans }}</div>
+                </div>
+                <span class="badge badge-danger">{{ batch.errorCode|default('IMPORT_PROCESSING_FAILED') }}</span>
+            </div>
+            <div style="padding:12px 0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word;">{{ batch.errorMessage }}</div>
+        </section>
+    {% endif %}
+
+    <div class="admin-card-grid">
+        <article class="admin-card"><div class="admin-card__facts">
+            <div class="admin-fact"><small>{{ 'admin.import_status'|trans }}</small><strong>{{ batch.status.value }}</strong></div>
+            <div class="admin-fact"><small>{{ 'admin.total_rows'|trans }}</small><strong>{{ batch.totalRows }}</strong></div>
+            <div class="admin-fact"><small>{{ 'admin.success_rows'|trans }}</small><strong>{{ batch.successRows }}</strong></div>
+            <div class="admin-fact"><small>{{ 'admin.failed_rows'|trans }}</small><strong>{{ batch.failedRows }}</strong></div>
+        </div></article>
+    </div>
+    {% if batch.status.value in ['QUEUED', 'PROCESSING', 'VALIDATING'] %}
+        <div class="admin-card" style="margin-top:16px;border:1px solid rgba(59,130,246,.35)">Đang xử lý import… trang sẽ tự cập nhật sau 2 giây. Khi hoàn tất sẽ hiển thị <strong>COMPLETED</strong>, <strong>PARTIAL</strong> hoặc <strong>FAILED</strong>.</div>
+    {% endif %}
+
+    {% if batch.status.value in ['READY', 'VALIDATION_FAILED'] and rows is not empty %}
+        <section class="admin-card" style="margin-top:16px">
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">{{ 'admin.import_preview'|trans }}</h2>
+                    <div class="admin-card__meta">{{ 'admin.import_preview_help'|trans }}</div>
+                </div>
+            </div>
+            <form method="post" action="{{ path('admin_import_preview_save', {id: batch.id}) }}" data-controller="money-input">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_import_preview_' ~ batch.id) }}">
+                <div class="admin-table-wrap">
+                    <table class="admin-table import-preview-table">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            {% for header in headers %}<th>{{ header }}</th>{% endfor %}
+                            <th>{{ 'admin.import_row_status'|trans }}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for state in rows %}
+                            {% set payload = previewPayloads[state.rowNumber]|default({}) %}
+                            <tr class="{{ state.status.value == 'FAILED' ? 'is-invalid' : '' }}">
+                                <td><strong>{{ state.rowNumber }}</strong></td>
+                                {% for header in headers %}
+                                    <td>
+                                        <input
+                                            class="input"
+                                            type="text"
+                                            name="rows[{{ state.rowNumber }}][{{ header }}]"
+                                            value="{{ payload[header]|default('') }}"
+                                            {% if header in ['Selling Price', 'Cost Price'] %}data-money-input{% endif %}
+                                            {% if batch.status.value not in ['READY', 'VALIDATION_FAILED'] %}disabled{% endif %}
+                                        >
+                                    </td>
+                                {% endfor %}
+                                <td>
+                                    {% if state.status.value == 'FAILED' %}
+                                        <span class="badge badge-danger">{{ 'admin.import_invalid'|trans }}</span>
+                                    {% else %}
+                                        <span class="badge">{{ 'admin.import_valid'|trans }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="admin-card__actions" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+                    <button class="button primary" type="submit">{{ 'admin.save_preview_revalidate'|trans }}</button>
+                    <span class="admin-card__meta">{{ 'admin.import_preview_revalidate_note'|trans }}</span>
+                </div>
+            </form>
+        </section>
+    {% endif %}
+
+    {% if batch.status.value == 'READY' %}
+        <section class="admin-card" style="margin-top:16px">
+            <div class="admin-card__header">
+                <div>
+                    <h2 class="admin-card__title">{{ 'admin.confirm_import'|trans }}</h2>
+                    <div class="admin-card__meta">{{ 'admin.confirm_import_help'|trans }}</div>
+                </div>
+            </div>
+            <form method="post" action="{{ path('admin_import_confirm', {id: batch.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('admin_import_confirm_' ~ batch.id) }}">
+                <button class="button primary" type="submit">{{ 'admin.confirm_queue_import'|trans }}</button>
+            </form>
+        </section>
+    {% elseif batch.status.value == 'VALIDATION_FAILED' %}
+        <section class="admin-card" style="margin-top:16px">
+            <div class="admin-card__header"><div><h2 class="admin-card__title">{{ 'admin.import_needs_correction'|trans }}</h2><div class="admin-card__meta">{{ 'admin.import_needs_correction_help'|trans }}</div></div></div>
+        </section>
+    {% endif %}
+
+    {% set hasRowStateErrors = false %}
+    {% for state in rows %}
+        {% if state.status.value == 'FAILED' and state.errorMessage %}{% set hasRowStateErrors = true %}{% endif %}
+    {% endfor %}
+    {% if hasRowStateErrors %}
+        <section class="admin-card" style="margin-top:16px">
+            <div class="admin-card__header"><div><h2 class="admin-card__title">{{ 'admin.import_row_processing_errors'|trans }}</h2></div></div>
+            <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>{{ 'admin.row'|trans }}</th><th>{{ 'admin.error_code'|trans }}</th><th>{{ 'admin.message'|trans }}</th></tr></thead><tbody>
+            {% for state in rows %}
+                {% if state.status.value == 'FAILED' and state.errorMessage %}<tr><td>{{ state.rowNumber }}</td><td>{{ state.errorCode|default('IMPORT_ROW_PROCESSING_FAILED') }}</td><td style="white-space:pre-wrap;word-break:break-word;">{{ state.errorMessage }}</td></tr>{% endif %}
+            {% endfor %}
+            </tbody></table></div>
+        </section>
+    {% endif %}
+
+    {% if errors is not empty %}
+        <section class="admin-card" style="margin-top:16px">
+            <div class="admin-card__header"><div><h2 class="admin-card__title">{{ 'admin.import_errors'|trans }}</h2></div><a class="button" href="{{ path('admin_import_errors', {id: batch.id}) }}">{{ 'admin.download_error_report'|trans }}</a></div>
+            <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>{{ 'admin.row'|trans }}</th><th>{{ 'admin.field'|trans }}</th><th>{{ 'admin.error_code'|trans }}</th><th>{{ 'admin.message'|trans }}</th></tr></thead><tbody>{% for error in errors %}<tr><td>{{ error.rowNumber }}</td><td>{{ error.field }}</td><td>{{ error.errorCode }}</td><td>{{ error.message }}</td></tr>{% endfor %}</tbody></table></div>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'layout/authenticated.html.twig' %}
+{% block title %}{{ type.value == 'product' ? 'admin.product_import'|trans : (type.value == 'stock' ? 'admin.stock_import'|trans : 'Import khách hàng') }}{% endblock %}
+{% block authenticated_body %}
+<div class="admin-workspace">
+    <header class="admin-toolbar">
+        <div>
+            <p class="eyebrow">{{ 'admin.import_excel'|trans }}</p>
+            <h1>{{ type.value == 'product' ? 'admin.product_import'|trans : (type.value == 'stock' ? 'admin.stock_import'|trans : 'Import khách hàng') }}</h1>
+            <p>{{ 'admin.import_help'|trans }}</p>
+        </div>
+        <div class="admin-toolbar__actions">
+            <a class="button" href="{{ path('admin_import_' ~ type.value ~ '_template') }}">{{ 'admin.download_template'|trans }}</a>
+            <a class="button" href="{{ path('admin_import_history') }}">{{ 'admin.import_history'|trans }}</a>
+        </div>
+    </header>
+
+    <section class="admin-card" aria-labelledby="import-upload-title">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title" id="import-upload-title">{{ 'admin.choose_excel'|trans }}</h2>
+                <div class="admin-card__meta">{{ 'admin.import_xlsx_only'|trans }}</div>
+            </div>
+        </div>
+        <form method="post" enctype="multipart/form-data" data-turbo="false">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_import_' ~ type.value) }}">
+            <label for="file">{{ 'admin.excel_file'|trans }}
+                <input id="file" name="file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+            </label>
+            <p class="form-help">{{ 'admin.import_limits'|trans }}</p>
+            {% if type.value == 'stock' %}
+                <div class="admin-card__meta" style="margin-top:12px">{{ 'admin.stock_import_delta_help'|trans }}</div>
+            {% elseif type.value == 'customer' %}
+                <div class="admin-card__meta" style="margin-top:12px">Import khách hàng chỉ tạo khách hàng mới; số điện thoại nếu có phải là duy nhất.</div>
+            {% endif %}
+            <div class="admin-actions" style="margin-top:16px">
+                <a class="button" href="{{ path('admin_import_' ~ type.value ~ '_template') }}">{{ 'admin.download_template'|trans }}</a>
+                <button class="button primary" type="submit">{{ 'admin.upload_validate'|trans }}</button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}

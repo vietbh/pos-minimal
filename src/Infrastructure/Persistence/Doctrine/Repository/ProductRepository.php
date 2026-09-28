@@ -41,6 +41,39 @@ final class ProductRepository implements ProductRepositoryInterface
             ->getOneOrNullResult();
     }
 
+    public function findAllActiveOrderedByName(): array
+    {
+        return $this->entityManager
+            ->createQueryBuilder()
+            ->select('p')
+            ->from(Product::class, 'p')
+            ->leftJoin('p.category', 'c')
+            ->where('p.isActive = :active')
+            ->setParameter('active', true)
+            ->orderBy('p.name', 'ASC')
+            ->addOrderBy('p.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findByName(string $name): ?Product
+    {
+        $name = trim($name);
+        if ($name === '') return null;
+
+        return $this->entityManager
+            ->createQueryBuilder()
+            ->select('p')
+            ->from(Product::class, 'p')
+            ->where('LOWER(p.name) = LOWER(:name)')
+            ->andWhere('p.isActive = :active')
+            ->setParameter('name', $name)
+            ->setParameter('active', true)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     public function existsBySku(
         Sku $sku,
         ?int $excludeId = null,

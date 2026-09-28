@@ -158,6 +158,7 @@ export default class extends Controller {
                     unitPrice: String(item.unitPrice || '0.00'),
                     quantity: Number(item.quantity),
                     stockQuantity: Number.isFinite(Number(item.stockQuantity)) ? Number(item.stockQuantity) : null,
+                    selectedAttributes: item.selectedAttributes && typeof item.selectedAttributes === 'object' ? item.selectedAttributes : {},
                 }));
 
             if (data.customer?.id) {
@@ -476,7 +477,7 @@ export default class extends Controller {
             stockBadge.className = stock <= 0 ? 'pos-product-stock is-out' : 'pos-product-stock';
             stockBadge.textContent = stock <= 0 ? this.messagesValue.outOfStock : `${this.messagesValue.stockRemaining} ${stock}`;
 
-            const quantityInCart = this.cartItems.find((item) => item.productId === Number(product.id))?.quantity || 0;
+            const quantityInCart = this.cartItems.filter((item) => item.productId === Number(product.id)).reduce((sum, item) => sum + Number(item.quantity || 0), 0);
             if (quantityInCart > 0) {
                 const inCart = document.createElement('span');
                 inCart.className = 'pos-product-in-cart';
@@ -533,12 +534,11 @@ export default class extends Controller {
         this.addToCart(syntheticEvent);
     }
 
-    addToCart(event) {
+    async addToCart(event) {
         event.preventDefault();
         event.stopPropagation();
         const productIdKey = String(event.currentTarget.dataset.productId || '');
         const product = this.products.get(productIdKey);
-        this.debug('cart:add-attempt', { productIdKey, found: Boolean(product), cartCount: this.cartItems.length });
         if (!product) return;
 
         const productId = Number(product.id);
@@ -548,7 +548,10 @@ export default class extends Controller {
             return;
         }
 
-        const existing = this.cartItems.find((item) => item.productId === productId);
+        const selectedAttributes = await this.selectProductAttributes(product);
+        if (selectedAttributes === null) return;
+        const lineKey = this.cartLineKey(productId, selectedAttributes);
+        const existing = this.cartItems.find((item) => this.cartLineKey(item.productId, item.selectedAttributes || {}) === lineKey);
 
         if (existing) {
             if (existing.quantity >= stock) {
@@ -564,6 +567,7 @@ export default class extends Controller {
                 unitPrice: product.sellingPrice,
                 quantity: 1,
                 stockQuantity: stock,
+                selectedAttributes,
             });
         }
 
@@ -572,13 +576,78 @@ export default class extends Controller {
         this.setStatus(this.statusItemAddedValue);
     }
 
+    cartLineKey(productId, attributes = {}) {
+        const canonical = Object.keys(attributes || {}).sort((a, b) => a.localeCompare(b)).map((name) => [name, String(attributes[name])]);
+        return `${Number(productId)}:${JSON.stringify(canonical)}`;
+    }
+
+    async selectProductAttributes(product) {
+        const attributes = Array.isArray(product.attributes) ? product.attributes.filter((a) => a?.name && a?.value) : [];
+        if (attributes.length === 0) return {};
+
+        const groups = new Map();
+        for (const attribute of attributes) {
+            if (!groups.has(attribute.name)) groups.set(attribute.name, []);
+            groups.get(attribute.name).push(attribute.value);
+        }
+        if (!groups.size) return {};
+
+        const dialog = document.createElement('dialog');
+        dialog.className = 'pos-attribute-dialog';
+        const form = document.createElement('form');
+        form.method = 'dialog';
+        const title = document.createElement('h3');
+        title.textContent = `Chọn thuộc tính · ${product.name}`;
+        form.append(title);
+        for (const [name, values] of groups) {
+            const section = document.createElement('fieldset');
+            const legend = document.createElement('legend');
+            legend.textContent = name;
+            section.append(legend);
+            values.forEach((value, index) => {
+                const label = document.createElement('label');
+                label.className = 'pos-attribute-option';
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = `attribute-${name}`;
+                input.value = value;
+                input.checked = index === 0;
+                label.append(input, document.createTextNode(value));
+                section.append(label);
+            });
+            form.append(section);
+        }
+        const actions = document.createElement('div');
+        actions.className = 'pos-attribute-dialog-actions';
+        const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'button'; cancel.textContent = 'Hủy';
+        const confirm = document.createElement('button'); confirm.type = 'submit'; confirm.className = 'button primary'; confirm.textContent = 'Thêm vào giỏ';
+        actions.append(cancel, confirm); form.append(actions); dialog.append(form); document.body.append(dialog);
+
+        return await new Promise((resolve) => {
+            const cleanup = () => { dialog.close(); dialog.remove(); };
+            cancel.addEventListener('click', () => { cleanup(); resolve(null); }, { once: true });
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const selected = {};
+                for (const name of groups.keys()) {
+                    const input = form.querySelector(`input[name="attribute-${CSS.escape(name)}"]:checked`);
+                    if (input) selected[name] = input.value;
+                }
+                cleanup(); resolve(selected);
+            }, { once: true });
+            dialog.addEventListener('cancel', () => { cleanup(); resolve(null); }, { once: true });
+            dialog.showModal();
+        });
+    }
+
     changeQuantity(event) {
         event.preventDefault();
         const productId = Number(event.currentTarget.dataset.productId);
+        const lineKey = event.currentTarget.dataset.lineKey || '';
         const delta = Number(event.currentTarget.dataset.delta);
         if (!Number.isInteger(productId) || !Number.isInteger(delta)) return;
 
-        const item = this.cartItems.find((entry) => entry.productId === productId);
+        const item = this.cartItems.find((entry) => entry.productId === productId && this.cartLineKey(entry.productId, entry.selectedAttributes || {}) === lineKey) || this.cartItems.find((entry) => entry.productId === productId);
         if (!item) return;
 
         const nextQuantity = item.quantity + delta;
@@ -594,7 +663,7 @@ export default class extends Controller {
 
         item.quantity = nextQuantity;
         if (item.quantity <= 0) {
-            this.cartItems = this.cartItems.filter((entry) => entry.productId !== productId);
+            this.cartItems = this.cartItems.filter((entry) => !(entry.productId === productId && this.cartLineKey(entry.productId, entry.selectedAttributes || {}) === lineKey));
         }
 
         this.persistCart();
@@ -604,9 +673,10 @@ export default class extends Controller {
     quantityChanged(event) {
         const input = event.currentTarget;
         const productId = Number(input.dataset.productId);
+        const lineKey = input.dataset.lineKey || '';
         if (!Number.isInteger(productId)) return;
 
-        const item = this.cartItems.find((entry) => entry.productId === productId);
+        const item = this.cartItems.find((entry) => entry.productId === productId && this.cartLineKey(entry.productId, entry.selectedAttributes || {}) === lineKey) || this.cartItems.find((entry) => entry.productId === productId);
         if (!item) return;
 
         const digits = String(input.value || '').replace(/[^0-9]/g, '');
@@ -630,7 +700,7 @@ export default class extends Controller {
         }
 
         if (quantity <= 0) {
-            this.removeItemById(productId);
+            this.removeItemById(productId, lineKey);
             return;
         }
 
@@ -639,8 +709,8 @@ export default class extends Controller {
         this.renderCart();
     }
 
-    removeItemById(productId) {
-        this.cartItems = this.cartItems.filter((entry) => entry.productId !== productId);
+    removeItemById(productId, lineKey = '') {
+        this.cartItems = this.cartItems.filter((entry) => !(entry.productId === productId && this.cartLineKey(entry.productId, entry.selectedAttributes || {}) === lineKey));
         this.persistCart();
         this.renderCart();
     }
@@ -648,8 +718,9 @@ export default class extends Controller {
     removeItem(event) {
         event.preventDefault();
         const productId = Number(event.currentTarget.dataset.productId);
+        const lineKey = event.currentTarget.dataset.lineKey || '';
         if (!Number.isInteger(productId)) return;
-        this.cartItems = this.cartItems.filter((entry) => entry.productId !== productId);
+        this.cartItems = this.cartItems.filter((entry) => !(entry.productId === productId && this.cartLineKey(entry.productId, entry.selectedAttributes || {}) === lineKey));
         this.persistCart();
         this.renderCart();
     }
@@ -683,6 +754,8 @@ export default class extends Controller {
 
             const name = document.createElement('strong');
             name.textContent = item.name || `Product #${item.productId}`;
+            const attributeText = Object.entries(item.selectedAttributes || {}).map(([key, value]) => `${key}: ${value}`).join(' · ');
+            if (attributeText) { const attr = document.createElement('small'); attr.className = 'pos-cart-attributes'; attr.textContent = attributeText; main.append(attr); }
 
             const unitPrice = this.parseMajorToMinor(item.unitPrice);
             const lineTotal = unitPrice * BigInt(item.quantity);
@@ -707,6 +780,7 @@ export default class extends Controller {
             count.className = 'pos-quantity';
             count.dataset.action = 'input->pos-checkout#quantityChanged change->pos-checkout#quantityChanged';
             count.dataset.productId = String(item.productId);
+            count.dataset.lineKey = this.cartLineKey(item.productId, item.selectedAttributes || {});
             count.setAttribute('aria-label', `Số lượng ${item.name || `Product #${item.productId}`}`);
             const plus = this.quantityButton('+', this.cartIncreaseLabelValue, item, 1);
 
@@ -716,6 +790,7 @@ export default class extends Controller {
             remove.textContent = this.cartRemoveLabelValue;
             remove.dataset.action = 'click->pos-checkout#removeItem';
             remove.dataset.productId = String(item.productId);
+        remove.dataset.lineKey = this.cartLineKey(item.productId, item.selectedAttributes || {});
             remove.setAttribute('aria-label', `${this.cartRemoveLabelValue} ${name.textContent}`);
 
             controls.append(minus, count, plus, line, remove);
@@ -758,6 +833,7 @@ export default class extends Controller {
         button.textContent = label;
         button.dataset.action = 'click->pos-checkout#changeQuantity';
         button.dataset.productId = String(item.productId);
+        button.dataset.lineKey = this.cartLineKey(item.productId, item.selectedAttributes || {});
         button.dataset.delta = String(delta);
         button.setAttribute('aria-label', `${action} ${item.name || `Product #${item.productId}`}`);
         return button;
@@ -1076,10 +1152,19 @@ export default class extends Controller {
         const value = String(input.value || '');
         const caret = Number.isInteger(input.selectionStart) ? input.selectionStart : value.length;
         const digitsBeforeCaret = value.slice(0, caret).replace(/[^0-9]/g, '').length;
-        const raw = value.replace(/[^0-9]/g, '');
-        if (raw === '') return;
+        const normalizedInput = value.replace(/,/g, '').trim();
+        if (normalizedInput === '') return;
 
-        const normalized = raw.replace(/^0+(?=\d)/, '');
+        // API/persistence money values are major VND with a `.00` suffix.
+        // Treat the suffix as decimal metadata, not as digits to format.
+        let normalized = normalizedInput;
+        if (/^\d+\.0{1,2}$/.test(normalizedInput)) {
+            normalized = normalizedInput.split('.')[0];
+        } else if (!/^\d+$/.test(normalizedInput)) {
+            return;
+        }
+
+        normalized = normalized.replace(/^0+(?=\d)/, '');
         const formatted = Number(normalized).toLocaleString('en-US');
         input.value = formatted;
 
@@ -1295,7 +1380,7 @@ export default class extends Controller {
         };
 
         const payload = {
-            items: this.cartItems.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+            items: this.cartItems.map((item) => ({ productId: item.productId, quantity: item.quantity, selectedAttributes: item.selectedAttributes || {} })),
             customerId: this.customer?.id ?? null,
             manualDiscount: this.formatMinorApi(this.cartManualDiscountMinor(this.cartSubtotalMinor())),
             payment,

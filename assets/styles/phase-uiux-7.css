@@ -776,3 +776,118 @@ html[data-appearance="system"] .pos-payment-card .pos-bank-qr-placeholder {
         border-color: var(--ux-border, #475569) !important;
     }
 }
+
+.form-help{margin:.5rem 0 0;color:var(--ux-muted,#64748b);font-size:.88rem;line-height:1.5}
+
+/* Import history — selection and card hierarchy */
+.import-history-selection-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin:0 0 14px;
+    padding:12px 14px;
+    border:1px solid var(--ux-border,#cbd5e1);
+    border-radius:14px;
+    background:var(--web-surface-soft,#f8fafc);
+}
+.import-history-select-all,
+.import-history-row-check{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    cursor:pointer;
+}
+.import-history-select-all{gap:10px;min-width:0}
+.import-history-select-all > span:last-child{display:grid;gap:2px}
+.import-history-select-all small{font-size:.78rem;color:var(--web-text-muted,#64748b);font-weight:500}
+.import-history-row-check{flex:0 0 22px;width:22px;height:22px}
+.import-history-select-all input,
+.import-history-row-check input{
+    position:absolute!important;
+    inset:0!important;
+    width:22px!important;
+    height:22px!important;
+    min-width:22px!important;
+    min-height:22px!important;
+    margin:0!important;
+    opacity:0!important;
+    cursor:pointer;
+    z-index:2;
+}
+.import-history-checkbox{
+    width:20px;
+    height:20px;
+    flex:0 0 20px;
+    display:grid;
+    place-items:center;
+    border:1.5px solid #6b7c77;
+    border-radius:6px;
+    background:var(--web-surface,#fff);
+    box-sizing:border-box;
+    transition:.15s ease;
+}
+.import-history-select-all input:focus-visible + .import-history-checkbox,
+.import-history-row-check input:focus-visible + .import-history-checkbox{outline:3px solid rgba(43,196,174,.25);outline-offset:2px}
+.import-history-select-all input:checked + .import-history-checkbox,
+.import-history-row-check input:checked + .import-history-checkbox,
+.import-history-select-all input:indeterminate + .import-history-checkbox{
+    background:var(--web-primary,#2bc4ae);
+    border-color:var(--web-primary,#2bc4ae);
+}
+.import-history-select-all input:checked + .import-history-checkbox::after,
+.import-history-row-check input:checked + .import-history-checkbox::after{
+    content:'✓';
+    color:#09241f;
+    font-size:14px;
+    font-weight:900;
+    line-height:1;
+}
+.import-history-select-all input:indeterminate + .import-history-checkbox::after{
+    content:'';
+    width:9px;
+    height:2px;
+    border-radius:2px;
+    background:#09241f;
+}
+.import-history-row-check input:disabled + .import-history-checkbox{
+    opacity:.42;
+    cursor:not-allowed;
+}
+.import-history-delete{
+    flex:0 0 auto!important;
+    min-width:180px;
+}
+.import-history-delete:disabled{opacity:.48;cursor:not-allowed}
+.import-history-delete span{font-size:1.15rem;font-weight:800;margin-right:3px}
+.import-history-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.import-history-card{position:relative;transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.import-history-card:hover{transform:translateY(-1px)}
+.import-history-card.is-selected{border-color:var(--web-primary,#2bc4ae)!important;box-shadow:0 0 0 2px rgba(43,196,174,.12)}
+.import-history-card__identity{display:flex;align-items:flex-start;gap:11px;min-width:0}
+.import-history-card__identity > div:last-child{min-width:0}
+.import-history-card__identity .admin-card__title a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.import-history-card__actions{align-items:center}
+.import-history-card__actions .button{flex:1 1 auto}
+.import-history-locked-note{flex:0 1 auto;color:var(--web-text-muted,#64748b);font-size:.76rem;font-weight:600}
+.import-history-card--locked{opacity:.9}
+
+@media(min-width:640px){
+    .import-history-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:639px){
+    .import-history-selection-bar{align-items:stretch;flex-direction:column}
+    .import-history-delete{width:100%;min-height:46px}
+    .import-history-card-grid{grid-template-columns:1fr}
+    .import-history-card__actions{flex-direction:column;align-items:stretch}
+    .import-history-locked-note{text-align:center}
+}
+
+html[data-appearance="dark"] .import-history-selection-bar,
+html[data-appearance="system"] .import-history-selection-bar{background:#1E2A27;border-color:#30403C}
+html[data-appearance="dark"] .import-history-checkbox,
+html[data-appearance="system"] .import-history-checkbox{background:#16201E;border-color:#6f827c}
+html[data-appearance="dark"] .import-history-select-all small,
+html[data-appearance="system"] .import-history-select-all small,
+html[data-appearance="dark"] .import-history-locked-note,
+html[data-appearance="system"] .import-history-locked-note{color:#9AAEA9}

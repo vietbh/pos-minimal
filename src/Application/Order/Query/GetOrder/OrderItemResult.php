@@ -14,6 +14,8 @@ final readonly class OrderItemResult
         public string $unitPrice,
         public int $quantity,
         public string $subtotal,
+        /** @var array<string,string> */
+        public array $selectedAttributes = [],
     ) {
     }
 }

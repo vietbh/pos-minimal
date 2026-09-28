@@ -255,7 +255,7 @@ final readonly class BankNotificationReconciliationService
             $product = $this->productLocking->lock((int) $item['productId']);
             $quantity = (int) $item['quantity'];
             $snapshotPrice = Money::fromDecimal((string) $item['unitPrice']);
-            $order->addItem(new OrderItem($product, $quantity, $snapshotPrice));
+            $order->addItem(new OrderItem($product, $quantity, $snapshotPrice, is_array($item['selectedAttributes'] ?? null) ? $item['selectedAttributes'] : []));
         }
         $order->setDiscountPercent($session->getDiscountPercent());
         $order->setManualDiscount($session->getManualDiscount());

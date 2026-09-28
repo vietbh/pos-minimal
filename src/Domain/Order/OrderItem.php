@@ -86,10 +86,15 @@ class OrderItem
     )]
     private Money $subtotal;
 
+    /** Immutable snapshot of POS-selected product attributes at sale time. */
+    #[ORM\Column(name: 'selected_attributes', type: 'json', nullable: true)]
+    private ?array $selectedAttributes = null;
+
     public function __construct(
         Product $product,
         int $quantity,
         ?Money $unitPrice = null,
+        array $selectedAttributes = [],
     ) {
         if ($quantity <= 0) {
             throw new \InvalidArgumentException(
@@ -111,6 +116,14 @@ class OrderItem
         $this->unitPrice = $unitPrice ?? $product->getSellingPrice();
         $this->quantity = $quantity;
         $this->subtotal = $this->unitPrice->multiply($quantity);
+        $normalized = [];
+        foreach ($selectedAttributes as $name => $value) {
+            $name = trim((string) $name);
+            $value = trim((string) $value);
+            if ($name !== '' && $value !== '') $normalized[$name] = $value;
+        }
+        ksort($normalized, SORT_NATURAL | SORT_FLAG_CASE);
+        $this->selectedAttributes = $normalized;
     }
 
     public function getId(): ?int
@@ -157,6 +170,12 @@ class OrderItem
     public function getQuantity(): int
     {
         return $this->quantity;
+    }
+
+    /** @return array<string,string> */
+    public function getSelectedAttributes(): array
+    {
+        return $this->selectedAttributes ?? [];
     }
 
     public function getSubtotal(): Money

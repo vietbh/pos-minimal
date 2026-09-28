@@ -9,6 +9,7 @@ use App\Application\Common\Transaction\TransactionManagerInterface;
 use App\Domain\Product\Product;
 use App\Domain\Product\Repository\ProductRepositoryInterface;
 use App\Domain\Product\Repository\ProductCategoryRepositoryInterface;
+use App\Domain\Product\ValueObject\Sku;
 
 final readonly class CreateProductHandler
 {
@@ -47,15 +48,19 @@ final readonly class CreateProductHandler
                         throw new \DomainException('Product category was not found or is inactive.');
                     }
                 } elseif ($categoryName !== '') {
-                    if ($this->categoryRepository->existsByName($categoryName)) {
-                        throw new \DomainException('A category with this name already exists.');
-                    }
+                    $category = $this->categoryRepository->findByNormalizedName($categoryName);
 
-                    $category = new \App\Domain\Product\ProductCategory($categoryName);
-                    $this->categoryRepository->save($category);
+                    if ($category !== null) {
+                        if (!$category->isActive()) {
+                            throw new \DomainException('Product category was found but is inactive.');
+                        }
+                    } else {
+                        $category = new \App\Domain\Product\ProductCategory($categoryName);
+                        $this->categoryRepository->save($category);
+                    }
                 }
 
-                $sku = $input->sku ?? $this->generateSku($input->name);
+                $sku = $input->sku ?? $this->generateSku($input->name, $category?->getName());
 
                 $product = new Product(
                     name: $input->name,
@@ -85,29 +90,50 @@ final readonly class CreateProductHandler
         );
     }
 
-    private function generateSku(string $name): Sku
+    private function generateSku(string $name, ?string $categoryName = null): Sku
     {
-        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', trim($name));
-        $ascii = is_string($ascii) && $ascii !== '' ? $ascii : trim($name);
-        $ascii = strtoupper($ascii);
-        $ascii = preg_replace('/[^A-Z0-9]+/', '-', $ascii) ?? '';
-        $base = trim($ascii, '-');
-        $base = substr($base !== '' ? $base : 'PRODUCT', 0, 100);
+        $categoryPart = $this->slugPart($categoryName ?? '');
+        $namePart = $this->slugPart($name);
 
-        // Keep the SKU human-readable while making automatic generation resistant
-        // to collisions even when many products share the same name.
-        for ($attempt = 0; $attempt < 100; ++$attempt) {
-            $random = strtoupper(bin2hex(random_bytes(3)));
-            $suffix = '-' . $random;
-            $candidate = substr($base, 0, 100 - strlen($suffix)) . $suffix;
-            $sku = new Sku($candidate);
+        if ($categoryPart !== '' && ($namePart === $categoryPart || str_starts_with($namePart, $categoryPart.'-'))) {
+            $namePart = trim(substr($namePart, strlen($categoryPart)), '-');
+        }
 
-            if (!$this->productRepository->existsBySku($sku)) {
-                return $sku;
+        $base = implode('-', array_values(array_filter([
+            $categoryPart,
+            $namePart,
+        ])));
+        $base = substr($base !== '' ? $base : 'PRODUCT', 0, 90);
+
+        $candidate = new Sku($base);
+        if (!$this->productRepository->existsBySku($candidate)) {
+            return $candidate;
+        }
+
+        // Keep the generated SKU human-readable and stable after creation.
+        // If the readable base is already taken, append a short random suffix
+        // rather than relying on MAX()+1, which is unsafe under concurrent creates.
+        for ($attempt = 0; $attempt < 20; ++$attempt) {
+            $suffix = strtoupper(bin2hex(random_bytes(3)));
+            $candidateValue = substr($base, 0, 100 - 7).'_'.$suffix;
+            $candidate = new Sku($candidateValue);
+
+            if (!$this->productRepository->existsBySku($candidate)) {
+                return $candidate;
             }
         }
 
         throw new \DomainException('Unable to generate a unique SKU for this product.');
+    }
+
+    private function slugPart(string $value): string
+    {
+        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', trim($value));
+        $ascii = is_string($ascii) && $ascii !== '' ? $ascii : trim($value);
+        $ascii = strtoupper($ascii);
+        $ascii = preg_replace('/[^A-Z0-9]+/', '-', $ascii) ?? '';
+
+        return trim($ascii, '-');
     }
 
     private function validateInput(CreateProductInput $input): void

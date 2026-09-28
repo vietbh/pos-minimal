@@ -45,6 +45,7 @@ final readonly class CopyOrderToPosHandler
                 unitPrice: $product->getSellingPrice()->toDecimal(),
                 quantity: $item->getQuantity(),
                 active: $product->isActive(),
+                selectedAttributes: $item->getSelectedAttributes(),
             );
         }
 

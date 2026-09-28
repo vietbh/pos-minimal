@@ -47,9 +47,9 @@ final class MoneyVndExtension extends AbstractExtension
         }
         $groups[] = $whole;
 
-        $formatted = implode('.', array_reverse($groups));
+        $formatted = implode(',', array_reverse($groups));
         if ($fraction !== '') {
-            $formatted .= ',' . $fraction;
+            $formatted .= '.' . $fraction;
         }
 
         return $formatted . ' ₫';

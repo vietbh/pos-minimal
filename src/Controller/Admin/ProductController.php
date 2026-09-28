@@ -18,6 +18,8 @@ use App\Application\Product\Command\DeactivateProduct\DeactivateProductHandler;
 use App\Application\Product\Command\DeactivateProduct\DeactivateProductInput;
 use App\Application\Product\Command\UpdateProduct\UpdateProductHandler;
 use App\Application\Product\Command\UpdateProduct\UpdateProductInput;
+use App\Application\Product\Command\UpdateProductAttributes\UpdateProductAttributesHandler;
+use App\Domain\Product\Repository\ProductAttributeRepositoryInterface;
 use App\Application\Product\Query\ProductCatalogHandler;
 use App\Application\Product\Query\ProductCatalogInput;
 use App\Application\Product\Query\SearchProducts\SearchProductsHandler;
@@ -62,7 +64,7 @@ final class ProductController extends AbstractController
     }
 
     #[Route('/admin/products/new', name: 'admin_products_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, CreateProductHandler $handler, ProductCategoryRepositoryInterface $categoryRepository, CsrfTokenManagerInterface $csrf): Response
+    public function new(Request $request, CreateProductHandler $handler, ProductCategoryRepositoryInterface $categoryRepository, UpdateProductAttributesHandler $attributesHandler, CsrfTokenManagerInterface $csrf): Response
     {
         $this->denyAccessUnlessGranted(Permission::PRODUCT_CREATE->value);
         $data = $this->productData($request);
@@ -77,6 +79,7 @@ final class ProductController extends AbstractController
                     costPrice: $data['costPrice'] !== '' ? Money::fromDecimal($data['costPrice']) : null,
                     lowStockThreshold: $data['lowStockThreshold'], note: $data['note'] !== '' ? $data['note'] : null, categoryId: $data['categoryId'], categoryName: $data['categoryName'] !== '' ? $data['categoryName'] : null,
                 ));
+                $attributesHandler($id, $this->attributeData($request));
                 $this->addFlash('success', 'Product created.');
                 return $this->redirectToRoute('admin_products_show', ['id' => $id]);
             } catch (\Throwable $e) { $this->addFlash('error', $this->safeMessage($e)); }
@@ -85,6 +88,7 @@ final class ProductController extends AbstractController
             'product' => null,
             'data' => $data,
             'categories' => $categoryRepository->findActiveOrdered(),
+            'attributes' => $data['attributes'] ?? $this->attributeData($request),
         ]);
         if ($request->isMethod('POST')) {
             $response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -94,7 +98,7 @@ final class ProductController extends AbstractController
     }
 
     #[Route('/admin/products/{id<\d+>}', name: 'admin_products_show', methods: ['GET'])]
-    public function show(Request $request, int $id, ProductRepositoryInterface $products, StockMovementRepositoryInterface $movements): Response
+    public function show(Request $request, int $id, ProductRepositoryInterface $products, ProductAttributeRepositoryInterface $attributes, StockMovementRepositoryInterface $movements): Response
     {
         $this->denyAccessUnlessGranted(Permission::PRODUCT_VIEW->value);
         $product = $products->findById($id);
@@ -121,6 +125,7 @@ final class ProductController extends AbstractController
 
         return $this->render('admin/product/show.html.twig', [
             'product' => $product,
+            'attributes' => $attributes->findByProduct($product),
             'movements' => $result['items'],
             'movementTotal' => $result['total'],
             'movementPage' => $page,
@@ -132,17 +137,20 @@ final class ProductController extends AbstractController
     }
 
     #[Route('/admin/products/{id<\d+>}/edit', name: 'admin_products_edit', methods: ['GET', 'POST'])]
-    public function edit(int $id, Request $request, ProductRepositoryInterface $products, ProductCategoryRepositoryInterface $categoryRepository, UpdateProductHandler $handler, CsrfTokenManagerInterface $csrf): Response
+    public function edit(int $id, Request $request, ProductRepositoryInterface $products, ProductCategoryRepositoryInterface $categoryRepository, ProductAttributeRepositoryInterface $attributes, UpdateProductHandler $handler, UpdateProductAttributesHandler $attributesHandler, CsrfTokenManagerInterface $csrf): Response
     {
         $this->denyAccessUnlessGranted(Permission::PRODUCT_EDIT->value);
         $product = $products->findById($id);
         if (!$product instanceof Product) throw $this->createNotFoundException('Product not found.');
         $data = $this->productData($request, $product);
+        $existingAttributes = $attributes->findByProduct($product);
+        $data['attributes'] = $this->attributeData($request, $existingAttributes);
         if ($request->isMethod('POST')) {
             $this->checkCsrf($request, $csrf, 'admin_product_form');
             try {
                 $this->validateProductFormData($request, $data, true);
                 $handler(new UpdateProductInput($id, $data['name'], $data['sku'] !== '' ? new Sku($data['sku']) : null, $data['unit'] !== '' ? $data['unit'] : null, $data['costPrice'] !== '' ? Money::fromDecimal($data['costPrice']) : null, $data['lowStockThreshold'], $data['note'] !== '' ? $data['note'] : null, $data['categoryId']));
+                $attributesHandler($id, $this->attributeData($request, $existingAttributes));
                 $this->addFlash('success', 'Product updated.');
                 return $this->redirectToRoute('admin_products_show', ['id' => $id]);
             } catch (\Throwable $e) { $this->addFlash('error', $this->safeMessage($e)); }
@@ -151,6 +159,7 @@ final class ProductController extends AbstractController
             'product' => $product,
             'data' => $data,
             'categories' => $categoryRepository->findActiveOrdered(),
+            'attributes' => $data['attributes'] ?? $existingAttributes,
         ]);
         if ($request->isMethod('POST')) {
             $response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -270,6 +279,28 @@ final class ProductController extends AbstractController
             'categoryId' => $categoryId,
             'categoryName' => trim((string) $request->request->get('categoryName', '')),
         ];
+    }
+
+    /** @return list<array{name:string,value:string}> */
+    private function attributeData(Request $request, array $fallback = []): array
+    {
+        if ($request->request->has('attributes')) {
+            $raw = $request->request->all('attributes');
+            if (!is_array($raw)) return [];
+            return array_values(array_filter(array_map(static function ($item): array {
+                return [
+                    'name' => is_array($item) ? trim((string) ($item['name'] ?? '')) : '',
+                    'value' => is_array($item) ? trim((string) ($item['value'] ?? '')) : '',
+                    'selectable' => is_array($item) && isset($item['selectable']),
+                ];
+            }, $raw), static fn (array $item): bool => $item['name'] !== '' || $item['value'] !== ''));
+        }
+
+        return array_map(static fn ($attribute): array => [
+            'name' => $attribute->getName(),
+            'value' => $attribute->getValue(),
+                'selectable' => $attribute->isSelectable(),
+        ], $fallback);
     }
 
     /** @param array{name:string,sellingPrice:string,sku:string,unit:string,costPrice:string,lowStockThreshold:int,note:string,categoryId:?int,categoryName:string} $data */

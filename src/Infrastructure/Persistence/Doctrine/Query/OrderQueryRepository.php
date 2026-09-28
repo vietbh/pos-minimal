@@ -234,6 +234,7 @@ final class OrderQueryRepository implements OrderQueryRepositoryInterface
                 $item->getUnitPrice()->toDecimal(),
                 $item->getQuantity(),
                 $item->getSubtotal()->toDecimal(),
+                $item->getSelectedAttributes(),
             );
         }
 

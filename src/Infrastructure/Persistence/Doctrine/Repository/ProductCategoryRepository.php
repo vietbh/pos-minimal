@@ -13,6 +13,23 @@ final class ProductCategoryRepository implements ProductCategoryRepositoryInterf
     public function __construct(private readonly EntityManagerInterface $entityManager) {}
     public function save(ProductCategory $category): void { $this->entityManager->persist($category); }
     public function findById(int $id): ?ProductCategory { return $this->entityManager->find(ProductCategory::class, $id); }
+    public function findByNormalizedName(string $name): ?ProductCategory
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return null;
+        }
+
+        return $this->entityManager->createQueryBuilder()
+            ->select('c')
+            ->from(ProductCategory::class, 'c')
+            ->where('LOWER(c.name) = LOWER(:name)')
+            ->setParameter('name', $name)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     public function existsByName(string $name, ?int $excludeId = null): bool
     {
         $qb = $this->entityManager->createQueryBuilder()->select('1')->from(ProductCategory::class, 'c')

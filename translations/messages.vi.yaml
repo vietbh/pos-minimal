@@ -39,6 +39,7 @@ navigation:
   statistics: Thống kê
   payments: Thanh toán
   account: Tài khoản
+  import: Import Excel
   open_menu: Mở menu
   close_menu: Đóng menu
 app:
@@ -682,11 +683,54 @@ common:
   search_debts: Tìm công nợ
   filter_status: Lọc theo trạng thái
 admin:
+  import_excel: Import Excel
+  import_product: Import sản phẩm
+  import_stock: Import tồn kho
+  download_template: Tải template
+  download_product_template: Tải template sản phẩm
+  download_stock_template: Tải template tồn kho
+  product_import: Import sản phẩm
+  stock_import: Import tồn kho
+  import_help: Tải template, điền dữ liệu và tải lên để hệ thống kiểm tra trước khi import.
+  choose_excel: Chọn file Excel
+  excel_file: File Excel (.xlsx)
+  import_xlsx_only: Chỉ hỗ trợ file XLSX theo template của hệ thống.
+  import_limits: Tối đa 10 MB và 10.000 dòng dữ liệu.
+  stock_import_delta_help: "Tồn kho được thay đổi theo số lượng chênh lệch: +10 để cộng 10, -3 để trừ 3. Không nhập tồn kho tuyệt đối."
+  upload_validate: Tải lên & kiểm tra
+  import_history: Lịch sử Import
+  import_history_help: Theo dõi trạng thái và kết quả các lần import sản phẩm, tồn kho.
+  no_imports: Chưa có lần import nào.
+  view_import: Xem import
+  select_all_imports: Chọn tất cả import
+  select_import: Chọn import
+  delete_selected_imports: Xóa import đã chọn
+  import_delete_confirm: Bạn có chắc muốn xóa các lịch sử import đã chọn? File Excel và toàn bộ dữ liệu chi tiết của các import này cũng sẽ bị xóa.
+  import_cannot_delete_active: Không thể xóa import đang chờ hoặc đang xử lý.
+  import_history_page_summary: 'Trang %page% / %pages% · Tổng %total% import'
+  import_detail: Chi tiết Import
+  import_status: Trạng thái
+  total_rows: Tổng dòng
+  success_rows: Thành công
+  failed_rows: Lỗi
+  confirm_import: Xác nhận import
+  confirm_import_help: Sau khi xác nhận, file sẽ được đưa vào hàng đợi Messenger để xử lý nền.
+  confirm_queue_import: Xác nhận & đưa vào hàng đợi
+  import_errors: Lỗi import
+  import_processing_error: Lỗi xử lý import
+  import_processing_error_help: Chi tiết lỗi phát sinh trong quá trình worker xử lý import. Kiểm tra và chạy lại import sau khi khắc phục lỗi.
+  import_row_processing_errors: Lỗi xử lý theo dòng
+  download_error_report: Tải báo cáo lỗi
+  row: Dòng
+  field: Trường
+  error_code: Mã lỗi
+  message: Thông báo
   catalog: Danh mục
   inventory: Tồn kho
   payment_settings: Cài đặt thanh toán
   products_title: Sản phẩm
   products_help: Tìm kiếm, xem và quản lý sản phẩm đang hoạt động.
+  product_page_summary: 'Trang %page% / %pages% · Tổng %total% sản phẩm'
   new_product: Sản phẩm mới
   categories: Danh mục
   search_product: Tìm sản phẩm
@@ -1027,3 +1071,12 @@ sales_point:
   group_empty: Chưa có nhóm điểm bán hàng nào.
   group_enabled: Đã bật nhóm điểm bán hàng.
   group_disabled: Đã tắt nhóm điểm bán hàng.
+  import_preview: Xem trước & chỉnh sửa dữ liệu import
+  import_preview_help: Kiểm tra và sửa trực tiếp từng dòng trước khi xác nhận. Dữ liệu chỉ được nhập vào hệ thống sau bước xác nhận.
+  import_row_status: Kiểm tra dòng
+  import_invalid: Có lỗi
+  import_valid: Hợp lệ
+  save_preview_revalidate: Lưu thay đổi & kiểm tra lại
+  import_preview_revalidate_note: Sau khi sửa, hệ thống sẽ kiểm tra lại toàn bộ các dòng và chỉ cho phép nhập khi tất cả đều hợp lệ.
+  import_needs_correction: Chưa thể nhập
+  import_needs_correction_help: Hãy sửa các dòng đang báo lỗi rồi bấm “Lưu thay đổi & kiểm tra lại”. Khi tất cả dòng hợp lệ, nút xác nhận nhập sẽ xuất hiện.

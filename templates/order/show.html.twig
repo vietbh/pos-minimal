@@ -64,7 +64,7 @@
         <h2 id="order-items">{{ 'common.products'|trans }}</h2>
         {% for item in order.items %}
             <div class="order-item">
-                <div><div class="strong">{{ item.productName }}</div><div class="order-item-meta">{{ item.sku ?? 'Không có SKU' }} · {{ item.quantity }} × {{ item.unitPrice|money_vnd }}</div></div>
+                <div><div class="strong">{{ item.productName }}</div><div class="order-item-meta">{{ item.sku ?? 'Không có SKU' }} · {{ item.quantity }} × {{ item.unitPrice|money_vnd }}</div>{% if item.selectedAttributes is not empty %}<div class="order-item-meta">{% for name, value in item.selectedAttributes %}<span>{{ name }}: {{ value }}</span>{% if not loop.last %} · {% endif %}{% endfor %}</div>{% endif %}</div>
                 <div class="strong">{{ item.subtotal|money_vnd }}</div>
             </div>
         {% endfor %}

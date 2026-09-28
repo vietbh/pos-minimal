@@ -1,0 +1,113 @@
+{% extends 'layout/authenticated.html.twig' %}
+{% block title %}{{ 'admin.import_history'|trans }}{% endblock %}
+{% block authenticated_body %}
+<div class="admin-workspace">
+    <header class="admin-toolbar">
+        <div>
+            <p class="eyebrow">{{ 'admin.management'|trans }}</p>
+            <h1>{{ 'admin.import_history'|trans }}</h1>
+            <p>{{ 'admin.import_history_help'|trans }}</p>
+        </div>
+        <div class="admin-toolbar__actions">
+            {% if is_granted('PRODUCT_CREATE') %}<a class="button" href="{{ path('admin_import_product_template') }}">{{ 'admin.download_product_template'|trans }}</a><a class="button primary" href="{{ path('admin_import_product') }}">{{ 'admin.import_product'|trans }}</a>{% endif %}
+            {% if is_granted('STOCK_ADJUST') %}<a class="button" href="{{ path('admin_import_stock_template') }}">{{ 'admin.download_stock_template'|trans }}</a><a class="button primary" href="{{ path('admin_import_stock') }}">{{ 'admin.import_stock'|trans }}</a>{% endif %}
+            {% if is_granted('CUSTOMER_CREATE') %}<a class="button" href="{{ path('admin_import_customer_template') }}">Tải template khách hàng</a><a class="button primary" href="{{ path('admin_import_customer') }}">Import khách hàng</a>{% endif %}
+        </div>
+    </header>
+
+    {% if batches is empty %}
+        <div class="admin-empty">{{ 'admin.no_imports'|trans }}</div>
+    {% else %}
+        {% if is_granted('USER_MANAGE') or is_granted('AUDIT_VIEW') %}
+        <form method="post" action="{{ path('admin_import_history_delete') }}" data-turbo="false" onsubmit="return confirm('{{ 'admin.import_delete_confirm'|trans|e('js') }}');">
+            <input type="hidden" name="_token" value="{{ csrf_token('admin_import_history_delete') }}">
+            <div class="import-history-selection-bar">
+                <label class="import-history-select-all">
+                    <input type="checkbox" data-import-select-all>
+                    <span class="import-history-checkbox" aria-hidden="true"></span>
+                    <span>
+                        <strong>{{ 'admin.select_all_imports'|trans }}</strong>
+                        <small data-import-selection-count>0 đã chọn · chỉ áp dụng các import có thể xóa</small>
+                    </span>
+                </label>
+                <button class="button danger import-history-delete" type="submit" data-import-delete-selected disabled>
+                    <span aria-hidden="true">×</span>
+                    {{ 'admin.delete_selected_imports'|trans }}
+                </button>
+            </div>
+        {% endif %}
+        <div class="admin-card-grid import-history-card-grid">
+            {% for batch in batches %}
+                {% set deletable = batch.status.value in ['VALIDATION_FAILED','COMPLETED','PARTIAL','FAILED'] %}
+                <article class="admin-card import-history-card{% if not deletable %} import-history-card--locked{% endif %}">
+                    <div class="admin-card__header">
+                        <div class="import-history-card__identity">
+                            {% if is_granted('USER_MANAGE') or is_granted('AUDIT_VIEW') %}
+                                <label class="import-history-row-check" title="{% if deletable %}{{ 'admin.select_import'|trans }} #{{ batch.id }}{% else %}{{ 'admin.import_cannot_delete_active'|trans }}{% endif %}">
+                                    <input type="checkbox" name="ids[]" value="{{ batch.id }}" data-import-select{% if not deletable %} disabled{% endif %} aria-label="{{ 'admin.select_import'|trans }} #{{ batch.id }}">
+                                    <span class="import-history-checkbox" aria-hidden="true"></span>
+                                </label>
+                            {% endif %}
+                            <div>
+                                <h2 class="admin-card__title"><a href="{{ path('admin_import_detail', {id: batch.id}) }}">{{ batch.type.value == 'product' ? 'admin.product_import'|trans : (batch.type.value == 'stock' ? 'admin.stock_import'|trans : 'Import khách hàng') }}</a></h2>
+                                <div class="admin-card__meta">{{ batch.originalFilename }} · {{ batch.createdAt|date('d/m/Y H:i') }}</div>
+                            </div>
+                        </div>
+                        <span class="admin-status {% if batch.status.value == 'COMPLETED' %}admin-status--success{% elseif batch.status.value in ['FAILED','VALIDATION_FAILED','PARTIAL'] %}admin-status--warning{% elseif batch.status.value in ['PROCESSING','QUEUED','VALIDATING','UPLOADED'] %}admin-status--neutral{% endif %}">{{ batch.status.value }}</span>
+                    </div>
+                    <div class="admin-card__facts">
+                        <div class="admin-fact"><small>{{ 'admin.total_rows'|trans }}</small><strong>{{ batch.totalRows }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'admin.success_rows'|trans }}</small><strong>{{ batch.successRows }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'admin.failed_rows'|trans }}</small><strong>{{ batch.failedRows }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'admin.import_status'|trans }}</small><strong>{{ batch.status.value }}</strong></div>
+                    </div>
+                    <div class="admin-actions import-history-card__actions">
+                        <a class="button" href="{{ path('admin_import_detail', {id: batch.id}) }}">{{ 'admin.view_import'|trans }}</a>
+                        {% if not deletable %}<span class="import-history-locked-note">{{ 'admin.import_cannot_delete_active'|trans }}</span>{% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+        {% if is_granted('USER_MANAGE') or is_granted('AUDIT_VIEW') %}</form>{% endif %}
+
+        {% if totalPages > 1 %}
+            <nav class="pagination" aria-label="{{ 'admin.import_history'|trans }} pagination">
+                <a class="button{% if page <= 1 %} disabled{% endif %}"{% if page > 1 %} href="{{ path('admin_import_history',{page:page-1}) }}"{% endif %}>{{ 'common.previous'|trans }}</a>
+                <div class="pagination-pages">
+                    {% for p in 1..totalPages %}
+                        {% if p == page %}<span aria-current="page" class="current">{{ p }}</span>
+                        {% elseif p <= 3 or p > totalPages - 2 or (p >= page - 1 and p <= page + 1) %}<a href="{{ path('admin_import_history',{page:p}) }}">{{ p }}</a>
+                        {% elseif p == 4 or p == totalPages - 2 %}<span>…</span>{% endif %}
+                    {% endfor %}
+                </div>
+                <a class="button{% if page >= totalPages %} disabled{% endif %}"{% if page < totalPages %} href="{{ path('admin_import_history',{page:page+1}) }}"{% endif %}>{{ 'common.next'|trans }}</a>
+            </nav>
+            <p class="admin-card__meta" style="text-align:center;margin-top:8px;">{{ 'admin.import_history_page_summary'|trans({'%page%': page, '%pages%': totalPages, '%total%': total}) }}</p>
+        {% endif %}
+    {% endif %}
+</div>
+{% if is_granted('USER_MANAGE') or is_granted('AUDIT_VIEW') %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const all = document.querySelector('[data-import-select-all]');
+  const boxes = Array.from(document.querySelectorAll('[data-import-select]'));
+  const button = document.querySelector('[data-import-delete-selected]');
+  const count = document.querySelector('[data-import-selection-count]');
+  const sync = () => {
+    const enabled = boxes.filter(b => !b.disabled);
+    const checked = enabled.filter(b => b.checked);
+    if (all) { all.checked = enabled.length > 0 && checked.length === enabled.length; all.indeterminate = checked.length > 0 && checked.length < enabled.length; }
+    if (button) button.disabled = checked.length === 0;
+    if (count) count.textContent = checked.length + ' đã chọn · chỉ áp dụng các import có thể xóa';
+    document.querySelectorAll('.import-history-card').forEach(card => {
+      const checkbox = card.querySelector('[data-import-select]');
+      card.classList.toggle('is-selected', !!checkbox?.checked);
+    });
+  };
+  all?.addEventListener('change', () => { boxes.filter(b => !b.disabled).forEach(b => b.checked = all.checked); sync(); });
+  boxes.forEach(b => b.addEventListener('change', sync));
+  sync();
+});
+</script>
+{% endif %}
+{% endblock %}
