@@ -8,6 +8,7 @@ use App\Application\Common\Transaction\TransactionContextInterface;
 use App\Application\Common\Transaction\TransactionManagerInterface;
 use App\Application\Security\Permission;
 use App\Application\Security\PermissionMatrix;
+use App\Application\Security\UserManagementPolicy;
 use App\Domain\Audit\AuditLog;
 use App\Domain\Audit\Repository\AuditLogRepositoryInterface;
 use App\Domain\User\Enum\UserRole;
@@ -20,6 +21,7 @@ final readonly class ChangeUserRoleService
         private UserRepositoryInterface $userRepository,
         private AuditLogRepositoryInterface $auditLogRepository,
         private TransactionManagerInterface $transactionManager,
+        private UserManagementPolicy $policy,
     ) {
     }
 
@@ -36,20 +38,13 @@ final readonly class ChangeUserRoleService
 
         $this->transactionManager->run(
             function (TransactionContextInterface $transaction) use ($actor, $targetUserId, $role, $ipAddress, $userAgent): void {
-                $target = $this->userRepository->findById($targetUserId);
+                $target = $this->userRepository->findByIdForUpdate($targetUserId);
                 if (!$target instanceof User) {
                     throw new \RuntimeException('User not found.');
                 }
 
-                if ($target->getId() === $actor->getId()) {
-                    throw new \DomainException('You cannot change your own role.');
-                }
-
-                $targetWasRoot = $target->hasRole(UserRole::ROOT);
-                $actorIsRoot = $actor->hasRole(UserRole::ROOT);
-
-                if (($targetWasRoot || $role === UserRole::ROOT) && !$actorIsRoot) {
-                    throw new \DomainException('Only a root user can manage ROLE_ROOT.');
+                if (!$this->policy->canMutate($actor, $target) || !$this->policy->canCreateRole($actor, $role)) {
+                    throw new \DomainException('You cannot manage this account or grant this role.');
                 }
 
                 $oldRoles = $target->getRoles();

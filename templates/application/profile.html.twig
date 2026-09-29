@@ -40,7 +40,8 @@
                 <div class="profile-readonly-grid">
                     <div>
                         <span class="profile-label">{{ 'app.role'|trans }}</span>
-                        <strong>{{ user.roles|join(', ') }}</strong>
+                        {% set current_role = 'ROLE_ROOT' in user.roles ? 'ROOT' : ('ROLE_ADMIN' in user.roles ? 'ADMIN' : 'USER') %}
+                        <strong>{{ ('user.role.' ~ current_role)|trans }}</strong>
                     </div>
                     <div>
                         <span class="profile-label">{{ 'common.status'|trans }}</span>
@@ -86,64 +87,6 @@
             </form>
         </section>
     </div>
-
-    {% if can_manage_users %}
-        <section class="form-card profile-card role-management-card" aria-labelledby="role-management-title">
-            <div class="section-heading">
-                <h2 id="role-management-title">{{ 'app.user_management'|trans }}</h2>
-                <p class="muted">{{ 'app.user_management_help'|trans }}</p>
-            </div>
-
-            <div class="user-management-list">
-                {% for managed_user in managed_users %}
-                    {% set is_self = managed_user.id == user.id %}
-                    {% set is_root_target = 'ROLE_ROOT' in managed_user.roles %}
-                    {% set primary_role = is_root_target ? 'ROLE_ROOT' : ('ROLE_ADMIN' in managed_user.roles ? 'ROLE_ADMIN' : 'ROLE_USER') %}
-                    <article class="user-management-card">
-                        <div class="user-management-card__identity">
-                            <strong>{{ managed_user.username }}</strong>
-                            <span class="muted">{{ managed_user.active ? 'common.active'|trans : 'app.locked'|trans }}</span>
-                            {% if is_self %}
-                                <span class="role-badge role-badge--self">{{ 'app.current_account'|trans }}</span>
-                            {% endif %}
-                        </div>
-
-                        {% if is_self %}
-                            <div class="user-management-readonly">
-                                <span class="profile-label">{{ 'app.role'|trans }}</span>
-                                <strong>{{ primary_role }}</strong>
-                                <small class="muted">{{ 'app.role_self_locked'|trans }}</small>
-                            </div>
-                        {% elseif is_root_target and not can_manage_root %}
-                            <div class="user-management-readonly">
-                                <span class="profile-label">{{ 'app.role'|trans }}</span>
-                                <strong>ROLE_ROOT</strong>
-                                <small class="muted">{{ 'app.role_root_only'|trans }}</small>
-                            </div>
-                        {% else %}
-                            <form method="post" action="{{ path('app_profile') }}" class="role-management-form">
-                                <input type="hidden" name="_token" value="{{ csrf_token('user_role_management') }}">
-                                <input type="hidden" name="role_target_id" value="{{ managed_user.id }}">
-                                <label>
-                                    <span class="profile-label">{{ 'app.role'|trans }}</span>
-                                    <select name="role" aria-label="{{ 'app.role_for_user'|trans }} {{ managed_user.username }}">
-                                        <option value="ROLE_USER"{% if primary_role == 'ROLE_USER' %} selected{% endif %}>ROLE_USER</option>
-                                        <option value="ROLE_ADMIN"{% if primary_role == 'ROLE_ADMIN' %} selected{% endif %}>ROLE_ADMIN</option>
-                                        {% if can_manage_root %}
-                                            <option value="ROLE_ROOT"{% if primary_role == 'ROLE_ROOT' %} selected{% endif %}>ROLE_ROOT</option>
-                                        {% endif %}
-                                    </select>
-                                </label>
-                                <button class="button primary" type="submit">{{ 'app.save_role'|trans }}</button>
-                            </form>
-                        {% endif %}
-                    </article>
-                {% else %}
-                    <div class="empty-state">{{ 'app.no_users_to_manage'|trans }}</div>
-                {% endfor %}
-            </div>
-        </section>
-    {% endif %}
 
     <section class="form-card profile-card" aria-labelledby="password-title">
         <div class="section-heading">

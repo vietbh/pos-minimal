@@ -16,6 +16,7 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            switch_user: { role: ROLE_ADMIN, parameter: _switch_user }
             user_checker: App\Infrastructure\Security\UserChecker
 
             remember_me:
@@ -27,6 +28,7 @@ security:
                 samesite: lax
                 always_remember_me: false
                 remember_me_parameter: _remember_me
+                signature_properties: ['password', 'updatedAt']
 
             form_login:
                 login_path: login
@@ -45,6 +47,7 @@ security:
         ROLE_ROOT: [ROLE_ADMIN]
     access_control:
         - { path: ^/auth/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/users, roles: ROLE_ADMIN }
         - { path: ^/$, roles: ROLE_USER }
         - { path: ^/app, roles: ROLE_USER }
         - { path: ^/admin, roles: ROLE_USER }

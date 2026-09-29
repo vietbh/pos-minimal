@@ -1,0 +1,57 @@
+{% extends 'layout/authenticated.html.twig' %}
+
+{% block title %}{{ 'app.usage_guide_title'|trans }} · Mobile POS{% endblock %}
+
+{% block authenticated_body %}
+<section class="app-header" aria-labelledby="usage-guide-title">
+    <div>
+        <p class="eyebrow">{{ 'app.help'|trans }}</p>
+        <h1 id="usage-guide-title">{{ 'app.usage_guide_title'|trans }}</h1>
+        <p class="muted">{{ 'app.usage_guide_intro'|trans }}</p>
+    </div>
+    <nav class="button-row" aria-label="{{ 'app.account'|trans }}">
+        <a class="button" href="{{ path('app_settings') }}">{{ 'app.settings_title'|trans }}</a>
+    </nav>
+</section>
+
+<section class="usage-guide-grid" aria-label="{{ 'app.usage_guide_title'|trans }}">
+    <article class="form-card usage-guide-card">
+        <h2>1. {{ 'app.guide_pos_title'|trans }}</h2>
+        <p>{{ 'app.guide_pos_text'|trans }}</p>
+        <a class="button primary" href="{{ path('pos', {guide: 'pos'}) }}">{{ 'app.guide_start'|trans }}</a>
+    </article>
+    <article class="form-card usage-guide-card">
+        <h2>2. {{ 'app.guide_orders_title'|trans }}</h2>
+        <p>{{ 'app.guide_orders_text'|trans }}</p>
+        <a class="button primary" href="{{ path('orders_index', {guide: 'orders'}) }}">{{ 'app.guide_start'|trans }}</a>
+    </article>
+    <article class="form-card usage-guide-card">
+        <h2>3. {{ 'app.guide_customers_title'|trans }}</h2>
+        <p>{{ 'app.guide_customers_text'|trans }}</p>
+        <a class="button primary" href="{{ path('customers_index', {guide: 'customers'}) }}">{{ 'app.guide_start'|trans }}</a>
+    </article>
+    <article class="form-card usage-guide-card">
+        <h2>4. {{ 'app.guide_debt_title'|trans }}</h2>
+        <p>{{ 'app.guide_debt_text'|trans }}</p>
+        <a class="button primary" href="{{ path('debts_index', {guide: 'debt'}) }}">{{ 'app.guide_start'|trans }}</a>
+    </article>
+    <article class="form-card usage-guide-card">
+        <h2>5. {{ 'app.guide_products_stock_title'|trans }}</h2>
+        <p>{{ 'app.guide_products_stock_text'|trans }}</p>
+        <div class="button-row">
+            <a class="button primary" href="{{ path('admin_products_index', {guide: 'products'}) }}">{{ 'app.guide_products'|trans }}</a>
+            <a class="button" href="{{ path('admin_stock_index', {guide: 'stock'}) }}">{{ 'app.guide_stock'|trans }}</a>
+        </div>
+    </article>
+    <article class="form-card usage-guide-card">
+        <h2>6. {{ 'app.guide_statistics_title'|trans }}</h2>
+        <p>{{ 'app.guide_statistics_text'|trans }}</p>
+        <a class="button primary" href="{{ path('statistics_index', {guide: 'statistics'}) }}">{{ 'app.guide_start'|trans }}</a>
+    </article>
+    <article class="form-card usage-guide-card">
+        <h2>7. {{ 'app.guide_settings_title'|trans }}</h2>
+        <p>{{ 'app.guide_settings_text'|trans }}</p>
+        <a class="button primary" href="{{ path('app_settings', {guide: 'settings'}) }}">{{ 'app.guide_start'|trans }}</a>
+    </article>
+</section>
+{% endblock %}

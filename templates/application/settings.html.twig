@@ -14,7 +14,7 @@
         </nav>
     </section>
 
-    <form method="post" action="{{ path('app_settings') }}" class="settings-form" data-settings-form>
+    <form method="post" action="{{ path('app_settings') }}" class="settings-form" data-guide="settings-form" data-settings-form>
         <input type="hidden" name="_token" value="{{ csrf_token('user_preferences') }}">
 
         <section class="form-card settings-card" aria-labelledby="font-title">
@@ -100,7 +100,38 @@
             </label>
         </section>
 
-        <div class="settings-actions">
+        <section class="form-card settings-card" aria-labelledby="payment-sound-title" data-guide="settings-payment-sound">
+            <div class="section-heading">
+                <h2 id="payment-sound-title">{{ 'app.payment_sound'|trans }}</h2>
+                <p class="muted">{{ 'app.payment_sound_help'|trans }}</p>
+            </div>
+            <label class="settings-switch">
+                <span>
+                    <strong>{{ 'app.payment_sound_enabled'|trans }}</strong>
+                    <small>{{ 'app.payment_sound_enabled_help'|trans }}</small>
+                </span>
+                <input type="checkbox" name="payment_sound_enabled" value="1" {% if user.hasPaymentSoundEnabled() %}checked{% endif %}>
+            </label>
+        </section>
+
+        <section class="form-card settings-card" aria-labelledby="usage-guide-title" data-guide="settings-usage-guide">
+            <div class="section-heading">
+                <h2 id="usage-guide-title">{{ 'app.usage_guide'|trans }}</h2>
+                <p class="muted">{{ 'app.usage_guide_help'|trans }}</p>
+            </div>
+            <label class="settings-switch">
+                <span>
+                    <strong>{{ 'app.usage_guide_enabled'|trans }}</strong>
+                    <small>{{ 'app.usage_guide_enabled_help'|trans }}</small>
+                </span>
+                <input type="checkbox" name="usage_guide_enabled" value="1" {% if user.hasUsageGuideEnabled() %}checked{% endif %}>
+            </label>
+            <div class="settings-guide-link">
+                <a class="button" href="{{ path('app_usage_guide') }}">{{ 'app.open_usage_guide'|trans }}</a>
+            </div>
+        </section>
+
+        <div class="settings-actions" data-guide="settings-save">
             <button class="button primary settings-save" type="submit">{{ 'app.save_settings'|trans }}</button>
             <a class="button" href="{{ path('app_profile') }}">{{ 'app.back_profile'|trans }}</a>
         </div>

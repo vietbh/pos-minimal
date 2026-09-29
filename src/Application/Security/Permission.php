@@ -41,4 +41,5 @@ enum Permission: string
     case SESSION_REVOKE = 'SESSION_REVOKE';
 
     case USER_MANAGE = 'USER_MANAGE';
+    case ROOT_ANALYTICS_VIEW = 'ROOT_ANALYTICS_VIEW';
 }

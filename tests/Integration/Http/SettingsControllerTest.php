@@ -61,6 +61,9 @@ final class SettingsControllerTest extends WebTestCase
         self::assertSelectorExists('input[name="density"][value="comfortable"][checked]');
         self::assertSelectorExists('input[name="high_contrast"]');
         self::assertSelectorExists('input[name="reduce_motion"]');
+        self::assertSelectorExists('input[name="payment_sound_enabled"][checked]');
+        self::assertSelectorExists('input[name="usage_guide_enabled"][checked]');
+        self::assertSelectorExists('a[href="/app/guide"]');
         self::assertSelectorExists('a[href="/app/profile"]');
     }
 
@@ -118,6 +121,8 @@ final class SettingsControllerTest extends WebTestCase
             'density' => 'compact',
             'high_contrast' => '1',
             'reduce_motion' => '1',
+            'payment_sound_enabled' => '1',
+            'usage_guide_enabled' => '1',
         ]);
 
         self::assertResponseRedirects('/app/settings');
@@ -134,6 +139,8 @@ final class SettingsControllerTest extends WebTestCase
         self::assertSelectorExists('input[name="density"][value="compact"][checked]');
         self::assertSelectorExists('input[name="high_contrast"][checked]');
         self::assertSelectorExists('input[name="reduce_motion"][checked]');
+        self::assertSelectorExists('input[name="payment_sound_enabled"][checked]');
+        self::assertSelectorExists('input[name="usage_guide_enabled"][checked]');
 
         $this->entityManager->clear();
         $persisted = $this->entityManager->getRepository(User::class)->find($user->getId());
@@ -143,6 +150,51 @@ final class SettingsControllerTest extends WebTestCase
         self::assertSame('compact', $persisted->getUiDensity());
         self::assertTrue($persisted->hasHighContrast());
         self::assertTrue($persisted->hasReduceMotion());
+        self::assertTrue($persisted->hasPaymentSoundEnabled());
+        self::assertTrue($persisted->hasUsageGuideEnabled());
+    }
+
+    public function testPaymentSoundAndUsageGuideCanBeDisabled(): void
+    {
+        $user = $this->loginAs('cashier');
+
+        $this->client->request('GET', '/app/settings');
+        $this->client->submitForm('Lưu cài đặt', [
+            'font_size' => 'medium',
+            'appearance' => 'system',
+            'density' => 'comfortable',
+        ]);
+
+        self::assertResponseRedirects('/app/settings');
+        $this->entityManager->clear();
+        $persisted = $this->entityManager->getRepository(User::class)->find($user->getId());
+        self::assertInstanceOf(User::class, $persisted);
+        self::assertFalse($persisted->hasPaymentSoundEnabled());
+        self::assertFalse($persisted->hasUsageGuideEnabled());
+    }
+
+    public function testUsageGuideIsProtectedAndRenders(): void
+    {
+        $this->loginAs('cashier');
+
+        $this->client->request('GET', '/app/guide');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('h1#usage-guide-title');
+        self::assertSelectorTextContains('h1#usage-guide-title', 'Hướng dẫn');
+    }
+
+    public function testPosUsesPersistedPaymentSoundPreferenceAndHasNoSpeakerToggle(): void
+    {
+        $user = $this->loginAs('cashier');
+        $user->setPaymentSoundEnabled(true);
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/app/pos');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('.pos-page[data-pos-checkout-payment-sound-enabled-value="true"]');
+        self::assertSelectorNotExists('.pos-payment-speaker');
     }
 
     public function testInvalidPreferenceIsRejectedAndNotPersisted(): void

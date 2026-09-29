@@ -1,7 +1,13 @@
 {% extends 'base.html.twig' %}
 
 {% block body %}
-    <div class="app-frame" data-controller="mobile-ux navigation" data-navigation-open-value="false" data-navigation-open-label-value="{{ 'navigation.open_menu'|trans }}" data-navigation-close-label-value="{{ 'navigation.close_menu'|trans }}">
+    {% if is_impersonating() %}
+        <div class="flash warning" role="status" style="margin:12px 16px 0;">
+            You are switched to <strong>{{ impersonated_username() }}</strong> from <strong>{{ impersonator_username() }}</strong>.
+            <a class="button" href="{{ path('app_switch_user_exit', {'_switch_user': '_exit'}) }}" style="margin-left:8px;">Exit switch user</a>
+        </div>
+    {% endif %}
+    <div class="app-frame" data-controller="mobile-ux navigation activity-tracker" data-activity-tracker-url-value="{{ path('app_activity_heartbeat') }}" data-activity-tracker-csrf-value="{{ csrf_token('activity_heartbeat') }}" data-navigation-open-value="false" data-navigation-open-label-value="{{ 'navigation.open_menu'|trans }}" data-navigation-close-label-value="{{ 'navigation.close_menu'|trans }}">
         <aside class="desktop-sidebar" aria-label="{{ 'navigation.primary'|trans }}">
             <a class="sidebar-brand" href="{{ path('app_home') }}" aria-label="{{ 'app.brand_home'|trans }}">
                 <span class="app-brand-mark" aria-hidden="true">{{ 'customer.pos'|trans }}</span>
@@ -24,11 +30,11 @@
                 {% if is_granted('PRODUCT_VIEW') %}<a href="{{ path('admin_products_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_products_' %} aria-current="page"{% endif %}><span aria-hidden="true">□</span><span>{{ 'navigation.products'|trans }}</span></a>{% endif %}
                 {% if is_granted('STOCK_VIEW') %}<a href="{{ path('admin_stock_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_stock_' %} aria-current="page"{% endif %}><span aria-hidden="true">▥</span><span>{{ 'navigation.stock'|trans }}</span></a>{% endif %}
 
-                {% if is_granted('STATISTICS_VIEW') or is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') or is_granted('SALES_POINT_MANAGE') or is_granted('PRODUCT_CREATE') or is_granted('STOCK_ADJUST') or is_granted('CUSTOMER_CREATE') %}
+                {% if is_granted('STATISTICS_VIEW') or is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') or is_granted('SALES_POINT_MANAGE') or is_granted('PRODUCT_CREATE') or is_granted('STOCK_ADJUST') or is_granted('CUSTOMER_CREATE') or is_granted('USER_MANAGE') %}
                     <p class="sidebar-label">{{ 'navigation.management'|trans }}</p>
                     {% if is_granted('STATISTICS_VIEW') %}<a href="{{ path('statistics_index') }}"{% if app.request.attributes.get('_route') starts with 'statistics_' %} aria-current="page"{% endif %}><span aria-hidden="true">▥</span><span>{{ 'navigation.statistics'|trans }}</span></a>{% endif %}
                     {% if is_granted('PRODUCT_CREATE') or is_granted('STOCK_ADJUST') or is_granted('CUSTOMER_CREATE') %}<a href="{{ path('admin_import_history') }}"{% if app.request.attributes.get('_route') starts with 'admin_import_' %} aria-current="page"{% endif %}><span aria-hidden="true">⇅</span><span>{{ 'navigation.import'|trans }}</span></a>{% endif %}
-                    {% if is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}<a href="{{ path('admin_payment_accounts') }}"{% if app.request.attributes.get('_route') == 'admin_payment_accounts' %} aria-current="page"{% endif %}><span aria-hidden="true">₿</span><span>{{ 'navigation.payments'|trans }}</span></a>{% endif %}{% if is_granted('SALES_POINT_MANAGE') %}<a href="{{ path('admin_sales_points') }}"{% if app.request.attributes.get('_route') starts with 'admin_sales_points' %} aria-current="page"{% endif %}><span aria-hidden="true">▣</span><span>Sales points</span></a>{% endif %}
+                    {% if is_granted('USER_MANAGE') %}<a href="{{ path('admin_users_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_users_' %} aria-current="page"{% endif %}><span aria-hidden="true">♙</span><span>{{ 'navigation.users'|trans }}</span></a>{% endif %}{% if is_granted('ROOT_ANALYTICS_VIEW') %}<a href="{{ path('root_analytics') }}"{% if app.request.attributes.get('_route') starts with 'root_analytics' %} aria-current="page"{% endif %}><span aria-hidden="true">◉</span><span>{{ 'navigation.root_analytics'|trans }}</span></a>{% endif %}{% if is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}<a href="{{ path('admin_payment_accounts') }}"{% if app.request.attributes.get('_route') == 'admin_payment_accounts' %} aria-current="page"{% endif %}><span aria-hidden="true">₿</span><span>{{ 'navigation.payments'|trans }}</span></a>{% endif %}{% if is_granted('SALES_POINT_MANAGE') %}<a href="{{ path('admin_sales_points') }}"{% if app.request.attributes.get('_route') starts with 'admin_sales_points' %} aria-current="page"{% endif %}><span aria-hidden="true">▣</span><span>Sales points</span></a>{% endif %}
                 {% endif %}
             </nav>
 
@@ -71,7 +77,7 @@
                     {% if is_granted('STATISTICS_VIEW') %}<a href="{{ path('statistics_index') }}"{% if app.request.attributes.get('_route') starts with 'statistics_' %} aria-current="page"{% endif %}>{{ 'navigation.statistics'|trans }}</a>{% endif %}
                     {% if is_granted('PRODUCT_CREATE') or is_granted('STOCK_ADJUST') or is_granted('CUSTOMER_CREATE') %}<a href="{{ path('admin_import_history') }}"{% if app.request.attributes.get('_route') starts with 'admin_import_' %} aria-current="page"{% endif %}>{{ 'navigation.import'|trans }}</a>{% endif %}
                     {% if is_granted('PAYMENT_BANK_ACCOUNT_MANAGE') %}<a href="{{ path('admin_payment_accounts') }}"{% if app.request.attributes.get('_route') == 'admin_payment_accounts' %} aria-current="page"{% endif %}>{{ 'navigation.payments'|trans }}</a>{% endif %}{% if is_granted('SALES_POINT_MANAGE') %}<a href="{{ path('admin_sales_points') }}"{% if app.request.attributes.get('_route') starts with 'admin_sales_points' %} aria-current="page"{% endif %}>Sales points</a>{% endif %}
-                    <a href="{{ path('app_profile') }}"{% if app.request.attributes.get('_route') == 'app_profile' %} aria-current="page"{% endif %}>{{ 'navigation.account'|trans }}</a>
+                    {% if is_granted('USER_MANAGE') %}<a href="{{ path('admin_users_index') }}"{% if app.request.attributes.get('_route') starts with 'admin_users_' %} aria-current="page"{% endif %}>{{ 'navigation.users'|trans }}</a>{% endif %}{% if is_granted('ROOT_ANALYTICS_VIEW') %}<a href="{{ path('root_analytics') }}"{% if app.request.attributes.get('_route') starts with 'root_analytics' %} aria-current="page"{% endif %}>{{ 'navigation.root_analytics'|trans }}</a>{% endif %}<a href="{{ path('app_profile') }}"{% if app.request.attributes.get('_route') == 'app_profile' %} aria-current="page"{% endif %}>{{ 'navigation.account'|trans }}</a>
                     <form method="post" action="{{ path('logout') }}">
                         <button type="submit">{{ 'auth.logout'|trans }}</button>
                     </form>

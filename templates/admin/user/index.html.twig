@@ -1,0 +1,65 @@
+{% extends 'layout/authenticated.html.twig' %}
+{% block title %}{{ 'admin_users.title'|trans }}{% endblock %}
+{% block authenticated_body %}
+<div class="admin-workspace">
+    <header class="admin-toolbar">
+        <div>
+            <p class="eyebrow">{{ 'admin_users.eyebrow'|trans }}</p>
+            <h1>{{ 'admin_users.title'|trans }}</h1>
+            <p>{{ 'admin_users.help'|trans }}</p>
+        </div>
+        <div class="admin-toolbar__actions"><a class="button primary" href="{{ path('admin_users_new') }}">{{ 'admin_users.create'|trans }}</a></div>
+    </header>
+
+    <form class="admin-filter" method="get">
+        <div class="admin-filter__fields">
+            <label for="user-search">{{ 'common.search'|trans }}<input id="user-search" name="q" value="{{ q }}" placeholder="{{ 'admin_users.username'|trans }}" autocomplete="off"></label>
+            <label for="user-status">{{ 'common.status'|trans }}<select id="user-status" name="status"><option value="all"{% if status == 'all' %} selected{% endif %}>{{ 'admin_users.all_statuses'|trans }}</option><option value="active"{% if status == 'active' %} selected{% endif %}>{{ 'common.active'|trans }}</option><option value="inactive"{% if status == 'inactive' %} selected{% endif %}>{{ 'common.inactive'|trans }}</option></select></label>
+            <label for="user-role">{{ 'app.role'|trans }}<select id="user-role" name="role"><option value="">{{ 'admin_users.all_roles'|trans }}</option>{% for item in roles %}<option value="{{ item.value }}"{% if role == item.value %} selected{% endif %}>{{ ('user.role.' ~ item.value)|trans }}</option>{% endfor %}</select></label>
+        </div>
+        <div class="admin-filter__actions"><button class="primary" type="submit">{{ 'admin_users.apply'|trans }}</button>{% if q or status != 'all' or role %}<a class="button" href="{{ path('admin_users_index') }}">{{ 'admin_users.clear'|trans }}</a>{% endif %}</div>
+    </form>
+
+    {% if users is empty %}
+        <div class="admin-empty">{{ 'admin_users.empty'|trans }}</div>
+    {% else %}
+        <div class="admin-card-grid">
+            {% for user in users %}
+                {% set is_self = actor.id == user.id %}
+                {% set can_mutate_user = policy.canMutate(actor, user) %}
+                {% set can_switch = policy.canSwitchTo(actor, user) %}
+                {% set role_key = 'ROLE_ROOT' in user.roles ? 'ROOT' : ('ROLE_ADMIN' in user.roles ? 'ADMIN' : 'USER') %}
+                <article class="admin-card" aria-labelledby="user-{{ user.id }}">
+                    <div class="admin-card__header">
+                        <div>
+                            <h2 class="admin-card__title" id="user-{{ user.id }}"><a href="{{ path('admin_users_show', {id: user.id}) }}">{{ user.username }}</a></h2>
+                            <div class="admin-card__meta">{{ ('user.role.' ~ role_key)|trans }}{% if is_self %} · {{ 'app.current_account'|trans }}{% endif %}</div>
+                        </div>
+                        <span class="admin-status admin-status--{{ user.active ? 'success' : 'warning' }}">{{ user.active ? 'common.active'|trans : 'common.inactive'|trans }}</span>
+                    </div>
+                    <div class="admin-card__facts">
+                        <div class="admin-fact"><small>{{ 'app.role'|trans }}</small><strong>{{ ('user.role.' ~ role_key)|trans }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'common.created'|trans }}</small><strong>{{ user.createdAt|date('Y-m-d H:i') }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'common.updated'|trans }}</small><strong>{{ user.updatedAt|date('Y-m-d H:i') }}</strong></div>
+                    </div>
+                    <div class="admin-actions">
+                        <a class="button" href="{{ path('admin_users_show', {id: user.id}) }}">{{ 'common.view'|trans }}</a>
+                        {% if can_mutate_user and not is_self %}<a class="button" href="{{ path('admin_users_edit', {id: user.id}) }}">{{ 'common.edit'|trans }}</a>{% endif %}
+                        {% if can_switch %}<a class="button" href="{{ path('app_home', {'_switch_user': user.username}) }}">{{ 'admin_users.switch'|trans }}</a>{% endif %}
+                        {% if not can_mutate_user and not can_switch %}<span class="admin-card__meta">{{ 'admin_users.view_only'|trans }}</span>{% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="admin-card__meta" style="margin-top:14px;text-align:right;">{{ 'admin_users.page_summary'|trans({'%page%': pagination.page, '%pages%': pagination.totalPages, '%total%': pagination.total}) }}</div>
+    {% if pagination.totalPages > 1 %}
+        <nav class="pagination" aria-label="{{ 'admin_users.pagination'|trans }}">
+            {% if pagination.page > 1 %}<a class="button" href="{{ path('admin_users_index', {q:q,status:status,role:role,page:pagination.page-1}) }}">{{ 'common.previous'|trans }}</a>{% else %}<span class="button disabled">{{ 'common.previous'|trans }}</span>{% endif %}
+            <div class="pagination-pages">{% for p in 1..pagination.totalPages %}{% if p == pagination.page %}<span aria-current="page" class="current">{{ p }}</span>{% elseif p <= 3 or p > pagination.totalPages - 2 or (p >= pagination.page - 1 and p <= pagination.page + 1) %}<a href="{{ path('admin_users_index',{q:q,status:status,role:role,page:p}) }}">{{ p }}</a>{% elseif p == 4 or p == pagination.totalPages - 2 %}<span>…</span>{% endif %}{% endfor %}</div>
+            {% if pagination.page < pagination.totalPages %}<a class="button" href="{{ path('admin_users_index', {q:q,status:status,role:role,page:pagination.page+1}) }}">{{ 'common.next'|trans }}</a>{% else %}<span class="button disabled">{{ 'common.next'|trans }}</span>{% endif %}
+        </nav>
+    {% endif %}
+</div>
+{% endblock %}

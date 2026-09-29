@@ -1,0 +1,80 @@
+{% extends 'layout/authenticated.html.twig' %}
+{% block title %}User · {{ user.username }}{% endblock %}
+{% block authenticated_body %}
+<div class="admin-workspace">
+    <header class="admin-toolbar"><div><p class="eyebrow">Administration</p><h1>{{ user.username }}</h1><p>User account detail.</p></div><div class="admin-toolbar__actions">
+            <a class="button" href="{{ path('admin_users_index') }}">Back</a>
+            {% if can_switch_user %}<a class="button" href="{{ path('app_home', {'_switch_user': user.username}) }}">Switch to this user</a>{% endif %}
+            {% if can_mutate %}<a class="button primary" href="{{ path('admin_users_edit',{id:user.id}) }}">{{ 'common.edit'|trans }}</a>{% endif %}
+        </div></header>
+    <div class="admin-card-grid">
+        <article class="admin-card"><div class="admin-card__header"><div><h2 class="admin-card__title">{{ 'admin_users.identity'|trans }}</h2><div class="admin-card__meta">{{ 'admin_users.user_id'|trans }} {{ user.id }}</div></div><span class="admin-status admin-status--{{ user.active ? 'success' : 'warning' }}">{{ user.active ? 'Active' : 'Inactive' }}</span></div><div class="admin-card__facts"><div class="admin-fact"><small>Username</small><strong>{{ user.username }}</strong></div><div class="admin-fact"><small>{{ 'app.role'|trans }}</small><strong>{{ ('user.role.' ~ ('ROOT' in user.roles ? 'ROOT' : ('ADMIN' in user.roles ? 'ADMIN' : 'USER')))|trans }}</strong></div><div class="admin-fact"><small>Created</small><strong>{{ user.createdAt|date('Y-m-d H:i:s') }}</strong></div><div class="admin-fact"><small>Updated</small><strong>{{ user.updatedAt|date('Y-m-d H:i:s') }}</strong></div></div></article>
+        <article class="admin-card"><div class="admin-card__header"><div><h2 class="admin-card__title">{{ 'admin_users.account_status'|trans }}</h2><div class="admin-card__meta">{{ 'admin_users.deactivation_help'|trans }}</div></div></div><div class="admin-actions">{% if can_mutate %}<form method="post" action="{{ path('admin_users_status',{id:user.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('admin_user_state') }}"><input type="hidden" name="active" value="{{ user.active ? '0' : '1' }}"><button class="button {{ user.active ? '' : 'primary' }}" type="submit">{{ user.active ? 'admin_users.deactivate'|trans : 'admin_users.activate'|trans }}</button></form>{% else %}<span class="admin-card__meta">{{ 'admin_users.view_only'|trans }}</span>{% endif %}</div></article>
+    </div>
+    <article class="admin-card" style="margin-top:16px;">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">{{ 'admin_users.activity_sessions'|trans }}</h2>
+                <div class="admin-card__meta">{{ 'admin_users.activity_help'|trans }}</div>
+            </div>
+        </div>
+        {% if sessions is empty %}
+            <p class="admin-help">No recorded sessions yet.</p>
+        {% else %}
+            <div class="admin-card-grid">
+                {% for session in sessions %}
+                    <div class="admin-card">
+                        <div class="admin-card__header">
+                            <div>
+                                <h3 class="admin-card__title">{{ session.device ?: ('admin_users.unknown_device'|trans) }}</h3>
+                                <div class="admin-card__meta">{{ session.ipAddress ?: ('admin_users.unknown_ip'|trans) }}</div>
+                            </div>
+                            <span class="admin-status admin-status--{{ session.status.value == 'ACTIVE' ? 'success' : 'warning' }}">{{ session.status.value }}</span>
+                        </div>
+                        <div class="admin-card__facts">
+                            <div class="admin-fact"><small>{{ 'admin_users.login'|trans }}</small><strong>{{ session.loginAt|date('Y-m-d H:i:s') }}</strong></div>
+                            <div class="admin-fact"><small>{{ 'admin_users.last_activity'|trans }}</small><strong>{{ session.lastActivityAt|date('Y-m-d H:i:s') }}</strong></div>
+                            <div class="admin-fact"><small>{{ 'admin_users.logout'|trans }}</small><strong>{{ session.logoutAt ? session.logoutAt|date('Y-m-d H:i:s') : '—' }}</strong></div>
+                            <div class="admin-fact"><small>{{ 'admin_users.revoked'|trans }}</small><strong>{{ session.revokedAt ? session.revokedAt|date('Y-m-d H:i:s') : '—' }}</strong></div><div class="admin-fact"><small>{{ 'admin_users.requests'|trans }}</small><strong>{{ session.requestCount }}</strong></div><div class="admin-fact"><small>{{ 'admin_users.last_request'|trans }}</small><strong>{{ session.lastRequestMethod ?: '—' }} {{ session.lastRequestPath ?: '' }}</strong></div>
+                        </div>
+                        {% if session.userAgent %}<p class="admin-card__meta" style="margin-top:10px;overflow-wrap:anywhere;">{{ session.userAgent }}</p>{% endif %}
+                        {% if session.active and can_mutate %}
+                            <div class="admin-actions" style="margin-top:12px;">
+                                <form method="post" action="{{ path('admin_users_session_revoke',{id:user.id,sessionId:session.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('admin_user_state') }}">
+                                    <button class="button" type="submit">{{ 'admin_users.revoke_session'|trans }}</button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if sessionPagination.totalPages > 1 %}
+            <div class="admin-card__meta" style="margin-top:14px;text-align:right;">
+                {{ 'admin_users.session_page_summary'|trans({'%page%': sessionPagination.page, '%pages%': sessionPagination.totalPages, '%total%': sessionPagination.total}) }}
+            </div>
+            <nav class="pagination" aria-label="{{ 'admin_users.session_pagination'|trans }}">
+                {% if sessionPagination.page > 1 %}
+                    <a class="button" href="{{ path('admin_users_show', {id: user.id, session_page: sessionPagination.page - 1}) }}">{{ 'common.previous'|trans }}</a>
+                {% else %}
+                    <span class="button disabled">{{ 'common.previous'|trans }}</span>
+                {% endif %}
+                <span aria-current="page">{{ sessionPagination.page }} / {{ sessionPagination.totalPages }}</span>
+                {% if sessionPagination.page < sessionPagination.totalPages %}
+                    <a class="button" href="{{ path('admin_users_show', {id: user.id, session_page: sessionPagination.page + 1}) }}">{{ 'common.next'|trans }}</a>
+                {% else %}
+                    <span class="button disabled">{{ 'common.next'|trans }}</span>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </article>
+
+    <form class="admin-form" method="post" action="{{ path('admin_users_password',{id:user.id}) }}" autocomplete="off">
+        <input type="hidden" name="_token" value="{{ csrf_token('admin_user_password') }}">
+        <div class="admin-form__group"><h2>{{ 'admin_users.reset_password'|trans }}</h2><p class="admin-help">{{ 'admin_users.reset_password_help'|trans }}</p><label>{{ 'admin_users.new_password'|trans }}<input required minlength="8" type="password" name="password" autocomplete="new-password"></label><label>{{ 'admin_users.confirm_password'|trans }}<input required minlength="8" type="password" name="password_confirmation" autocomplete="new-password"></label></div>
+        <div class="admin-form__actions"><button class="primary" type="submit">{{ 'admin_users.reset_password_action'|trans }}</button></div>
+    </form>
+</div>
+{% endblock %}

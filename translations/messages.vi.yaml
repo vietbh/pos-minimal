@@ -39,6 +39,8 @@ navigation:
   statistics: Thống kê
   payments: Thanh toán
   account: Tài khoản
+  users: Người dùng
+  root_analytics: Phân tích hệ thống
   import: Import Excel
   open_menu: Mở menu
   close_menu: Đóng menu
@@ -115,6 +117,35 @@ app:
   high_contrast_help: Tăng độ rõ của chữ, đường viền và trạng thái focus.
   reduce_motion: Giảm chuyển động
   reduce_motion_help: Giảm hoặc loại bỏ animation và transition không cần thiết.
+  payment_sound: Âm thanh khi thanh toán
+  payment_sound_help: Bật để hệ thống đọc thông báo khi thanh toán được xác nhận trong POS.
+  payment_sound_enabled: Bật âm thanh khi thanh toán
+  payment_sound_enabled_help: Thiết lập này áp dụng cho tài khoản của bạn và không cần bật lại trong màn hình POS.
+  usage_guide: Hướng dẫn sử dụng
+  usage_guide_help: Hiển thị hướng dẫn sử dụng trên trang chủ và cho phép mở hướng dẫn đầy đủ bất cứ lúc nào.
+  usage_guide_enabled: Hiển thị hướng dẫn trên trang chủ
+  usage_guide_enabled_help: Tắt nếu bạn đã quen với hệ thống và muốn trang chủ gọn hơn.
+  open_usage_guide: Mở hướng dẫn
+  usage_guide_title: Hướng dẫn sử dụng Mobile POS
+  usage_guide_intro: Các bước cơ bản để bán hàng, quản lý dữ liệu và xem thống kê.
+  usage_guide_home_help: Thực hành từng quy trình ngay trên màn hình thật. Hướng dẫn chỉ đánh dấu vị trí và chờ bạn thực hiện thao tác.
+  guide_start: Bắt đầu hướng dẫn
+  guide_products: Hướng dẫn sản phẩm
+  guide_stock: Hướng dẫn tồn kho
+  guide_pos_title: Bán hàng
+  guide_pos_text: Mở POS, chọn sản phẩm, số lượng và khách hàng nếu cần. Chọn phương thức thanh toán, kiểm tra số tiền rồi hoàn tất giao dịch.
+  guide_orders_title: Đơn hàng
+  guide_orders_text: Mở Đơn hàng để tìm kiếm, xem chi tiết, theo dõi trạng thái và thực hiện các thao tác được cấp quyền.
+  guide_customers_title: Khách hàng
+  guide_customers_text: Tạo và tra cứu khách hàng để gắn giao dịch, theo dõi lịch sử mua hàng và công nợ.
+  guide_debt_title: Công nợ
+  guide_debt_text: Mở Công nợ để xem số dư, khoản đến hạn và ghi nhận thanh toán công nợ theo quyền được cấp.
+  guide_products_stock_title: Sản phẩm và kho
+  guide_products_stock_text: Quản lý sản phẩm ở Sản phẩm; xem tồn kho và thực hiện điều chỉnh tồn kho khi có quyền.
+  guide_statistics_title: Thống kê
+  guide_statistics_text: Mở Thống kê để xem doanh thu, thanh toán, công nợ, sản phẩm bán chạy, khách hàng và các báo cáo theo kỳ.
+  guide_settings_title: Cài đặt
+  guide_settings_text: Tại Cài đặt bạn có thể đổi giao diện, cỡ chữ, mật độ hiển thị, trợ năng, âm thanh khi thanh toán và bật hoặc tắt hướng dẫn sử dụng.
   save_settings: Lưu cài đặt
   back_profile: Quay lại hồ sơ
   account: Tài khoản
@@ -125,6 +156,9 @@ app:
   username: Tên đăng nhập
   role: Vai trò
   status: Trạng thái
+  created: Đã tạo
+  updated: Đã cập nhật
+  view: Xem
   save_info: Lưu thông tin
   font_help: Chọn cỡ chữ dễ đọc nhất. Thiết lập được lưu cho tài khoản của bạn.
   choose_font: Chọn cỡ chữ
@@ -164,6 +198,108 @@ app:
   density_comfortable: Thoải mái
   density_standard: Tiêu chuẩn
   density_compact: Gọn
+user:
+  role:
+    USER: Người dùng
+    ADMIN: Quản trị viên
+    ROOT: Tài khoản hệ thống của nhà phát triển
+
+admin_users:
+    title: Người dùng
+    eyebrow: Quản trị
+    help: Quản lý tài khoản không phải ROOT, phiên đăng nhập và quyền truy cập.
+    create: Tạo người dùng
+    username: Tên đăng nhập
+    all_statuses: Tất cả trạng thái
+    all_roles: Tất cả vai trò
+    apply: Áp dụng bộ lọc
+    clear: Xóa bộ lọc
+    empty: Không có người dùng phù hợp.
+    view_only: Chỉ xem — tài khoản này ở cùng hoặc cấp quản trị cao hơn.
+    switch: Chuyển sang tài khoản
+    page_summary: 'Trang %page% / %pages% · Tổng %total% người dùng'
+    pagination: Phân trang người dùng
+    identity: Danh tính
+    user_id: ID người dùng
+    account_status: Trạng thái tài khoản
+    deactivation_help: Vô hiệu hóa vẫn giữ lịch sử và tham chiếu actor.
+    activate: Kích hoạt tài khoản
+    deactivate: Vô hiệu hóa tài khoản
+    activity_sessions: Hoạt động & phiên
+    activity_help: Thời điểm đăng nhập, hoạt động gần nhất, IP, thiết bị và trạng thái phiên.
+    session_page_summary: 'Trang %page% / %pages% · Tổng %total% phiên'
+    session_pagination: Phân trang phiên đăng nhập
+    unknown_device: Thiết bị không xác định
+    unknown_ip: IP không xác định
+    login: Đăng nhập
+    last_activity: Hoạt động gần nhất
+    logout: Đăng xuất
+    revoked: Đã thu hồi
+    revoke_session: Thu hồi phiên này
+    requests: Request
+    last_request: Request gần nhất
+    reset_password: Đặt lại mật khẩu
+    reset_password_help: Mật khẩu rõ không bao giờ được ghi vào log hoặc metadata audit.
+    new_password: Mật khẩu mới
+    confirm_password: Xác nhận mật khẩu
+    reset_password_action: Đặt lại mật khẩu
+
+root:
+  analytics:
+    tabs: Các tab phân tích
+    tab_activity: Hoạt động
+    tab_actions: Action
+    eyebrow: Phân tích ROOT
+    title: Phân tích hệ thống
+    help: Phân tích vận hành riêng tư đối với các tài khoản không phải ROOT.
+    user_activity: Hoạt động người dùng
+    user_activity_help: Trạng thái tài khoản, hoạt động gần đây, phiên đang hoạt động, số request và lần truy cập gần nhất.
+    presence: Trạng thái hoạt động
+    presence_online: Đang hoạt động
+    presence_idle: Không hoạt động gần đây
+    presence_offline: Ngoại tuyến
+    presence_help: Đang hoạt động khi session hiển thị gửi activity trong 2 phút gần nhất. 2–15 phút là không hoạt động gần đây; từ 15 phút trở lên là ngoại tuyến.
+    active_sessions: Phiên đang hoạt động
+    requests: Request
+    sessions: Tổng phiên
+    last_activity: Hoạt động gần nhất
+    last_ip: IP truy cập gần nhất
+    last_request: Request gần nhất
+    device: Thiết bị
+    no_users: Chưa có hoạt động của tài khoản không phải ROOT.
+    actions: Action của người dùng
+    actions_help: Các action đã được audit bởi tài khoản không phải ROOT. Kết quả được filter và phân trang ở server.
+    filter_user: Người dùng
+    all_users: Tất cả người dùng
+    filter_action: Action
+    all_actions: Tất cả action
+    filter_search: Tìm kiếm
+    search_placeholder: Tên user, action hoặc đối tượng
+    filter_from: Từ ngày
+    filter_to: Đến ngày
+    apply_filters: Áp dụng bộ lọc
+    clear_filters: Xóa bộ lọc
+    pagination: Phân trang action người dùng
+    page_indicator: Trang %page% / %pages% · %total% bản ghi
+    no_actions: Chưa có action được audit.
+    entity: Đối tượng
+    ip: Địa chỉ IP
+    user_agent: User agent
+    view_account_activity: Xem hoạt động & phiên
+    close_detail: Đóng chi tiết
+    sessions_title: Hoạt động & phiên
+    sessions_help: Xem từng phiên, request gần nhất và thu hồi phiên đang hoạt động.
+    no_sessions: Chưa có phiên được ghi nhận.
+    login: Đăng nhập
+    logout: Đăng xuất
+    revoked: Đã thu hồi
+    revoke_session: Thu hồi phiên này
+    session_active: Đang hoạt động
+    session_logged_out: Đã đăng xuất
+    session_revoked: Đã thu hồi
+    session_expired: Đã hết hạn
+    location_note: Vị trí truy cập được biểu diễn bằng IP và route mà server quan sát được. Không thu GPS nếu client chưa cấp quyền rõ ràng.
+
 access:
   denied_title: Không có quyền truy cập
   denied_message: Bạn không có quyền truy cập trang này.
@@ -682,6 +818,7 @@ common:
   stock: Tồn kho
   search_debts: Tìm công nợ
   filter_status: Lọc theo trạng thái
+  view: Xem
 admin:
   import_excel: Import Excel
   import_product: Import sản phẩm

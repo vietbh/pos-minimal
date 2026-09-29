@@ -47,6 +47,8 @@ final class SettingsController extends AbstractController
             $density = strtolower(trim((string) $request->request->get('density', $user->getUiDensity())));
             $highContrast = $request->request->getBoolean('high_contrast');
             $reduceMotion = $request->request->getBoolean('reduce_motion');
+            $paymentSoundEnabled = $request->request->getBoolean('payment_sound_enabled');
+            $usageGuideEnabled = $request->request->getBoolean('usage_guide_enabled');
 
             try {
                 $user->changeFontSize($fontSize);
@@ -54,6 +56,8 @@ final class SettingsController extends AbstractController
                 $user->changeUiDensity($density);
                 $user->setHighContrast($highContrast);
                 $user->setReduceMotion($reduceMotion);
+                $user->setPaymentSoundEnabled($paymentSoundEnabled);
+                $user->setUsageGuideEnabled($usageGuideEnabled);
 
                 $entityManager->flush();
 

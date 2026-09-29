@@ -39,6 +39,8 @@ navigation:
   statistics: Statistics
   payments: Payments
   account: Account
+  users: Users
+  root_analytics: System analytics
   import: Excel import
   open_menu: Open menu
   close_menu: Close menu
@@ -115,6 +117,35 @@ app:
   high_contrast_help: Increase clarity of text, borders and focus states.
   reduce_motion: Reduce motion
   reduce_motion_help: Reduce or remove unnecessary animation and transitions.
+  payment_sound: Payment sound
+  payment_sound_help: Enable system announcements when a payment is confirmed in POS.
+  payment_sound_enabled: Enable payment sound
+  payment_sound_enabled_help: This setting applies to your account, so you no longer need to enable it inside POS.
+  usage_guide: Usage guide
+  usage_guide_help: Show the usage guide on the home page and keep the full guide available at any time.
+  usage_guide_enabled: Show guide on home
+  usage_guide_enabled_help: Turn this off when you are familiar with the system and want a cleaner home page.
+  open_usage_guide: Open guide
+  usage_guide_title: Mobile POS Usage Guide
+  usage_guide_intro: Basic steps for sales, data management, and reporting.
+  usage_guide_home_help: Follow each workflow step by step on the real screen. The guide only highlights controls and waits for you to act.
+  guide_start: Start interactive guide
+  guide_products: Guide products
+  guide_stock: Guide stock
+  guide_pos_title: Sales
+  guide_pos_text: Open POS, choose products, quantities, and a customer when needed. Select the payment method, verify the amount, and complete the sale.
+  guide_orders_title: Orders
+  guide_orders_text: Open Orders to search, view details, track status, and perform actions allowed for your account.
+  guide_customers_title: Customers
+  guide_customers_text: Create and find customers to attach transactions, review purchase history, and track debt.
+  guide_debt_title: Debt
+  guide_debt_text: Open Debt to review balances and due items and record debt payments according to your permissions.
+  guide_products_stock_title: Products and stock
+  guide_products_stock_text: Manage products in Products; view stock and adjust stock when your account has permission.
+  guide_statistics_title: Statistics
+  guide_statistics_text: Open Statistics to review revenue, payments, debt, best-selling products, customers, and period reports.
+  guide_settings_title: Settings
+  guide_settings_text: In Settings you can change appearance, font size, density, accessibility, payment sound, and the usage guide preference.
   save_settings: Save settings
   back_profile: Back to profile
   account: Account
@@ -125,6 +156,9 @@ app:
   username: Username
   role: Role
   status: Status
+  created: Created
+  updated: Updated
+  view: View
   save_info: Save information
   font_help: Choose the most readable font size. The setting is saved to your account.
   choose_font: Choose font size
@@ -164,6 +198,108 @@ app:
   density_comfortable: Comfortable
   density_standard: Standard
   density_compact: Compact
+user:
+  role:
+    USER: User
+    ADMIN: Administrator
+    ROOT: Developer system account
+
+admin_users:
+    title: Users
+    eyebrow: Administration
+    help: Manage non-root accounts, sessions and access.
+    create: Create user
+    username: Username
+    all_statuses: All statuses
+    all_roles: All roles
+    apply: Apply filters
+    clear: Clear
+    empty: No users match the current filters.
+    view_only: View only — this account is at the same or higher management tier.
+    switch: Switch user
+    page_summary: 'Page %page% / %pages% · Total %total% users'
+    pagination: User pagination
+    identity: Identity
+    user_id: User ID
+    account_status: Account status
+    deactivation_help: Deactivation preserves historical records and actor references.
+    activate: Activate user
+    deactivate: Deactivate user
+    activity_sessions: Activity & sessions
+    activity_help: Login, last activity, IP, device and remote session status.
+    session_page_summary: 'Page %page% / %pages% · Total %total% sessions'
+    session_pagination: Session pagination
+    unknown_device: Unknown device
+    unknown_ip: Unknown IP
+    login: Login
+    last_activity: Last activity
+    logout: Logout
+    revoked: Revoked
+    revoke_session: Revoke this session
+    requests: Requests
+    last_request: Last request
+    reset_password: Reset password
+    reset_password_help: The plaintext password is never logged or written to audit metadata.
+    new_password: New password
+    confirm_password: Confirm password
+    reset_password_action: Reset password
+
+root:
+  analytics:
+    tabs: Analytics tabs
+    tab_activity: Activity
+    tab_actions: Actions
+    eyebrow: Root analytics
+    title: System analytics
+    help: Private operational analysis of non-root accounts.
+    user_activity: User activity
+    user_activity_help: Account state, recent presence, active sessions, request volume, last access and last request.
+    presence: Presence
+    presence_online: Online
+    presence_idle: Idle
+    presence_offline: Offline
+    presence_help: Online means a visible session sent activity within 2 minutes. Idle is 2–15 minutes. Offline is 15 minutes or more.
+    active_sessions: Active sessions
+    requests: Requests
+    sessions: Sessions
+    last_activity: Last activity
+    last_ip: Last access IP
+    last_request: Last request
+    device: Device
+    no_users: No non-root activity found.
+    actions: User actions
+    actions_help: Audited actions performed by non-root accounts. Results are filtered and paginated on the server.
+    filter_user: User
+    all_users: All users
+    filter_action: Action
+    all_actions: All actions
+    filter_search: Search
+    search_placeholder: Username, action or target
+    filter_from: From
+    filter_to: To
+    apply_filters: Apply filters
+    clear_filters: Clear filters
+    pagination: User action pagination
+    page_indicator: Page %page% / %pages% · %total% records
+    no_actions: No audited actions found.
+    entity: Entity
+    ip: IP address
+    user_agent: User agent
+    view_account_activity: View activity & sessions
+    close_detail: Close details
+    sessions_title: Activity & sessions
+    sessions_help: Inspect each session, recent requests and revoke active sessions.
+    no_sessions: No recorded sessions.
+    login: Login
+    logout: Logout
+    revoked: Revoked
+    revoke_session: Revoke this session
+    session_active: Active
+    session_logged_out: Logged out
+    session_revoked: Revoked
+    session_expired: Expired
+    location_note: Access location is represented by the server-observed IP and route. Exact GPS is not collected without explicit client permission.
+
 access:
   denied_title: Access denied
   denied_message: You do not have permission to access this page.
@@ -684,6 +820,7 @@ common:
   stock: Stock
   search_debts: Search debts
   filter_status: Filter by status
+  view: View
 admin:
   import_excel: Excel import
   import_product: Import products

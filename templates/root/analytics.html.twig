@@ -1,0 +1,340 @@
+{% extends 'layout/authenticated.html.twig' %}
+{% block title %}{{ 'root.analytics.title'|trans }}{% endblock %}
+{% block authenticated_body %}
+<div class="admin-workspace" id="root-analytics-top">
+    <header class="admin-toolbar">
+        <div>
+            <p class="eyebrow">{{ 'root.analytics.eyebrow'|trans }}</p>
+            <h1>{{ 'root.analytics.title'|trans }}</h1>
+            <p>{{ 'root.analytics.help'|trans }}</p>
+        </div>
+    </header>
+
+    <div class="root-analytics-tabs" role="tablist" aria-label="{{ 'root.analytics.tabs'|trans }}">
+        <button type="button" class="root-analytics-tab is-active" id="root-analytics-tab-activity" role="tab" aria-controls="root-analytics-panel-activity" aria-selected="true" data-root-analytics-tab="activity">{{ 'root.analytics.tab_activity'|trans }}</button>
+        <button type="button" class="root-analytics-tab" id="root-analytics-tab-actions" role="tab" aria-controls="root-analytics-panel-actions" aria-selected="false" data-root-analytics-tab="actions">{{ 'root.analytics.tab_actions'|trans }}</button>
+    </div>
+
+    <section id="root-analytics-panel-activity" class="root-analytics-panel" role="tabpanel" aria-labelledby="root-analytics-tab-activity">
+        <article class="admin-card root-analytics-section-card">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">{{ 'root.analytics.user_activity'|trans }}</h2>
+                <div class="admin-card__meta">{{ 'root.analytics.user_activity_help'|trans }}</div>
+            </div>
+        </div>
+        <div class="admin-card-grid">
+            {% for item in users %}
+                {% set role_key = 'ROLE_ADMIN' in item.user.roles ? 'ADMIN' : 'USER' %}
+                <div class="admin-card">
+                    <div class="admin-card__header">
+                        <div>
+                            <h3 class="admin-card__title">{{ item.user.username }}</h3>
+                            <div class="admin-card__meta">{{ ('user.role.' ~ role_key)|trans }}</div>
+                        </div>
+                        <span class="admin-status admin-status--{{ item.user.active ? 'success' : 'warning' }}">{{ item.user.active ? 'common.active'|trans : 'common.inactive'|trans }}</span>
+                    </div>
+                    <div class="admin-card__facts">
+                        <div class="admin-fact"><small>{{ 'root.analytics.presence'|trans }}</small><strong>{{ ('root.analytics.presence_' ~ item.presence.key)|trans }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'root.analytics.active_sessions'|trans }}</small><strong>{{ item.activeSessionCount }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'root.analytics.sessions'|trans }}</small><strong>{{ item.sessionCount }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'root.analytics.requests'|trans }}</small><strong>{{ item.requestCount }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'root.analytics.last_activity'|trans }}</small><strong>{{ item.lastActivityAt ? item.lastActivityAt|date('Y-m-d H:i:s') : '—' }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'root.analytics.last_ip'|trans }}</small><strong>{{ item.lastIpAddress ?: '—' }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'root.analytics.last_request'|trans }}</small><strong>{{ item.lastRequestMethod ?: '—' }} {{ item.lastRequestPath ?: '' }}</strong></div>
+                        <div class="admin-fact"><small>{{ 'root.analytics.device'|trans }}</small><strong>{{ item.lastDevice ?: '—' }}</strong></div>
+                    </div>
+                    <div class="admin-actions root-analytics-card-actions">
+                        <a class="button" href="{{ path('root_analytics', {user: item.user.id}) }}">{{ 'root.analytics.view_account_activity'|trans }}</a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="admin-empty">{{ 'root.analytics.no_users'|trans }}</div>
+            {% endfor %}
+        </div>
+        <p class="admin-help">{{ 'root.analytics.presence_help'|trans }}</p>
+
+        {% if selectedUser %}
+            <article class="root-analytics-detail-panel">
+                <header class="root-analytics-detail-topbar">
+                    <div class="root-analytics-account-mark" aria-hidden="true">{{ selectedUser.username|slice(0, 1)|upper }}</div>
+                    <div class="root-analytics-detail-identity">
+                        <div class="root-analytics-detail-kicker">{{ 'root.analytics.sessions_title'|trans }}</div>
+                        <h2>{{ selectedUser.username }}</h2>
+                        <p>{{ ('user.role.' ~ ('ADMIN' in selectedUser.roles ? 'ADMIN' : 'USER'))|trans }}</p>
+                    </div>
+                    <a class="button root-analytics-detail-close" href="{{ path('root_analytics') }}">{{ 'root.analytics.close_detail'|trans }}</a>
+                </header>
+
+                <div class="root-analytics-detail-summary">
+                    <div class="root-analytics-summary-item">
+                        <span>{{ 'root.analytics.sessions'|trans }}</span>
+                        <strong>{{ selectedSessions|length }}</strong>
+                    </div>
+                    <div class="root-analytics-summary-item">
+                        <span>{{ 'root.analytics.active_sessions'|trans }}</span>
+                        <strong>{{ selectedSessions|filter(session => session.active)|length }}</strong>
+                    </div>
+                    <div class="root-analytics-summary-copy">
+                        {{ 'root.analytics.sessions_help'|trans }}
+                    </div>
+                </div>
+
+                {% if selectedSessions is empty %}
+                    <div class="root-analytics-detail-empty">
+                        <strong>{{ 'root.analytics.no_sessions'|trans }}</strong>
+                    </div>
+                {% else %}
+                    <div class="root-analytics-session-stack">
+                        {% for session in selectedSessions %}
+                            <article class="root-analytics-session-row root-analytics-session-row--{{ session.active ? 'active' : 'closed' }}">
+                                <div class="root-analytics-session-marker" aria-hidden="true"></div>
+                                <div class="root-analytics-session-main">
+                                    <div class="root-analytics-session-heading">
+                                        <div>
+                                            <h3>{{ session.device ?: '—' }}</h3>
+                                            <p>{{ session.ipAddress ?: '—' }}</p>
+                                        </div>
+                                        <span class="admin-status admin-status--{{ session.active ? 'success' : 'muted' }}">{{ ('root.analytics.session_' ~ session.status.value|lower)|trans }}</span>
+                                    </div>
+
+                                    <div class="root-analytics-session-grid">
+                                        <div>
+                                            <span>{{ 'root.analytics.login'|trans }}</span>
+                                            <strong>{{ session.loginAt|date('Y-m-d H:i:s') }}</strong>
+                                        </div>
+                                        <div>
+                                            <span>{{ 'root.analytics.last_activity'|trans }}</span>
+                                            <strong>{{ session.lastActivityAt|date('Y-m-d H:i:s') }}</strong>
+                                        </div>
+                                        <div>
+                                            <span>{{ 'root.analytics.requests'|trans }}</span>
+                                            <strong>{{ session.requestCount }}</strong>
+                                        </div>
+                                        <div>
+                                            <span>{{ 'root.analytics.last_request'|trans }}</span>
+                                            <strong>{{ session.lastRequestMethod ?: '—' }} {{ session.lastRequestPath ?: '' }}</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="root-analytics-session-secondary">
+                                        <div>
+                                            <span>{{ 'root.analytics.logout'|trans }}</span>
+                                            <strong>{{ session.logoutAt ? session.logoutAt|date('Y-m-d H:i:s') : '—' }}</strong>
+                                        </div>
+                                        <div>
+                                            <span>{{ 'root.analytics.revoked'|trans }}</span>
+                                            <strong>{{ session.revokedAt ? session.revokedAt|date('Y-m-d H:i:s') : '—' }}</strong>
+                                        </div>
+                                    </div>
+
+                                    {% if session.userAgent %}
+                                        <p class="root-analytics-session-agent">{{ session.userAgent }}</p>
+                                    {% endif %}
+
+                                    {% if session.active %}
+                                        <form method="post" action="{{ path('root_analytics_session_revoke', {id: selectedUser.id, sessionId: session.id}) }}" class="root-analytics-session-action">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('root_analytics_session') }}">
+                                            <button class="button" type="submit">{{ 'root.analytics.revoke_session'|trans }}</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </article>
+        {% endif %}
+    </article>
+    </section>
+
+    <section id="root-analytics-panel-actions" class="root-analytics-panel" role="tabpanel" aria-labelledby="root-analytics-tab-actions" hidden>
+        <article class="admin-card root-analytics-section-card">
+        <div class="admin-card__header">
+            <div>
+                <h2 class="admin-card__title">{{ 'root.analytics.actions'|trans }}</h2>
+                <div class="admin-card__meta">{{ 'root.analytics.actions_help'|trans }}</div>
+            </div>
+        </div>
+
+        <form method="get" class="admin-form root-analytics-filter-card">
+            <div class="admin-form__group">
+                <label>{{ 'root.analytics.filter_user'|trans }}
+                    <select name="actor">
+                        <option value="">{{ 'root.analytics.all_users'|trans }}</option>
+                        {% for filterUser in filterUsers %}
+                            <option value="{{ filterUser.id }}"{% if actionFilters.actorUserId == filterUser.id %} selected{% endif %}>{{ filterUser.username }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>{{ 'root.analytics.filter_action'|trans }}
+                    <select name="action">
+                        <option value="">{{ 'root.analytics.all_actions'|trans }}</option>
+                        {% for option in actionOptions %}
+                            <option value="{{ option }}"{% if actionFilters.action == option %} selected{% endif %}>{{ option }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>{{ 'root.analytics.filter_search'|trans }}
+                    <input name="search" value="{{ actionFilters.search ?: '' }}" placeholder="{{ 'root.analytics.search_placeholder'|trans }}">
+                </label>
+                <label>{{ 'root.analytics.filter_from'|trans }}
+                    <input type="date" name="from" value="{{ actionFilters.from ?: '' }}">
+                </label>
+                <label>{{ 'root.analytics.filter_to'|trans }}
+                    <input type="date" name="to" value="{{ actionFilters.to ?: '' }}">
+                </label>
+            </div>
+            <div class="admin-actions">
+                <button class="primary" type="submit">{{ 'root.analytics.apply_filters'|trans }}</button>
+                <a class="button" href="{{ path('root_analytics') }}">{{ 'root.analytics.clear_filters'|trans }}</a>
+            </div>
+        </form>
+
+        {% if actions is empty %}
+            <p class="admin-help">{{ 'root.analytics.no_actions'|trans }}</p>
+        {% else %}
+            <div class="root-analytics-action-list">
+                {% for action in actions %}
+                    {% set actor = action.user %}
+                    <div class="admin-card root-analytics-action-card">
+                        <div class="admin-card__header">
+                            <div>
+                                <h3 class="admin-card__title">{{ action.action }}</h3>
+                                <div class="admin-card__meta">{{ actor.username }} · {{ action.createdAt|date('Y-m-d H:i:s') }}</div>
+                            </div>
+                        </div>
+                        <div class="admin-card__facts">
+                            <div class="admin-fact"><small>{{ 'root.analytics.entity'|trans }}</small><strong>{{ action.entityType ?: '—' }}{% if action.entityId %} #{{ action.entityId }}{% endif %}</strong></div>
+                            <div class="admin-fact"><small>{{ 'root.analytics.ip'|trans }}</small><strong>{{ action.ipAddress ?: '—' }}</strong></div>
+                            <div class="admin-fact"><small>{{ 'root.analytics.user_agent'|trans }}</small><strong>{{ action.userAgent ?: '—' }}</strong></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if actionPageCount > 1 %}
+                <nav aria-label="{{ 'root.analytics.pagination'|trans }}" class="admin-actions" style="margin-top:16px;">
+                    {% if actionPage > 1 %}<a class="button" href="{{ path('root_analytics', {actor: actionFilters.actorUserId, action: actionFilters.action, search: actionFilters.search, from: actionFilters.from, to: actionFilters.to, page: actionPage - 1}) }}#root-analytics-top">{{ 'common.previous'|trans }}</a>{% endif %}
+                    <span class="admin-help">{{ 'root.analytics.page_indicator'|trans({'%page%': actionPage, '%pages%': actionPageCount, '%total%': actionTotal}) }}</span>
+                    {% if actionPage < actionPageCount %}<a class="button" href="{{ path('root_analytics', {actor: actionFilters.actorUserId, action: actionFilters.action, search: actionFilters.search, from: actionFilters.from, to: actionFilters.to, page: actionPage + 1}) }}" data-root-analytics-pagination>{{ 'common.next'|trans }}</a>{% endif %}
+                </nav>
+            {% endif %}
+        {% endif %}
+    </article>
+    </section>
+
+
+
+    <p class="admin-help root-analytics-location-note">{{ 'root.analytics.location_note'|trans }}</p>
+</div>
+
+<style>
+.root-analytics-tabs { display:flex; gap:8px; margin:0 0 16px; padding:4px; border:1px solid var(--color-border); border-radius:12px; background:var(--color-surface); }
+.root-analytics-tab { flex:1 1 0; min-height:44px; border:0; border-radius:9px; background:transparent; font:inherit; font-weight:700; cursor:pointer; }
+.root-analytics-tab.is-active { background:var(--color-surface-raised); box-shadow:0 1px 4px rgba(0,0,0,.08); }
+.root-analytics-panel[hidden] { display:none !important; }
+.root-analytics-section-card { width:100%; box-sizing:border-box; }
+.root-analytics-section-card .admin-card-grid, .root-analytics-action-list { display:grid; grid-template-columns:minmax(0,1fr); width:100%; gap:12px; }
+.root-analytics-section-card .admin-card-grid > .admin-card, .root-analytics-action-card { width:100%; min-width:0; box-sizing:border-box; }
+.root-analytics-filter-card { width:100%; box-sizing:border-box; padding:16px; border:1px solid var(--color-border); border-radius:12px; }
+.root-analytics-filter-card .admin-form__group { width:100%; }
+.root-analytics-filter-card label, .root-analytics-filter-card input, .root-analytics-filter-card select { box-sizing:border-box; width:100%; }
+.root-analytics-location-note { margin-top:16px; }
+@media (max-width:640px) { .root-analytics-tabs { position:sticky; top:0; z-index:5; } }
+</style>
+
+<script>
+(() => {
+    const tabStorageKey = 'root-analytics-active-tab';
+    const tabs = [...document.querySelectorAll('[data-root-analytics-tab]')];
+    const panels = {
+        activity: document.getElementById('root-analytics-panel-activity'),
+        actions: document.getElementById('root-analytics-panel-actions'),
+    };
+
+    const activate = (name, persist = true) => {
+        const active = name === 'actions' ? 'actions' : 'activity';
+        tabs.forEach((tab) => {
+            const selected = tab.dataset.rootAnalyticsTab === active;
+            tab.classList.toggle('is-active', selected);
+            tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+            tab.tabIndex = selected ? 0 : -1;
+        });
+        Object.entries(panels).forEach(([key, panel]) => {
+            if (panel) panel.hidden = key !== active;
+        });
+        if (persist) window.sessionStorage.setItem(tabStorageKey, active);
+    };
+
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => activate(tab.dataset.rootAnalyticsTab));
+        tab.addEventListener('keydown', (event) => {
+            if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+            event.preventDefault();
+            const nextIndex = event.key === 'ArrowRight' ? (index + 1) % tabs.length : (index - 1 + tabs.length) % tabs.length;
+            tabs[nextIndex].focus();
+            activate(tabs[nextIndex].dataset.rootAnalyticsTab);
+        });
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const hasActionState = params.has('actor') || params.has('action') || params.has('search') || params.has('from') || params.has('to') || params.has('page');
+    activate(hasActionState ? 'actions' : (window.sessionStorage.getItem(tabStorageKey) || 'activity'), false);
+})();
+</script>
+
+<script>
+(() => {
+    const storagePrefix = 'root-analytics-scroll:';
+
+    const stateKey = () => {
+        const url = new URL(window.location.href);
+        url.hash = '';
+        url.searchParams.delete('page');
+        return storagePrefix + url.pathname + '?' + url.searchParams.toString();
+    };
+
+    const restore = () => {
+        const key = stateKey();
+        const saved = window.sessionStorage.getItem(key);
+        if (saved === null) {
+            return;
+        }
+
+        window.sessionStorage.removeItem(key);
+        const y = Number.parseInt(saved, 10);
+        if (!Number.isFinite(y)) {
+            return;
+        }
+
+        if ('scrollRestoration' in window.history) {
+            window.history.scrollRestoration = 'manual';
+        }
+
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                window.scrollTo(0, y);
+            });
+        });
+    };
+
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[data-root-analytics-pagination]');
+        if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            return;
+        }
+
+        event.preventDefault();
+        window.sessionStorage.setItem(stateKey(), String(window.scrollY));
+        window.location.assign(link.href);
+    });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', restore, { once: true });
+    } else {
+        restore();
+    }
+})();
+</script>
+{% endblock %}

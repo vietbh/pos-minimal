@@ -14,7 +14,7 @@ export default class extends Controller {
         'paymentTotal', 'paymentApplied', 'paymentDue', 'paymentChange',
         'paymentState', 'paymentDueRow', 'clearTendered', 'bankAccount', 'bankDetails', 'bankName', 'bankNumber', 'bankAccountName', 'transferContent', 'bankQr', 'paymentChangeRow', 'quickCash', 'note', 'resultSubtotal', 'resultDiscount', 'resultTotal', 'resultPaid',
         'resultDebt', 'resultTendered', 'resultChange', 'resultOrder',
-        'resultTenderedRow', 'resultChangeRow', 'resultDebtRow', 'saleView', 'paymentReferenceResult', 'resultPaymentReference', 'resultPaymentReferenceExpiresAt', 'resultPaymentReferenceCountdown', 'regeneratePaymentReferenceButton', 'paymentReferenceHint', 'manualBankConfirmButton', 'resultPaymentReferenceTransferContent', 'resultPaymentReferenceQr', 'bankQrPlaceholder', 'completePaidSaleButton', 'paymentReceivedBanner', 'paymentReceivedBannerAmount', 'paymentReceivedModal', 'paymentReceivedModalAmount', 'paymentReceivedModalReference', 'paymentReceivedCountdown', 'speakerButton', 'speakerStatus', 'currentTime', 'qrModal', 'qrModalImage', 'qrModalReference', 'qrModalAmount', 'qrModalCountdown', 'qrModalClose',
+        'resultTenderedRow', 'resultChangeRow', 'resultDebtRow', 'saleView', 'paymentReferenceResult', 'resultPaymentReference', 'resultPaymentReferenceExpiresAt', 'resultPaymentReferenceCountdown', 'regeneratePaymentReferenceButton', 'paymentReferenceHint', 'manualBankConfirmButton', 'resultPaymentReferenceTransferContent', 'resultPaymentReferenceQr', 'bankQrPlaceholder', 'completePaidSaleButton', 'paymentReceivedBanner', 'paymentReceivedBannerAmount', 'paymentReceivedModal', 'paymentReceivedModalAmount', 'paymentReceivedModalReference', 'paymentReceivedCountdown', 'currentTime', 'qrModal', 'qrModalImage', 'qrModalReference', 'qrModalAmount', 'qrModalCountdown', 'qrModalClose',
     ];
 
     static values = {
@@ -30,6 +30,7 @@ export default class extends Controller {
         copyFromOrderUrlBase: String,
         copyFromOrderId: { type: Number, default: 0 },
         manualBankConfirmAvailable: Boolean,
+        paymentSoundEnabled: Boolean,
         cartRemoveLabel: String,
         cartIncreaseLabel: String,
         cartDecreaseLabel: String,
@@ -39,9 +40,6 @@ export default class extends Controller {
         completeSaleLabel: String,
         bankPaymentLabel: String,
         messages: Object,
-        speakerEnabledLabel: String,
-        speakerDisabledLabel: String,
-        paymentReceivedSpeech: String,
     };
 
     connect() {
@@ -93,10 +91,9 @@ export default class extends Controller {
         this.paymentReceivedResetTimer = null;
         this.paymentReceivedCountdownTimer = null;
         this.bankTransferCompletionPolicy = null;
-        this.speakerEnabled = false;
+        this.speakerEnabled = this.paymentSoundEnabledValue === 'true';
         this.speakerSupported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
         this.speakerAnnouncementKey = null;
-        this.updateSpeakerUi();
         this.updateCurrentTime();
         this.currentTimeTimer = globalThis.setInterval(() => this.updateCurrentTime(), 1000);
 
@@ -1869,36 +1866,6 @@ export default class extends Controller {
         if (this.hasResultPaymentReferenceQrButtonTarget) {
             this.resultPaymentReferenceQrButtonTarget.hidden = true;
             this.resultPaymentReferenceQrButtonTarget.disabled = true;
-        }
-    }
-
-    toggleSpeaker() {
-        if (!this.speakerSupported) {
-            if (this.hasSpeakerStatusTarget) this.speakerStatusTarget.textContent = this.messagesValue.speakerDisabledLabel;
-            return;
-        }
-
-        this.speakerEnabled = !this.speakerEnabled;
-        this.updateSpeakerUi();
-
-        if (this.speakerEnabled) {
-            this.speak(this.messagesValue.speakerEnabledLabel);
-        } else {
-            window.speechSynthesis.cancel();
-        }
-    }
-
-    updateSpeakerUi() {
-        if (!this.hasSpeakerButtonTarget) return;
-        this.speakerButtonTarget.disabled = !this.speakerSupported;
-        this.speakerButtonTarget.setAttribute('aria-pressed', this.speakerEnabled ? 'true' : 'false');
-        this.speakerButtonTarget.textContent = this.speakerEnabled
-            ? this.messagesValue.speakerEnabledLabel
-            : this.messagesValue.speakerDisabledLabel;
-        if (this.hasSpeakerStatusTarget) {
-            this.speakerStatusTarget.textContent = this.speakerSupported
-                ? (this.speakerEnabled ? this.messagesValue.speakerEnabledLabel : this.messagesValue.speakerDisabledLabel)
-                : this.messagesValue.speakerDisabledLabel;
         }
     }
 

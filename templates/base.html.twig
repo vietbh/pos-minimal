@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html{% if app.user is defined and app.user %} data-font-size="{{ app.user.fontSize }}" data-appearance="{{ app.user.appearance }}" data-density="{{ app.user.uiDensity }}"{% if app.user.highContrast %} data-high-contrast="true"{% endif %}{% if app.user.reduceMotion %} data-reduce-motion="true"{% endif %}{% endif %}>
+<html{% if app.user is defined and app.user %} data-font-size="{{ app.user.fontSize }}" data-appearance="{{ app.user.appearance }}" data-density="{{ app.user.uiDensity }}"{% if app.user.highContrast %} data-high-contrast="true"{% endif %}{% if app.user.reduceMotion %} data-reduce-motion="true"{% endif %}{% if app.user.hasPaymentSoundEnabled() %} data-payment-sound-enabled="true"{% endif %}{% if app.user.hasUsageGuideEnabled() %} data-usage-guide-enabled="true"{% endif %}{% endif %}>
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -8,6 +8,8 @@
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
         {% block stylesheets %}
         {% endblock %}
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.4.0/dist/driver.css">
+        <script src="https://cdn.jsdelivr.net/npm/driver.js@1.4.0/dist/driver.js.iife.js"></script>
 
         {% block javascripts %}
             {% block importmap %}{{ importmap('app') }}{% endblock %}
@@ -20,7 +22,7 @@
         <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
         {% endif %}
     </head>
-    <body>
+    <body data-controller="usage-guide">
         {% block body %}{% endblock %}
     </body>
 </html>

@@ -73,6 +73,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'reduce_motion', options: ['default' => false])]
     private bool $reduceMotion = false;
 
+    #[ORM\Column(name: 'payment_sound_enabled', options: ['default' => true])]
+    private bool $paymentSoundEnabled = true;
+
+    #[ORM\Column(name: 'usage_guide_enabled', options: ['default' => true])]
+    private bool $usageGuideEnabled = true;
+
     #[ORM\Column(
         name: 'created_at',
         type: 'datetime_immutable'
@@ -360,6 +366,36 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
 
         $this->reduceMotion = $reduceMotion;
+        $this->touch();
+    }
+
+    public function hasPaymentSoundEnabled(): bool
+    {
+        return $this->paymentSoundEnabled;
+    }
+
+    public function setPaymentSoundEnabled(bool $enabled): void
+    {
+        if ($this->paymentSoundEnabled === $enabled) {
+            return;
+        }
+
+        $this->paymentSoundEnabled = $enabled;
+        $this->touch();
+    }
+
+    public function hasUsageGuideEnabled(): bool
+    {
+        return $this->usageGuideEnabled;
+    }
+
+    public function setUsageGuideEnabled(bool $enabled): void
+    {
+        if ($this->usageGuideEnabled === $enabled) {
+            return;
+        }
+
+        $this->usageGuideEnabled = $enabled;
         $this->touch();
     }
 

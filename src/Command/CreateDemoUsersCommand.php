@@ -22,15 +22,15 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 final class CreateDemoUsersCommand extends Command
 {
     private const ADMIN_USERNAME = 'admin';
-    private const ADMIN_PASSWORD = 'admin123';
     private const USER_USERNAME = 'user';
-    private const USER_PASSWORD = 'user123';
 
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly EntityManagerInterface $entityManager,
         private readonly KernelInterface $kernel,
+        private readonly string $adminPassword,
+        private readonly string $userPassword,
     ) {
         parent::__construct();
     }
@@ -43,8 +43,13 @@ final class CreateDemoUsersCommand extends Command
         }
 
         $created = 0;
-        $created += $this->createIfMissing(self::ADMIN_USERNAME, self::ADMIN_PASSWORD, [UserRole::ADMIN], $output);
-        $created += $this->createIfMissing(self::USER_USERNAME, self::USER_PASSWORD, [UserRole::USER], $output);
+        if ($this->adminPassword === '' || $this->userPassword === '') {
+            $output->writeln('<error>POS_DEMO_ADMIN_PASSWORD and POS_DEMO_USER_PASSWORD must be provided through runtime secrets.</error>');
+            return Command::INVALID;
+        }
+
+        $created += $this->createIfMissing(self::ADMIN_USERNAME, $this->adminPassword, [UserRole::ADMIN], $output);
+        $created += $this->createIfMissing(self::USER_USERNAME, $this->userPassword, [UserRole::USER], $output);
 
         if ($created > 0) {
             $this->entityManager->flush();

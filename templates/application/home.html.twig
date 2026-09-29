@@ -173,7 +173,20 @@
         </div>
     </section>
 
-    <section class="home-section" aria-labelledby="quick-actions-title">
+    {% if app.user.hasUsageGuideEnabled() %}
+    <section class="home-section home-guide-section" aria-labelledby="home-guide-title">
+        <div class="home-section-heading">
+            <div>
+                <p class="eyebrow">{{ 'app.help'|trans }}</p>
+                <h2 id="home-guide-title">{{ 'app.usage_guide_title'|trans }}</h2>
+            </div>
+            <a class="button" href="{{ path('app_usage_guide') }}">{{ 'app.open_usage_guide'|trans }}</a>
+        </div>
+        <p class="muted">{{ 'app.usage_guide_home_help'|trans }}</p>
+    </section>
+{% endif %}
+
+<section class="home-section" aria-labelledby="quick-actions-title">
         <div class="home-section-heading">
             <div>
                 <p class="eyebrow">{{ 'app.navigation'|trans }}</p>

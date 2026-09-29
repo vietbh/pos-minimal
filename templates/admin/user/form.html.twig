@@ -1,0 +1,20 @@
+{% extends 'layout/authenticated.html.twig' %}
+{% block title %}{{ mode == 'create' ? 'Create user' : 'Edit user' }}{% endblock %}
+{% block authenticated_body %}
+<div class="admin-workspace">
+    <header class="admin-toolbar"><div><p class="eyebrow">Administration</p><h1>{{ mode == 'create' ? 'Create user' : 'Edit user' }}</h1><p>{{ mode == 'create' ? 'Create an authenticated application account.' : 'Update username and role. Password changes are managed separately.' }}</p></div><div class="admin-toolbar__actions"><a class="button" href="{{ mode == 'create' ? path('admin_users_index') : path('admin_users_show',{id:user.id}) }}">Back</a></div></header>
+    {% if error %}<div class="flash error" role="alert">{{ error }}</div>{% endif %}
+    <form class="admin-form" method="post" autocomplete="off">
+        <input type="hidden" name="_token" value="{{ csrf_token('admin_user_form') }}">
+        <div class="admin-form__group">
+            <h2>Account</h2>
+            <label>Username<input required maxlength="180" name="username" value="{{ data.username }}" autocomplete="username" autofocus></label>
+            <label>Role<select required name="role">{% for item in roles %}<option value="{{ item.value }}"{% if data.role == item.value %} selected{% endif %}>{{ item.value }}</option>{% endfor %}</select></label>
+        </div>
+        {% if mode == 'create' %}
+        <div class="admin-form__group"><h2>Password</h2><label>Password<input required minlength="8" type="password" name="password" autocomplete="new-password"></label><label>Confirm password<input required minlength="8" type="password" name="password_confirmation" autocomplete="new-password"></label></div>
+        {% endif %}
+        <div class="admin-form__actions"><button class="primary" type="submit">{{ mode == 'create' ? 'Create user' : 'Save changes' }}</button><a class="button" href="{{ mode == 'create' ? path('admin_users_index') : path('admin_users_show',{id:user.id}) }}">Cancel</a></div>
+    </form>
+</div>
+{% endblock %}

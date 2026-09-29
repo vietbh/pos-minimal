@@ -49,6 +49,17 @@ services:
         arguments:
             $storageRoot: '%kernel.project_dir%/%env(PRODUCT_IMAGE_STORAGE_ROOT)%'
 
+
+    App\Command\BootstrapRootAccountCommand:
+        arguments:
+            $rootUsername: '%env(ROOT_ACCOUNT_USERNAME)%'
+            $rootPassword: '%env(ROOT_ACCOUNT_PASSWORD)%'
+
+    App\Command\CreateDemoUsersCommand:
+        arguments:
+            $adminPassword: '%env(POS_DEMO_ADMIN_PASSWORD)%'
+            $userPassword: '%env(POS_DEMO_USER_PASSWORD)%'
+
     App\Application\Payment\Webhook\BankNotificationWebhookHandler:
         arguments:
             $webhookTimezone: '%env(default:app.webhook_timezone_default:POS_WEBHOOK_TIMEZONE)%'

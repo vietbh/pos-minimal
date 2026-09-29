@@ -80,6 +80,7 @@ final class CheckoutController extends AbstractController
             'manual_bank_confirm_allowed' => $this->isGranted(Permission::PAYMENT_BANK_MANUAL_CONFIRM->value),
             'sales_points' => $salesPoints->findActive(),
             'current_sales_point' => $current,
+            'payment_sound_enabled' => $this->getUser() instanceof User && $this->getUser()->hasPaymentSoundEnabled(),
         ]);
     }
 

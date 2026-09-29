@@ -3,7 +3,7 @@
 {% block title %}{{ 'stat.title'|trans }}{% endblock %}
 
 {% block authenticated_body %}
-<div class="statistics statistics-ux admin-workspace" data-controller="statistics-filter">
+<div class="statistics statistics-ux admin-workspace" data-guide="statistics-workspace" data-controller="statistics-filter">
     <header class="statistics-hero admin-toolbar">
         <div>
             <p class="eyebrow">{{ 'stat.insights'|trans }}</p>
@@ -15,12 +15,12 @@
         </p>
     </header>
 
-    <form method="get" class="statistics-filter admin-filter" data-action="submit->statistics-filter#loading" aria-describedby="statistics-filter-help">
+    <form method="get" class="statistics-filter admin-filter" data-guide="statistics-filter" data-action="submit->statistics-filter#loading" aria-describedby="statistics-filter-help">
         <p id="statistics-filter-help" class="admin-help">{{ 'stat.filter_help'|trans }}</p>
         <div class="statistics-filter-grid">
             <div>
                 <label for="preset">{{ 'stat.preset'|trans }}</label>
-                <select id="preset" name="preset" data-action="change->statistics-filter#preset">
+                <select id="preset" data-guide="statistics-preset" name="preset" data-action="change->statistics-filter#preset">
                     <option value="custom"{% if preset == 'custom' %} selected{% endif %}>{{ 'stat.custom'|trans }}</option>
                     <option value="today"{% if preset == 'today' %} selected{% endif %}>{{ 'stat.today'|trans }}</option>
                     <option value="yesterday"{% if preset == 'yesterday' %} selected{% endif %}>{{ 'stat.yesterday'|trans }}</option>
@@ -50,7 +50,7 @@
                 <input id="limit" type="number" name="limit" min="1" max="100" value="{{ limit }}" inputmode="numeric">
             </div>
             <div class="statistics-filter-actions">
-                <button class="primary" type="submit" data-statistics-filter-target="submit">{{ 'common.apply'|trans }}</button>
+                <button class="primary" type="submit" data-statistics-filter-target="submit" data-guide="statistics-apply">{{ 'common.apply'|trans }}</button>
                 <span class="statistics-loading" hidden data-statistics-filter-target="loading" role="status" aria-live="polite">{{ 'common.loading'|trans }}</span>
             </div>
         </div>

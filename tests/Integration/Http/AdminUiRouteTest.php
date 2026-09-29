@@ -8,6 +8,6 @@ final class AdminUiRouteTest extends WebTestCase
     public function testPhase29RoutesAreRegistered(): void
     {
         $routes=static::getContainer()->get('router')->getRouteCollection();
-        foreach(['admin_products_index','admin_products_new','admin_products_show','admin_products_edit','admin_products_price','admin_products_activate','admin_products_deactivate','admin_products_stock','customers_index','customers_new','customers_show','customers_edit','admin_stock_index','admin_stock_show','admin_stock_adjust'] as $name) self::assertNotNull($routes->get($name),$name);
+        foreach(['admin_products_index','admin_products_new','admin_products_show','admin_products_edit','admin_products_price','admin_products_activate','admin_products_deactivate','admin_products_stock','customers_index','customers_new','customers_show','customers_edit','admin_stock_index','admin_stock_show','admin_stock_adjust','admin_users_index','admin_users_new','admin_users_show','admin_users_edit','admin_users_status','admin_users_password','root_analytics'] as $name) self::assertNotNull($routes->get($name),$name);
     }
 }

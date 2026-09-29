@@ -65,6 +65,10 @@ final class PermissionMatrix
             );
         }
 
+        if ($user->hasRole(UserRole::ROOT)) {
+            $permissions[] = Permission::ROOT_ANALYTICS_VIEW;
+        }
+
         return array_values(
             array_unique(
                 $permissions,

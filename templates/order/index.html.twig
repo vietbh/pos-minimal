@@ -67,10 +67,10 @@
         {% endif %}
     </header>
 
-    <form method="get" class="orders-filters" role="search" aria-label="{{ 'order.search_aria'|trans }}">
+    <form method="get" class="orders-filters" data-guide="orders-filters" role="search" aria-label="{{ 'order.search_aria'|trans }}">
         <label>
             {{ 'common.search'|trans }}
-            <input name="q" value="{{ search }}" maxlength="{{ maxSearchLength }}" placeholder="{{ 'order.search_placeholder'|trans }}" autocomplete="off">
+            <input data-guide="orders-search" name="q" value="{{ search }}" maxlength="{{ maxSearchLength }}" placeholder="{{ 'order.search_placeholder'|trans }}" autocomplete="off">
         </label>
         <label>
             {{ 'common.status'|trans }}
@@ -85,7 +85,7 @@
             <label> {{ 'order.from'|trans }} <input type="date" name="from" value="{{ from ?? '' }}" aria-label="{{ 'order.from'|trans }}"></label>
             <label> {{ 'order.to'|trans }} <input type="date" name="to" value="{{ to ?? '' }}" aria-label="{{ 'order.to'|trans }}"></label>
         </div>
-        <div class="orders-filter-actions">
+        <div class="orders-filter-actions" data-guide="orders-apply">
             <button type="submit">{{ 'common.search'|trans }}</button>
             <a class="orders-clear" href="{{ path('orders_index') }}">{{ 'order.clear_filters'|trans }}</a>
         </div>

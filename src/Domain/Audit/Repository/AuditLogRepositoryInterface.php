@@ -17,4 +17,23 @@ interface AuditLogRepositoryInterface
         string $entityType,
         string $entityId,
     ): array;
+
+    /** @return list<AuditLog> */
+    public function findRecent(int $limit = 200): array;
+    /**
+     * @return array{items:list<AuditLog>,total:int}
+     */
+    public function findRootAnalyticsPage(
+        ?int $actorUserId,
+        ?string $action,
+        ?string $search,
+        ?\DateTimeImmutable $from,
+        ?\DateTimeImmutable $toExclusive,
+        int $page,
+        int $limit,
+    ): array;
+
+    /** @return list<string> */
+    public function findRootAnalyticsActions(): array;
+
 }

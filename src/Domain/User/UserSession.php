@@ -93,6 +93,27 @@ class UserSession
     private ?string $device = null;
 
     #[ORM\Column(
+        name: 'request_count',
+        type: 'bigint',
+        options: ['unsigned' => true, 'default' => 0]
+    )]
+    private int $requestCount = 0;
+
+    #[ORM\Column(
+        name: 'last_request_method',
+        length: 10,
+        nullable: true
+    )]
+    private ?string $lastRequestMethod = null;
+
+    #[ORM\Column(
+        name: 'last_request_path',
+        length: 512,
+        nullable: true
+    )]
+    private ?string $lastRequestPath = null;
+
+    #[ORM\Column(
         length: 30,
         enumType: SessionStatus::class
     )]
@@ -188,6 +209,21 @@ class UserSession
         $this->device = $device;
     }
 
+    public function getRequestCount(): int
+    {
+        return $this->requestCount;
+    }
+
+    public function getLastRequestMethod(): ?string
+    {
+        return $this->lastRequestMethod;
+    }
+
+    public function getLastRequestPath(): ?string
+    {
+        return $this->lastRequestPath;
+    }
+
     public function getStatus(): SessionStatus
     {
         return $this->status;
@@ -207,6 +243,50 @@ class UserSession
             );
         }
 
+        $this->lastActivityAt = $at ?? new \DateTimeImmutable();
+    }
+
+    public function recordHeartbeat(
+        ?\DateTimeImmutable $at = null,
+    ): void {
+        if (!$this->isActive()) {
+            throw new \DomainException(
+                'Only active sessions can record heartbeat.'
+            );
+        }
+
+        $this->lastActivityAt = $at ?? new \DateTimeImmutable();
+    }
+
+    public function recordRequest(
+        string $method,
+        string $path,
+        ?string $ipAddress = null,
+        ?\DateTimeImmutable $at = null,
+    ): void {
+        if (!$this->isActive()) {
+            throw new \DomainException(
+                'Only active sessions can record requests.'
+            );
+        }
+
+        $method = strtoupper(trim($method));
+        $path = trim($path);
+
+        if ($method === '') {
+            throw new \InvalidArgumentException('Request method cannot be empty.');
+        }
+
+        if ($path === '') {
+            $path = '/';
+        }
+
+        $this->requestCount++;
+        $this->lastRequestMethod = mb_substr($method, 0, 10);
+        $this->lastRequestPath = mb_substr($path, 0, 512);
+        if ($ipAddress !== null && trim($ipAddress) !== '') {
+            $this->ipAddress = trim($ipAddress);
+        }
         $this->lastActivityAt = $at ?? new \DateTimeImmutable();
     }
 
