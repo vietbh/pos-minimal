@@ -6018,3 +6018,683 @@ html[data-appearance="system"] .pos-customer-modal-footer .pos-customer-cancel {
 .usage-guide-card h2 { margin-top: 0; }
 .home-guide-section { border: 2px solid var(--ux-border); border-radius: 16px; padding: 16px; background: var(--ux-surface); }
 @media (min-width: 760px) { .usage-guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ==========================================================================\n   Canonical UI Foundation — Phase 2.18.2\n   Keep business-specific classes, but make presentation resolve through one\n   semantic token system. This block intentionally lives at the end so legacy\n   component rules can be migrated safely without a second stylesheet.\n   ========================================================================== */
+:root {
+    --ui-bg: #f8fafc;
+    --ui-surface: #ffffff;
+    --ui-surface-raised: #ffffff;
+    --ui-surface-soft: #f1f5f9;
+    --ui-text: #172033;
+    --ui-muted: #475569;
+    --ui-border: #cbd5e1;
+    --ui-border-strong: #94a3b8;
+    --ui-primary: #1d4ed8;
+    --ui-primary-hover: #1e40af;
+    --ui-on-primary: #ffffff;
+    --ui-success: #15803d;
+    --ui-warning: #a16207;
+    --ui-danger: #b91c1c;
+    --ui-info: #0369a1;
+    --ui-focus: #2563eb;
+    --ui-radius-sm: 8px;
+    --ui-radius-md: 12px;
+    --ui-radius-lg: 16px;
+    --ui-control-height: 48px;
+    --ui-touch-target: 48px;
+    --ui-space-1: 4px;
+    --ui-space-2: 8px;
+    --ui-space-3: 12px;
+    --ui-space-4: 16px;
+    --ui-space-5: 20px;
+    --ui-space-6: 24px;
+    --ui-space-8: 32px;
+    --ui-shadow-card: 0 1px 2px rgba(15, 23, 42, .05);
+}
+
+html[data-appearance="dark"] {
+    --ui-bg: #0f172a;
+    --ui-surface: #111827;
+    --ui-surface-raised: #182235;
+    --ui-surface-soft: #1e293b;
+    --ui-text: #f8fafc;
+    --ui-muted: #cbd5e1;
+    --ui-border: #475569;
+    --ui-border-strong: #64748b;
+    --ui-primary: #60a5fa;
+    --ui-primary-hover: #93c5fd;
+    --ui-on-primary: #0f172a;
+    --ui-success: #4ade80;
+    --ui-warning: #facc15;
+    --ui-danger: #f87171;
+    --ui-info: #38bdf8;
+    --ui-focus: #60a5fa;
+    color-scheme: dark;
+}
+
+html[data-appearance="light"] {
+    color-scheme: light;
+}
+
+html[data-appearance="system"] {
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-appearance="system"] {
+        --ui-bg: #0f172a;
+        --ui-surface: #111827;
+        --ui-surface-raised: #182235;
+        --ui-surface-soft: #1e293b;
+        --ui-text: #f8fafc;
+        --ui-muted: #cbd5e1;
+        --ui-border: #475569;
+        --ui-border-strong: #64748b;
+        --ui-primary: #60a5fa;
+        --ui-primary-hover: #93c5fd;
+        --ui-on-primary: #0f172a;
+        --ui-success: #4ade80;
+        --ui-warning: #facc15;
+        --ui-danger: #f87171;
+        --ui-info: #38bdf8;
+        --ui-focus: #60a5fa;
+        color-scheme: dark;
+    }
+}
+
+html, body {
+    background: var(--ui-bg);
+    color: var(--ui-text);
+}
+
+body {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+}
+
+button,
+.button {
+    min-height: var(--ui-touch-target);
+    min-width: var(--ui-touch-target);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface);
+    color: var(--ui-text);
+    font-weight: 700;
+    text-decoration: none;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .05s ease;
+}
+
+button:hover,
+.button:hover {
+    background: var(--ui-surface-soft);
+    border-color: var(--ui-border-strong);
+}
+
+button:active,
+.button:active { transform: translateY(1px); }
+
+button:focus-visible,
+.button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--ui-focus) 30%, transparent);
+    outline-offset: 2px;
+}
+
+button.primary,
+.button.primary {
+    background: var(--ui-primary) !important;
+    border-color: var(--ui-primary) !important;
+    color: var(--ui-on-primary) !important;
+}
+
+button.primary:hover,
+.button.primary:hover {
+    background: var(--ui-primary-hover) !important;
+    border-color: var(--ui-primary-hover) !important;
+}
+
+button.secondary,
+.button.secondary {
+    background: var(--ui-surface);
+    border-color: var(--ui-border-strong);
+    color: var(--ui-text);
+}
+
+button.danger,
+.button.danger {
+    color: var(--ui-danger);
+    border-color: color-mix(in srgb, var(--ui-danger) 35%, var(--ui-border));
+    background: var(--ui-surface);
+}
+
+button.ghost,
+.button.ghost {
+    border-color: transparent;
+    background: transparent;
+}
+
+button:disabled,
+.button[aria-disabled="true"],
+button[disabled] {
+    opacity: .55;
+    cursor: not-allowed;
+    transform: none;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    min-height: var(--ui-control-height);
+    box-sizing: border-box;
+    border: 1px solid var(--ui-border-strong);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface);
+    color: var(--ui-text);
+    padding: 10px 12px;
+}
+
+input:hover,
+select:hover,
+textarea:hover { border-color: var(--ui-border-strong); }
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--ui-focus);
+    outline: none;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ui-focus) 14%, transparent);
+}
+
+input:invalid:not(:placeholder-shown),
+select:invalid,
+textarea:invalid {
+    border-color: var(--ui-danger);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+    background: var(--ui-surface-soft);
+    color: var(--ui-muted);
+    cursor: not-allowed;
+}
+
+input[readonly],
+textarea[readonly] {
+    background: var(--ui-surface-soft);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    padding: 0;
+    flex: 0 0 auto;
+    accent-color: var(--ui-primary);
+}
+
+label:has(> input[type="checkbox"]),
+label:has(> input[type="radio"]) {
+    min-height: var(--ui-touch-target);
+}
+
+.card,
+.admin-card,
+.admin-section,
+.pos-card,
+.form-card,
+.statistics-card,
+.dashboard-kpi,
+.dashboard-chart-card,
+.home-alert,
+.settings-option,
+.settings-switch,
+.search-bar,
+.search-form,
+.orders-filters,
+.inline-form,
+.table-scroll,
+.empty-state,
+.orders-empty {
+    background: var(--ui-surface);
+    color: var(--ui-text);
+    border-color: var(--ui-border);
+    box-shadow: var(--ui-shadow-card);
+}
+
+.card,
+.admin-card,
+.admin-section,
+.pos-card,
+.form-card,
+.statistics-card {
+    border-radius: var(--ui-radius-lg);
+}
+
+.card:hover,
+a.card:hover,
+.home-card:hover,
+.admin-card:hover {
+    border-color: var(--ui-border-strong);
+}
+
+th {
+    background: var(--ui-surface-soft);
+    color: var(--ui-text);
+}
+
+th,
+td { border-color: var(--ui-border); }
+
+tbody tr:hover { background: var(--ui-surface-soft); }
+
+.status,
+.status-pill {
+    border: 1px solid var(--ui-border);
+    background: var(--ui-surface-soft);
+    color: var(--ui-text);
+}
+
+.status.active { background: color-mix(in srgb, var(--ui-success) 16%, var(--ui-surface)); color: var(--ui-success); }
+.status.warning { background: color-mix(in srgb, var(--ui-warning) 18%, var(--ui-surface)); color: var(--ui-warning); }
+.status.danger { background: color-mix(in srgb, var(--ui-danger) 16%, var(--ui-surface)); color: var(--ui-danger); }
+
+.flash.success { background: color-mix(in srgb, var(--ui-success) 12%, var(--ui-surface)); color: var(--ui-success); border-color: color-mix(in srgb, var(--ui-success) 40%, var(--ui-border)); }
+.flash.warning { background: color-mix(in srgb, var(--ui-warning) 12%, var(--ui-surface)); color: var(--ui-warning); border-color: color-mix(in srgb, var(--ui-warning) 40%, var(--ui-border)); }
+.flash.error { background: color-mix(in srgb, var(--ui-danger) 12%, var(--ui-surface)); color: var(--ui-danger); border-color: color-mix(in srgb, var(--ui-danger) 40%, var(--ui-border)); }
+
+.modal,
+.modal-content,
+.dialog,
+[role="dialog"] {
+    background: var(--ui-surface);
+    color: var(--ui-text);
+    border-color: var(--ui-border);
+}
+
+.app-nav,
+.app-header-global,
+.desktop-sidebar,
+.mobile-topbar,
+.mobile-navigation,
+.pos-global-header {
+    background: var(--ui-surface);
+    color: var(--ui-text);
+    border-color: var(--ui-border);
+}
+
+.app-nav a,
+.mobile-navigation a,
+.sidebar-nav a {
+    color: var(--ui-text);
+}
+
+.app-nav a:hover,
+.mobile-navigation a:hover,
+.sidebar-nav a:hover { background: var(--ui-surface-soft); }
+
+.dashboard-tabs {
+    display: flex;
+    gap: var(--ui-space-2);
+    overflow-x: auto;
+    padding: 4px 0 8px;
+    margin-bottom: var(--ui-space-4);
+    scrollbar-width: thin;
+}
+
+.dashboard-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--ui-touch-target);
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border: 1px solid var(--ui-border);
+    border-radius: 999px;
+    background: var(--ui-surface);
+    color: var(--ui-text);
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.dashboard-tab:hover { background: var(--ui-surface-soft); }
+.dashboard-tab.is-active { background: var(--ui-primary); border-color: var(--ui-primary); color: var(--ui-on-primary); }
+
+.dashboard-chart-card {
+    padding: var(--ui-space-5);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-lg);
+}
+
+.dashboard-chart-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ui-space-3);
+    margin-bottom: var(--ui-space-5);
+}
+
+.dashboard-chart-summary > div {
+    display: grid;
+    gap: var(--ui-space-1);
+    min-width: 0;
+    padding: var(--ui-space-3);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface-soft);
+}
+
+.dashboard-chart-summary span { color: var(--ui-muted); font-size: 14px; font-weight: 700; }
+.dashboard-chart-summary strong { font-size: clamp(20px, 4vw, 26px); line-height: 1.15; overflow-wrap: anywhere; }
+
+.dashboard-bar-chart {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: var(--ui-space-2);
+    min-height: 250px;
+    align-items: end;
+}
+
+.dashboard-bar-column {
+    display: grid;
+    grid-template-rows: auto minmax(130px, 1fr) auto;
+    gap: 6px;
+    min-width: 0;
+    height: 100%;
+    text-align: center;
+}
+
+.dashboard-bar-value {
+    min-height: 2.4em;
+    color: var(--ui-muted);
+    font-size: 12px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.dashboard-bar-track {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    min-height: 130px;
+    padding: 0 3px;
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-surface-soft);
+}
+
+.dashboard-bar {
+    display: block;
+    width: min(42px, 70%);
+    min-height: 0;
+    border-radius: 8px 8px 4px 4px;
+    background: var(--ui-primary);
+}
+
+.dashboard-bar-label { font-size: 13px; font-weight: 800; color: var(--ui-text); }
+
+.dashboard-kpi strong,
+.dashboard-chart-summary strong,
+.dashboard-bar-value,
+.money,
+.pos-payment-total strong,
+.pos-cart-total strong {
+    font-variant-numeric: tabular-nums;
+}
+
+.home-role-badge {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
+    min-height: 40px;
+    padding: 6px 11px;
+    border: 1px solid var(--ui-border);
+    border-radius: 999px;
+    background: var(--ui-surface-soft);
+}
+
+.home-role-badge span { color: var(--ui-muted); font-size: 13px; font-weight: 700; }
+.home-role-badge strong { font-size: 14px; }
+
+/* Business data must wrap rather than disappear on narrow screens. */
+.home-card strong,
+.dashboard-list-row strong,
+.card strong,
+.admin-card__title,
+.admin-card__title a,
+.pos-result-main strong,
+.pos-cart-main strong {
+    overflow-wrap: anywhere;
+    word-break: normal;
+    text-overflow: clip;
+    white-space: normal;
+}
+
+@media (max-width: 600px) {
+    .dashboard-chart-card { padding: var(--ui-space-4); }
+    .dashboard-chart-summary { grid-template-columns: 1fr; }
+    .dashboard-bar-chart { gap: 4px; min-height: 230px; }
+    .dashboard-bar-column { grid-template-rows: auto minmax(110px, 1fr) auto; }
+    .dashboard-bar-track { min-height: 110px; }
+    .dashboard-bar-value { font-size: 10px; }
+    .dashboard-bar-label { font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+html[data-high-contrast="true"] {
+    --ui-border: #334155;
+    --ui-border-strong: #0f172a;
+    --ui-focus: #000000;
+}
+
+html[data-appearance="dark"][data-high-contrast="true"],
+html[data-appearance="system"][data-high-contrast="true"] {
+    --ui-border: #cbd5e1;
+    --ui-border-strong: #f8fafc;
+    --ui-focus: #ffffff;
+}
+
+html[data-density="compact"] {
+    --ui-space-3: 8px;
+    --ui-space-4: 12px;
+    --ui-space-5: 16px;
+    --ui-space-6: 20px;
+}
+
+html[data-density="comfortable"] {
+    --ui-space-3: 12px;
+    --ui-space-4: 16px;
+    --ui-space-5: 20px;
+    --ui-space-6: 24px;
+}
+
+/* ==========================================================================
+   Phase 2.18.3 — POS visual identity finalization
+   Keep the existing semantic UI foundation; this block only rebinds its
+   tokens/components so Dashboard and Application Shell use the POS palette.
+   ========================================================================== */
+:root {
+    --ui-bg: #f4f8f6;
+    --ui-surface: #ffffff;
+    --ui-surface-raised: #ffffff;
+    --ui-surface-soft: #eaf4f1;
+    --ui-text: #14201d;
+    --ui-muted: #53645f;
+    --ui-border: #c9d8d3;
+    --ui-border-strong: #8ea59d;
+    --ui-primary: #0f9d8a;
+    --ui-primary-hover: #087c6d;
+    --ui-on-primary: #ffffff;
+    --ui-success: #15803d;
+    --ui-warning: #a16207;
+    --ui-danger: #b91c1c;
+    --ui-info: #0f766e;
+    --ui-focus: #0f9d8a;
+    --color-primary: #0f9d8a;
+    --color-primary-strong: #087c6d;
+}
+
+html[data-appearance="dark"] {
+    --ui-bg: #0b1210;
+    --ui-surface: #111b18;
+    --ui-surface-raised: #16221f;
+    --ui-surface-soft: #1d2b27;
+    --ui-text: #f1f8f5;
+    --ui-muted: #a9bbb5;
+    --ui-border: #334640;
+    --ui-border-strong: #557068;
+    --ui-primary: #2bc4ae;
+    --ui-primary-hover: #45d4c0;
+    --ui-on-primary: #06241f;
+    --ui-success: #4ade80;
+    --ui-warning: #facc15;
+    --ui-danger: #f87171;
+    --ui-info: #5eead4;
+    --ui-focus: #45d4c0;
+    --color-primary: #2bc4ae;
+    --color-primary-strong: #45d4c0;
+    color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-appearance="system"] {
+        --ui-bg: #0b1210;
+        --ui-surface: #111b18;
+        --ui-surface-raised: #16221f;
+        --ui-surface-soft: #1d2b27;
+        --ui-text: #f1f8f5;
+        --ui-muted: #a9bbb5;
+        --ui-border: #334640;
+        --ui-border-strong: #557068;
+        --ui-primary: #2bc4ae;
+        --ui-primary-hover: #45d4c0;
+        --ui-on-primary: #06241f;
+        --ui-success: #4ade80;
+        --ui-warning: #facc15;
+        --ui-danger: #f87171;
+        --ui-info: #5eead4;
+        --ui-focus: #45d4c0;
+        --color-primary: #2bc4ae;
+        --color-primary-strong: #45d4c0;
+        color-scheme: dark;
+    }
+}
+
+html, body { background: var(--ui-bg); color: var(--ui-text); }
+
+.button.primary,
+button.primary,
+.dashboard-tab.is-active {
+    background: var(--ui-primary) !important;
+    border-color: var(--ui-primary) !important;
+    color: var(--ui-on-primary) !important;
+}
+
+.button.primary:hover,
+button.primary:hover,
+.dashboard-tab.is-active:hover {
+    background: var(--ui-primary-hover) !important;
+    border-color: var(--ui-primary-hover) !important;
+}
+
+.button.secondary,
+.button:not(.primary):not(.danger):not(.ghost) {
+    background: var(--ui-surface) !important;
+    border-color: var(--ui-border) !important;
+    color: var(--ui-text) !important;
+}
+
+.button.secondary:hover,
+.button:not(.primary):not(.danger):not(.ghost):hover {
+    background: var(--ui-surface-soft) !important;
+    border-color: var(--ui-border-strong) !important;
+}
+
+.dashboard-tabs {
+    border-color: var(--ui-border);
+}
+
+.dashboard-tab {
+    background: var(--ui-surface);
+    color: var(--ui-text);
+    border-color: var(--ui-border);
+}
+
+.dashboard-tab:hover,
+.dashboard-tab:focus-visible {
+    background: var(--ui-surface-soft);
+    border-color: var(--ui-border-strong);
+}
+
+.dashboard-kpi,
+.dashboard-chart-card,
+.dashboard-chart-summary > div,
+.home-role-badge {
+    background: var(--ui-surface);
+    border-color: var(--ui-border);
+}
+
+.dashboard-chart-summary > div,
+.dashboard-bar-track {
+    background: var(--ui-surface-soft);
+}
+
+.dashboard-bar { background: var(--ui-primary); }
+.dashboard-kpi-primary { border-color: var(--ui-primary); }
+
+.sidebar-nav a.sidebar-pos,
+.mobile-bottom-nav-primary {
+    background: var(--ui-primary) !important;
+    color: var(--ui-on-primary) !important;
+    border-color: var(--ui-primary) !important;
+}
+
+.sidebar-nav a.sidebar-pos:hover,
+.mobile-bottom-nav-primary:hover {
+    background: var(--ui-primary-hover) !important;
+    color: var(--ui-on-primary) !important;
+}
+
+.settings-option:has(input:checked) {
+    border-color: var(--ui-primary) !important;
+    background: var(--ui-surface-soft) !important;
+}
+
+.settings-option input,
+.settings-switch input,
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--ui-primary);
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+.button:focus-visible,
+button:focus-visible,
+.dashboard-tab:focus-visible {
+    border-color: var(--ui-focus) !important;
+    outline: 3px solid color-mix(in srgb, var(--ui-focus) 24%, transparent);
+    outline-offset: 2px;
+}
+
+html[data-appearance="dark"] .home-card-primary,
+html[data-appearance="system"] .home-card-primary {
+    background: var(--ui-surface-soft) !important;
+    border-color: var(--ui-primary) !important;
+}

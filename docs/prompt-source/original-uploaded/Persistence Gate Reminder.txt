@@ -1,0 +1,1 @@
+Đã tạo task **“Persistence Gate Reminder”** — nhắc bạn chạy Persistence Gate cho project POS sau 1 ngày.

@@ -1,0 +1,984 @@
+# CRITICAL PROMPT — XÂY DỰNG MOBILE-FIRST POS
+
+Bạn là Senior Symfony Architect + Backend Engineer + Mobile UX Engineer.
+
+Hãy xây dựng một **Web POS nhỏ, mobile-first** bằng **Symfony 7.4 + MySQL + Doctrine ORM + Twig + Stimulus + Symfony Messenger**.
+
+## 0. TƯ TƯỞNG CỐT LÕI
+
+Đây **không phải ERP thu nhỏ**.
+
+Đây là một POS nhỏ với mục tiêu:
+
+> **Bán hàng nhanh nhất có thể, ít thao tác nhất có thể, ít request nhất có thể, dữ liệu tiền/kho/công nợ tuyệt đối nhất quán.**
+
+Thiết bị chính là **điện thoại**.
+
+Desktop/tablet chỉ là responsive adaptation.
+
+Không được thiết kế desktop trước rồi thu nhỏ xuống mobile.
+
+---
+
+# 1. PRIORITY ORDER
+
+Khi có xung đột giữa các yêu cầu, ưu tiên theo thứ tự:
+
+1. Data integrity
+2. Security
+3. POS transaction correctness
+4. Mobile UX
+5. Performance
+6. Simplicity
+7. Extensibility
+8. Extra features
+
+Không hy sinh tính đúng đắn của tiền, kho và công nợ để đổi lấy UX.
+
+---
+
+# 2. NON-NEGOTIABLE RULES
+
+## 2.1 Không over-engineering
+
+Không dùng:
+
+* Microservices
+* CQRS phức tạp
+* Event sourcing
+* WebSocket nếu chưa cần
+* SPA framework nặng
+* Repository/service abstraction vô nghĩa
+* Infrastructure phức tạp
+* Redis bắt buộc
+
+Một Symfony application + MySQL là đủ.
+
+---
+
+## 2.2 Mobile-first
+
+Thiết kế cho:
+
+* điện thoại
+* thao tác một tay
+* touch
+* mạng 4G/5G/Wi-Fi không ổn định
+* màn hình nhỏ
+
+Ưu tiên:
+
+* bottom navigation
+* sticky action
+* nút lớn
+* input lớn
+* typography rõ
+* ít modal
+* ít form
+* ít bước
+* không phụ thuộc hover
+
+---
+
+# 3. CORE POS FLOW
+
+Flow lý tưởng:
+
+```text
+Mở POS
+ ↓
+Tìm/chạm sản phẩm
+ ↓
+Thêm vào cart
+ ↓
+Chỉnh quantity nếu cần
+ ↓
+Thanh toán
+ ↓
+Chọn phương thức
+ ↓
+Hoàn tất
+```
+
+Mục tiêu: transaction bình thường phải cực nhanh.
+
+Không bắt user:
+
+```text
+Create Order
+→ Add Items
+→ Save
+→ Create Payment
+→ Confirm
+```
+
+Frontend chỉ thực hiện interaction.
+
+Backend thực hiện business transaction.
+
+---
+
+# 4. STIMULUS
+
+Sử dụng Stimulus để làm UX mượt.
+
+Stimulus chịu trách nhiệm:
+
+* cart state
+* quantity
+* search
+* debounce
+* keyboard/touch interaction
+* DOM update
+* loading state
+* button state
+* optimistic UI khi an toàn
+* AJAX/fetch có chọn lọc
+
+Không đưa business rule quan trọng vào Stimulus.
+
+---
+
+# 5. REDUCE HTTP REQUESTS
+
+Không request server mỗi lần:
+
+* tăng quantity
+* giảm quantity
+* thêm item
+* xóa item
+
+Ví dụ KHÔNG được thiết kế:
+
+```text
+POST /cart/add
+POST /cart/update
+POST /cart/update
+POST /cart/delete
+POST /cart/update
+```
+
+trong một checkout bình thường.
+
+Thay vào đó:
+
+```text
+Stimulus local cart
+        ↓
+User hoàn tất
+        ↓
+POST /pos/checkout
+        ↓
+Symfony transaction
+```
+
+Một checkout nên có **một request chính**.
+
+---
+
+# 6. CLIENT CALCULATION ≠ SOURCE OF TRUTH
+
+Frontend có thể tính:
+
+* subtotal
+* total
+* quantity
+
+để UI phản hồi tức thì.
+
+Nhưng backend phải tính lại:
+
+* product tồn tại
+* product active
+* price
+* quantity
+* stock
+* subtotal
+* total
+* payment
+* debt
+
+Không bao giờ tin:
+
+* total từ frontend
+* price từ frontend
+* stock từ frontend
+* debt balance từ frontend
+
+---
+
+# 7. CHECKOUT TRANSACTION
+
+Checkout phải là database transaction atomic.
+
+Flow:
+
+```text
+POST /pos/checkout
+ ↓
+Validate request
+ ↓
+Load products
+ ↓
+Lock/check stock
+ ↓
+Resolve authoritative prices
+ ↓
+Calculate totals
+ ↓
+Create Order
+ ↓
+Create OrderItems
+ ↓
+Deduct Stock
+ ↓
+Create StockMovements
+ ↓
+Create Payment
+ ↓
+Create Debt nếu còn nợ
+ ↓
+Create AuditLog
+ ↓
+COMMIT
+```
+
+Nếu một bước lỗi:
+
+```text
+ROLLBACK EVERYTHING
+```
+
+Không được xảy ra:
+
+* Order tồn tại nhưng stock chưa trừ.
+* Stock đã trừ nhưng order fail.
+* Payment tồn tại nhưng debt sai.
+* Debt tồn tại nhưng transaction không có order.
+
+---
+
+# 8. STOCK CONCURRENCY
+
+Phải chống race condition.
+
+Không chỉ:
+
+```php
+if ($stock >= $quantity)
+```
+
+rồi update.
+
+Sử dụng transaction + locking hoặc atomic SQL phù hợp.
+
+Ví dụ:
+
+```sql
+UPDATE product
+SET stock = stock - :quantity
+WHERE id = :id
+AND stock >= :quantity
+```
+
+Sau đó kiểm tra affected rows.
+
+Hai người cùng bán sản phẩm cuối cùng không được làm stock âm hoặc bán vượt tồn.
+
+---
+
+# 9. PAYMENT
+
+Hỗ trợ:
+
+* cash
+* bank transfer
+* other
+
+Một order có thể:
+
+* thanh toán đủ
+* thanh toán một phần
+* chưa thanh toán
+
+Ví dụ:
+
+```text
+Total: 100,000
+Paid: 60,000
+Debt: 40,000
+```
+
+Payment phải có lịch sử riêng.
+
+Không sửa payment lịch sử một cách âm thầm.
+
+---
+
+# 10. DEBT
+
+Không được tạo debt nếu không có customer.
+
+Debt cần:
+
+* customer
+* originating order
+* original amount
+* paid amount
+* remaining amount
+* due date
+* status
+* timestamps
+
+Khách có thể trả:
+
+* toàn bộ
+* một phần
+
+Mỗi lần trả phải tạo `DebtPayment`.
+
+Không update số dư mà không có transaction history.
+
+---
+
+# 11. CUSTOMER
+
+Thông tin tối thiểu:
+
+* name
+* phone
+* note
+* createdAt
+* updatedAt
+
+Không tạo form khách hàng dài.
+
+Trong flow ghi nợ:
+
+```text
+Ghi nợ
+ ↓
+Chọn customer
+```
+
+Nếu chưa có:
+
+```text
++ Khách mới
+ ↓
+Tên
+Số điện thoại
+ ↓
+Lưu
+ ↓
+Quay lại checkout
+```
+
+Không mất cart.
+
+---
+
+# 12. PRODUCT / STOCK
+
+Product tối thiểu:
+
+* name
+* SKU
+* selling price
+* cost price optional
+* quantity
+* unit
+* active
+
+Stock phải có lịch sử.
+
+`StockMovement` ghi:
+
+* product
+* quantityBefore
+* quantityChange
+* quantityAfter
+* type/reason
+* order
+* user
+* session
+* createdAt
+
+Không chỉnh stock mà không audit.
+
+---
+
+# 13. ORDER
+
+Order phải snapshot dữ liệu bán hàng tại thời điểm giao dịch.
+
+`OrderItem` nên lưu:
+
+* product reference
+* product name snapshot
+* SKU snapshot
+* unit price snapshot
+* quantity
+* subtotal
+
+Không phụ thuộc vào product hiện tại để dựng lại lịch sử.
+
+Nếu hôm nay sản phẩm giá 15.000 nhưng tháng sau thành 18.000:
+
+Order cũ vẫn phải hiển thị 15.000.
+
+---
+
+# 14. ORDER LIFECYCLE
+
+Đề xuất:
+
+```text
+DRAFT
+COMPLETED
+CANCELLED
+REFUNDED
+```
+
+Không dùng hard delete cho order đã hoàn tất.
+
+Hủy/hoàn phải tạo stock reversal tương ứng nếu hàng đã được trừ.
+
+---
+
+# 15. MESSENGER QUEUE
+
+Dùng Symfony Messenger.
+
+Queue chỉ dành cho tác vụ có thể xử lý sau.
+
+## Async
+
+* debt reminder
+* email
+* SMS
+* statistics aggregation
+* report generation
+* export
+* cleanup
+* maintenance
+* notification
+
+## Sync
+
+TUYỆT ĐỐI KHÔNG queue:
+
+* checkout
+* create order
+* deduct stock
+* payment
+* debt creation
+* debt payment
+
+Người bán phải nhận kết quả chính xác ngay trong request.
+
+---
+
+# 16. CRON / WORKER
+
+Hosting có Cronjob.
+
+Có thể sử dụng:
+
+```bash
+php bin/console messenger:consume async --time-limit=50 --memory-limit=128M
+```
+
+Worker phải:
+
+* giới hạn thời gian
+* giới hạn memory
+* retry
+* failure transport
+* logging
+* idempotent khi có thể
+
+Không yêu cầu worker daemon vĩnh viễn nếu hosting không phù hợp.
+
+---
+
+# 17. ASYNC IDENTITY
+
+Message phải có reference rõ ràng.
+
+Ví dụ:
+
+```text
+DebtReminderMessage
+customerId
+debtId
+```
+
+Job phải có khả năng retry an toàn.
+
+Không được assume message chỉ chạy một lần.
+
+---
+
+# 18. MOBILE POS UI
+
+Bottom navigation:
+
+1. POS
+2. Orders
+3. Customers
+4. Stock
+5. More
+
+More:
+
+* Debts
+* Statistics
+* Audit Logs
+* Sessions
+* Settings
+
+POS là màn hình mặc định cho user có quyền bán.
+
+---
+
+# 19. POS SCREEN
+
+Màn hình:
+
+```text
+[ 🔎 Tìm sản phẩm ]
+
+[ Sản phẩm gần đây / bán chạy ]
+
+Cart
+────────────────
+Coca Cola
+−   2   +       24,000
+
+Pepsi
+−   1   +       12,000
+────────────────
+
+TỔNG
+36,000
+
+[ THANH TOÁN ]
+```
+
+Tổng tiền phải luôn dễ nhìn.
+
+Nút checkout sticky ở bottom.
+
+---
+
+# 20. PRODUCT SEARCH
+
+Search phải:
+
+* debounce 150–300ms
+* giới hạn kết quả
+* index DB
+* không request mỗi keypress
+* ưu tiên recent/favorite products
+
+Nếu dataset nhỏ, có thể preload dữ liệu phù hợp.
+
+Không preload dữ liệu khổng lồ.
+
+---
+
+# 21. DOUBLE SUBMIT
+
+Checkout button:
+
+```text
+THANH TOÁN
+ ↓
+PROCESSING...
+ ↓
+DISABLED
+```
+
+Nhưng frontend protection là chưa đủ.
+
+Backend phải có idempotency protection.
+
+Không được tạo hai order khi user tap hai lần.
+
+---
+
+# 22. MOBILE UX
+
+Ưu tiên action nằm trong vùng ngón cái.
+
+Không dùng:
+
+* hover-only action
+* tiny buttons
+* table desktop trên mobile
+* form dài
+* modal lồng modal
+* confirmation không cần thiết
+
+Dùng:
+
+* cards
+* lists
+* sticky bottom action
+* bottom sheet khi phù hợp
+* inline editing
+* quick action
+
+---
+
+# 23. CUSTOMER DEBT UX
+
+Danh sách:
+
+```text
+Nguyễn Văn A
+090xxxxxxx
+
+Nợ:
+850,000đ
+
+Quá hạn 5 ngày
+
+[ THU TIỀN ]
+```
+
+Tap card → customer detail.
+
+Không bắt qua nhiều màn hình.
+
+---
+
+# 24. STOCK UX
+
+Mobile list:
+
+```text
+Coca Cola
+12,000đ
+Tồn: 24
+
+Pepsi
+12,000đ
+Tồn: 5
+```
+
+Tập trung:
+
+* quantity
+* selling price
+* low stock
+
+Không biến stock module thành warehouse management.
+
+---
+
+# 25. DASHBOARD
+
+Dashboard chỉ hiển thị:
+
+* revenue today
+* orders today
+* paid today
+* outstanding debt
+* overdue debt
+* low stock
+* top products
+
+Không tạo hàng chục biểu đồ.
+
+---
+
+# 26. AUDIT LOG
+
+Audit các action quan trọng:
+
+* login
+* logout
+* product create/update
+* price change
+* stock adjustment
+* order create
+* order cancel
+* refund
+* payment
+* debt payment
+* customer update
+* admin actions
+
+Audit log:
+
+* immutable
+* không cho user thường sửa/xóa
+
+---
+
+# 27. ACTIVE SESSION
+
+Lưu:
+
+* user
+* session identifier
+* loginAt
+* lastActivityAt
+* IP
+* userAgent/device
+* status
+
+Admin có thể revoke session.
+
+Không cần WebSocket.
+
+Polling nhẹ nếu cần.
+
+---
+
+# 28. SECURITY
+
+Symfony Security.
+
+Roles tối thiểu:
+
+### ROLE_USER
+
+* POS
+* products read
+* customers
+* orders
+* payments/debt payment theo permission
+
+### ROLE_ADMIN
+
+* tất cả ROLE_USER
+* products management
+* stock adjustment
+* refunds/cancellation
+* audit logs
+* sessions
+* users
+* statistics
+
+Business rules phải enforce backend.
+
+---
+
+# 29. MONEY
+
+Không dùng FLOAT/DOUBLE.
+
+Dùng:
+
+```text
+DECIMAL(15,2)
+```
+
+Nếu POS chỉ dùng VND không cần quá phức tạp về currency.
+
+Nhưng thiết kế code không hard-code business calculation vào UI.
+
+---
+
+# 30. DATABASE
+
+Entities chính:
+
+```text
+User
+Customer
+Product
+Order
+OrderItem
+Payment
+Debt
+DebtPayment
+StockMovement
+AuditLog
+UserSession
+```
+
+Có thể bổ sung entity nếu thực sự cần.
+
+Không tạo entity chỉ để "cho đẹp".
+
+---
+
+# 31. INDEX
+
+Index các field thường xuyên:
+
+* Product.sku
+* Product.name
+* Product.active
+* Customer.phone
+* Customer.name
+* Order.createdAt
+* Order.customer
+* Order.status
+* Debt.customer
+* Debt.status
+* Debt.dueDate
+* Payment.createdAt
+* StockMovement.product
+* AuditLog.createdAt
+* UserSession.lastActivityAt
+
+Thiết kế index dựa trên query thực tế.
+
+---
+
+# 32. CODE ARCHITECTURE
+
+Controller:
+
+```text
+Request
+ ↓
+Validation
+ ↓
+Application Service
+ ↓
+Domain/business logic
+ ↓
+Repository/Doctrine
+ ↓
+Response
+```
+
+Các service quan trọng:
+
+```text
+OrderService
+PaymentService
+DebtService
+StockService
+AuditLogService
+```
+
+Không nhét business logic vào Controller.
+
+Không nhét business logic tài chính vào JavaScript.
+
+---
+
+# 33. TESTING
+
+Phải test:
+
+* order total
+* checkout
+* full payment
+* partial payment
+* debt
+* debt payment
+* stock deduction
+* stock restoration
+* overselling prevention
+* concurrency-sensitive stock update
+* transaction rollback
+* duplicate checkout protection
+* permissions
+* audit logging
+
+---
+
+# 34. PERFORMANCE
+
+Ưu tiên:
+
+* server response nhỏ
+* minimal JS
+* Stimulus
+* debounce
+* pagination
+* caching phù hợp
+* tránh N+1
+* Doctrine query tối ưu
+* DB index
+* ít HTTP request
+* không polling quá thường xuyên
+
+Không tối ưu bằng cách làm architecture phức tạp.
+
+---
+
+# 35. MVP KHÔNG BAO GỒM
+
+Không tự ý thêm:
+
+* accounting
+* e-invoice
+* CRM
+* loyalty
+* supplier
+* purchase order
+* multi-warehouse
+* multi-company
+* advanced promotion
+* native mobile app
+* full offline POS
+* WebSocket realtime
+* BI platform
+* complex reporting
+
+Nếu có requirement mới, phải đánh giá trước khi thêm.
+
+---
+
+# 36. DEFINITION OF DONE
+
+Một feature chỉ được coi là hoàn thành khi:
+
+* Database schema đúng.
+* Migration chạy được.
+* Business rule backend đúng.
+* Permission đúng.
+* Mobile UX tốt.
+* Không tạo request thừa.
+* Có loading/error state.
+* Không duplicate transaction.
+* Có test cho business-critical logic.
+* Không phá các flow hiện tại.
+
+---
+
+# 37. CÁCH TRIỂN KHAI
+
+Trước khi code:
+
+1. Thiết kế use case.
+2. Thiết kế entity relationship.
+3. Thiết kế state transition.
+4. Thiết kế transaction boundaries.
+5. Thiết kế permission.
+6. Thiết kế mobile POS flow.
+7. Thiết kế Messenger jobs.
+8. Sau đó mới tạo code.
+
+Không code khi domain model còn mơ hồ.
+
+---
+
+# 38. FINAL PRINCIPLE
+
+Luôn hỏi:
+
+> "Có thể giảm một thao tác không?"
+
+> "Có thể giảm một request không?"
+
+> "Có thể xử lý việc này async không?"
+
+> "Có làm ảnh hưởng tính nhất quán tiền/kho/công nợ không?"
+
+Nếu có thể giảm thao tác/request mà không ảnh hưởng correctness → giảm.
+
+Nếu async được mà không ảnh hưởng kết quả người dùng cần ngay → đưa vào Messenger.
+
+Nếu liên quan đến tiền, order, debt hoặc stock → ưu tiên atomic synchronous transaction.
+
+**Build a fast mobile POS, not a miniature ERP.**

@@ -77,6 +77,32 @@
             </fieldset>
         </section>
 
+        <section class="form-card settings-card" aria-labelledby="dashboard-default-tab-title">
+            <div class="section-heading">
+                <h2 id="dashboard-default-tab-title">{{ 'app.dashboard_default_tab'|trans }}</h2>
+                <p class="muted">{{ 'app.dashboard_default_tab_help'|trans }}</p>
+            </div>
+            <fieldset class="settings-options">
+                <legend class="sr-only">{{ 'app.dashboard_default_tab'|trans }}</legend>
+                <label class="settings-option">
+                    <input type="radio" name="dashboard_default_tab" value="auto" {% if user.dashboardDefaultTab == 'auto' %}checked{% endif %}>
+                    <span>
+                        <strong>{{ 'app.dashboard_default_tab_auto'|trans }}</strong>
+                        <small>{{ 'app.dashboard_default_tab_auto_help'|trans }}</small>
+                    </span>
+                </label>
+                {% for tab in dashboard_tabs %}
+                    <label class="settings-option">
+                        <input type="radio" name="dashboard_default_tab" value="{{ tab.key }}" {% if user.dashboardDefaultTab == tab.key %}checked{% endif %}>
+                        <span>
+                            <strong>{{ tab.label|trans }}</strong>
+                            <small>{{ 'app.dashboard_default_tab_option_help'|trans }}</small>
+                        </span>
+                    </label>
+                {% endfor %}
+            </fieldset>
+        </section>
+
         <section class="form-card settings-card" aria-labelledby="accessibility-title">
             <div class="section-heading">
                 <h2 id="accessibility-title">{{ 'app.accessibility'|trans }}</h2>

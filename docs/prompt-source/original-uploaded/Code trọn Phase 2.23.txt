@@ -1,0 +1,954 @@
+À, hiểu ý bạn rồi 😄 **“prompt source”** — tức là prompt để AI đọc/inspect source code hiện tại rồi tự triển khai phase, chứ không phải prompt mô tả nghiệp vụ chung.
+
+Với yêu cầu vừa bổ sung, mình khuyên viết thành **một prompt implementation hoàn chỉnh**, có cả persistence, expiration, regenerate và provider.
+
+### PHASE 2.25 — Persisted Payment Reference + Expiration + Regenerate
+
+```text id="s32bpl"
+CRITICAL IMPLEMENTATION PROMPT — PHASE 2.25
+PERSISTED PAYMENT REFERENCE + EXPIRATION + REGENERATE
++ BANK WEBHOOK RECONCILIATION
+
+You are working directly on the existing Symfony POS repository.
+
+IMPORTANT:
+- DO NOT redesign the project.
+- DO NOT create a parallel architecture.
+- DO NOT introduce duplicate entities/services/handlers if an existing equivalent already exists.
+- MUST inspect the current source code before modifying anything.
+- MUST preserve existing Domain/Application/Infrastructure/UI boundaries.
+- MUST preserve existing security, transaction, idempotency and concurrency rules.
+- MUST reuse existing Payment, Order, PaymentBankAccount, webhook and checkout architecture where applicable.
+
+==================================================
+1. OBJECTIVE
+==================================================
+
+Implement persisted payment references for bank-transfer payments.
+
+The current system generates a PAY reference but the reference must become a
+persistent business record that can later be resolved by a bank notification.
+
+A persisted payment reference MUST contain at minimum:
+
+- unique PAY reference
+- Order
+- bank account
+- amount
+- expiration time
+- lifecycle status
+- createdAt
+- updatedAt
+
+The persisted record becomes the backend source of truth for bank-transfer
+reconciliation.
+
+Expected flow:
+
+Checkout
+  ↓
+Create persisted pending payment reference
+  ↓
+Persist:
+  - PAY reference
+  - Order
+  - bank account
+  - amount
+  - expiresAt
+  ↓
+Generate QR / transfer content
+  ↓
+Customer transfers money
+  ↓
+Bank notification
+  ↓
+Webhook
+  ↓
+Extract PAY reference
+  ↓
+Normalize reference
+  ↓
+Find persisted reference
+  ↓
+Validate state + expiration
+  ↓
+Apply payment exactly once
+
+
+==================================================
+2. FIRST STEP — INSPECT EXISTING SOURCE
+==================================================
+
+Before writing code:
+
+Inspect the repository and identify:
+
+- Order entity
+- Payment entity
+- Payment method/value object/enums
+- PaymentBankAccount entity
+- checkout flow
+- checkout application handler
+- payment application service/handler
+- existing payment reference generator
+- existing QR generation
+- bank transfer content generation
+- ExternalPaymentTransaction
+- CassoWebhookHandler
+- webhook controller
+- existing webhook DTO/request
+- existing idempotency implementation
+- existing concurrency protection
+- existing transaction boundaries
+- existing payment state machine
+- existing Twig payment UI
+- existing Stimulus controllers
+- existing tests
+
+Determine whether an existing entity already represents a pending payment
+reference.
+
+If one exists, extend/reuse it.
+
+DO NOT create a duplicate PaymentReference/PaymentIntent entity if an
+equivalent existing concept already exists.
+
+==================================================
+3. PERSISTED PAYMENT REFERENCE
+==================================================
+
+Introduce or extend the existing model so that a bank-transfer payment
+reference is persisted.
+
+Required conceptual fields:
+
+id
+reference
+order
+paymentBankAccount
+amount
+expiresAt
+status
+createdAt
+updatedAt
+
+Optional fields may include:
+
+matchedAt
+externalTransaction
+payment
+
+ONLY add fields that are justified by the existing architecture.
+
+reference MUST be unique.
+
+Canonical format:
+
+PAY-XXXXXXXX
+
+The system must persist the canonical form.
+
+==================================================
+4. REFERENCE NORMALIZATION
+==================================================
+
+Webhook notification content may contain:
+
+PAY-5CC393D6E1DF
+
+or:
+
+PAY5CC393D6E1DF
+
+or:
+
+PAY 5CC393D6E1DF
+
+The backend must normalize these forms to:
+
+PAY-5CC393D6E1DF
+
+Do not make MacroDroid responsible for normalization.
+
+The backend is responsible for extracting and normalizing the PAY reference.
+
+Do not accept arbitrary strings as payment references.
+
+==================================================
+5. EXPIRATION
+==================================================
+
+Every pending payment reference MUST have an expiresAt.
+
+The backend MUST use expiresAt as the source of truth.
+
+The frontend countdown is UX only.
+
+A reference is valid only while:
+
+now < expiresAt
+
+When expiresAt has passed:
+
+PENDING → EXPIRED
+
+Expired references MUST NOT be matched by a bank webhook.
+
+This rule MUST be enforced server-side.
+
+Do not rely on JavaScript countdown to determine expiration.
+
+==================================================
+6. PAYMENT UI — SHOW EXPIRATION
+==================================================
+
+On the bank-transfer payment screen display:
+
+- PAY reference
+- amount
+- receiving bank account
+- transfer content
+- QR
+- expiration time
+- remaining time/countdown
+- current status
+
+Example:
+
+--------------------------------
+Chuyển khoản ngân hàng
+
+Số tiền:
+500,000 ₫
+
+Nội dung:
+PAY-5CC393D6E1DF Chuyển khoản
+
+Mã thanh toán:
+PAY-5CC393D6E1DF
+
+Hết hạn:
+14:35:00
+
+Còn lại:
+08:42
+
+[ QR CODE ]
+
+Trạng thái:
+Đang chờ thanh toán
+--------------------------------
+
+Countdown MUST be calculated from:
+
+expiresAt - current time
+
+After page reload, countdown MUST be reconstructed from persisted expiresAt.
+
+Do not persist countdown seconds in JavaScript.
+
+==================================================
+7. EXPIRED UI
+==================================================
+
+When the reference expires:
+
+Display:
+
+- reference
+- expired time
+- status EXPIRED
+- clear explanation
+- button:
+
+"Tạo mã mới"
+
+The expired reference remains persisted for audit/history.
+
+DO NOT delete expired references.
+
+==================================================
+8. REGENERATE NEW PAYMENT REFERENCE
+==================================================
+
+Allow the cashier/user to create a new payment reference for the SAME Order.
+
+Creating a new reference MUST NOT create a new Order.
+
+Example:
+
+Old:
+
+PAY-AAAA1111
+status = EXPIRED
+
+User clicks:
+
+[Tạo mã mới]
+
+New:
+
+PAY-BBBB2222
+status = PENDING
+
+The new reference MUST:
+
+- have a different unique reference
+- belong to the same Order
+- use the selected/current bank account
+- use the current outstanding payment amount
+- receive a new expiresAt
+- generate new transfer content
+- generate new QR
+
+The old reference MUST remain EXPIRED.
+
+NEVER reuse an expired reference.
+
+==================================================
+9. REGENERATE VALIDATION
+==================================================
+
+A new reference may only be generated when the Order still requires payment.
+
+If the Order/payment is already fully paid:
+
+- do NOT create another reference
+- do NOT generate another QR
+- return the appropriate business state/error
+- UI must show that payment is already completed
+
+The backend MUST enforce this.
+
+Do not rely on UI state.
+
+==================================================
+10. AMOUNT SOURCE OF TRUTH
+==================================================
+
+The persisted payment reference stores the amount expected for this
+payment attempt.
+
+Webhook does NOT need to receive the amount.
+
+For minimal Android/MacroDroid webhook payload, this is sufficient:
+
+{
+  "content": "PAY5CC393D6E1DF Chuyển khoản cho BUIHOANGVIET"
+}
+
+Backend:
+
+content
+ ↓
+extract PAY reference
+ ↓
+normalize
+ ↓
+find persisted reference
+ ↓
+read expected amount from persisted record
+ ↓
+read expected bank account from persisted record
+ ↓
+reconcile
+
+If webhook payload also contains amount/account information, backend may
+cross-check it.
+
+The client must NEVER become the source of truth for the expected amount.
+
+==================================================
+11. BANK ACCOUNT SOURCE OF TRUTH
+==================================================
+
+The persisted payment reference MUST store which PaymentBankAccount was
+used for the payment attempt.
+
+Webhook does not need bankAccountId.
+
+Backend obtains expected receiving account from the persisted reference.
+
+If notification metadata contains receiving-account information, backend
+may validate it against the persisted account.
+
+==================================================
+12. PROVIDER
+==================================================
+
+IMPORTANT:
+
+provider MUST NOT be hard-coded to:
+
+MACRODROID
+
+provider MUST NOT be a required business input.
+
+provider MUST NOT be used as the condition for locating the payment
+reference.
+
+The matching flow is:
+
+PAY reference
+  ↓
+PaymentReference
+  ↓
+Order/payment
+
+NOT:
+
+provider
+  +
+PAY reference
+
+The provider is tracking/audit metadata only.
+
+If the notification supplies:
+
+{
+  "provider": "MACRODROID",
+  "content": "PAY5CC393D6E1DF ..."
+}
+
+store provider as metadata if the existing model supports it.
+
+If provider is omitted:
+
+{
+  "content": "PAY5CC393D6E1DF ..."
+}
+
+the webhook MUST still work.
+
+If provider is:
+
+"MACRODROID"
+"ANDROID"
+"MANUAL"
+"OTHER"
+
+the backend MUST NOT reject the notification merely because the provider
+is not MACRODROID.
+
+DO NOT create:
+
+if ($provider !== 'MACRODROID') {
+    reject();
+}
+
+DO NOT make provider part of PAY reference matching.
+
+==================================================
+13. WEBHOOK MATCHING
+==================================================
+
+Webhook flow:
+
+POST /webhooks/bank-notification
+
+ ↓
+
+Authenticate webhook token
+
+ ↓
+
+Parse request
+
+ ↓
+
+Extract content
+
+ ↓
+
+Extract PAY reference
+
+ ↓
+
+Normalize reference
+
+ ↓
+
+Find persisted payment reference by unique reference
+
+ ↓
+
+If not found:
+    stable REFERENCE_NOT_FOUND / UNMATCHED result
+    no payment mutation
+
+ ↓
+
+If reference is EXPIRED:
+    do not apply payment
+    stable expired/conflict result
+    no payment mutation
+
+ ↓
+
+If reference is CANCELLED:
+    do not apply payment
+
+ ↓
+
+If reference is already MATCHED:
+    idempotent no-op
+
+ ↓
+
+If reference is PENDING:
+    validate payment/order state
+    validate account/amount when notification data exists
+    apply payment
+
+==================================================
+14. IDEMPOTENCY
+==================================================
+
+Webhook delivery may happen multiple times.
+
+The implementation MUST guarantee:
+
+one logical payment reference
+→ one successful payment application
+
+Repeated webhook:
+
+POST #1
+POST #2
+POST #3
+
+must NOT create:
+
+Payment #1
+Payment #2
+Payment #3
+
+Only one payment application is allowed.
+
+Reuse the project's existing idempotency mechanism.
+
+Do not introduce a second independent idempotency system if one already
+exists.
+
+==================================================
+15. CONCURRENCY
+==================================================
+
+Two webhook requests may arrive concurrently for the same PAY reference.
+
+Example:
+
+Request A
+PAY-ABC123
+
+Request B
+PAY-ABC123
+
+Both arrive at approximately the same time.
+
+The implementation MUST guarantee:
+
+Payment application = exactly once.
+
+Use the existing transaction/concurrency strategy.
+
+Potential mechanisms include:
+
+- database transaction
+- row locking
+- unique constraint
+- existing idempotency mechanism
+- existing ExternalPaymentTransaction uniqueness
+
+Use the mechanism already established by the project.
+
+Do not solve concurrency only in PHP memory.
+
+==================================================
+16. EXTERNAL PAYMENT TRANSACTION
+==================================================
+
+Inspect the existing ExternalPaymentTransaction architecture.
+
+Preserve the existing rule:
+
+UNIQUE(provider, externalTransactionId)
+
+if that is already part of the current design.
+
+However:
+
+provider MUST NOT become a requirement for PAY reference matching.
+
+If the current architecture requires provider + externalTransactionId for
+external event identity, preserve that mechanism while separating it from
+PAY-reference reconciliation.
+
+Do not break duplicate webhook protection.
+
+==================================================
+17. STATE TRANSITIONS
+==================================================
+
+Use the project's existing state-machine conventions.
+
+Expected payment-reference lifecycle:
+
+PENDING
+  ↓
+MATCHED
+
+PENDING
+  ↓
+EXPIRED
+
+PENDING
+  ↓
+CANCELLED
+
+Expired reference:
+
+EXPIRED
+
+MUST NOT return to PENDING.
+
+A new payment reference creates a NEW record:
+
+OLD:
+PAY-AAAA
+EXPIRED
+
+NEW:
+PAY-BBBB
+PENDING
+
+Never mutate the old reference into the new reference.
+
+==================================================
+18. TRANSACTION BOUNDARY
+==================================================
+
+The following operation must be atomic:
+
+find pending reference
++
+validate it
++
+apply payment
++
+mark reference matched
++
+persist reconciliation result
+
+If any required operation fails:
+
+rollback the whole business operation.
+
+No partial payment state.
+
+No:
+
+reference = MATCHED
+
+while:
+
+payment was not applied
+
+and vice versa.
+
+==================================================
+19. SECURITY
+==================================================
+
+Webhook authentication remains mandatory.
+
+Use:
+
+X-Webhook-Token
+
+or the project's existing webhook authentication mechanism.
+
+Webhook is NOT protected by CSRF.
+
+Never log:
+
+- webhook secret
+- session token
+- passwords
+- sensitive credentials
+
+Do not trust:
+
+provider
+amount
+bank account
+client status
+
+as authoritative business state.
+
+The backend remains the source of truth.
+
+==================================================
+20. UI / STIMULUS
+==================================================
+
+Implement the expiration countdown using existing Twig + Stimulus
+architecture.
+
+Do not move payment business rules into JavaScript.
+
+Stimulus may:
+
+- calculate remaining time
+- update countdown text
+- switch visual state when countdown reaches zero
+- show regenerate button
+
+Stimulus MUST NOT decide whether a reference is actually valid.
+
+The server decides validity.
+
+When clicking "Tạo mã mới":
+
+POST to the backend using the existing application flow.
+
+Do not generate PAY references in JavaScript.
+
+==================================================
+21. TESTS
+==================================================
+
+Add/modify tests covering:
+
+DOMAIN / APPLICATION
+
+1. Payment reference is generated.
+2. Payment reference is persisted.
+3. Reference is unique.
+4. Reference belongs to correct Order.
+5. Reference stores correct bank account.
+6. Reference stores correct amount.
+7. Reference stores expiresAt.
+8. Pending reference is valid before expiration.
+9. Reference becomes expired after expiration.
+10. Expired reference cannot be matched.
+11. New reference can be generated for same Order.
+12. New reference is different from old reference.
+13. Old reference remains EXPIRED.
+14. New reference has new expiresAt.
+15. Already-paid Order cannot create a new payment reference.
+
+WEBHOOK
+
+16. PAY-XXXXXXXX is extracted.
+17. PAYXXXXXXXX is normalized.
+18. PAY XXXXXXXX is normalized.
+19. Minimal content-only webhook works.
+20. Provider omitted still works.
+21. Provider MACRODROID is accepted as metadata.
+22. Other provider value is accepted.
+23. Provider is not used for matching.
+24. Unknown PAY reference does not mutate payment.
+25. Expired PAY reference does not mutate payment.
+26. Already matched PAY reference is idempotent.
+27. Amount/account validation works when notification provides those fields.
+
+SECURITY
+
+28. Missing webhook token rejected.
+29. Invalid webhook token rejected.
+30. Valid token accepted.
+
+CONCURRENCY
+
+31. Two concurrent webhooks for same reference result in one payment.
+32. Repeated webhook deliveries do not double-apply payment.
+33. Database uniqueness constraints protect duplicate external events.
+
+HTTP / ACCEPTANCE
+
+34. Payment screen displays PAY reference.
+35. Payment screen displays expiration time.
+36. Countdown is based on expiresAt.
+37. Expired screen displays "Tạo mã mới".
+38. Clicking "Tạo mã mới" creates a new reference.
+39. QR uses the new reference.
+40. Transfer content uses the new reference.
+41. Old reference remains expired.
+
+==================================================
+22. DATABASE MIGRATION
+==================================================
+
+Create the required Doctrine migration.
+
+Migration MUST include:
+
+- table/entity changes
+- unique constraint for reference
+- foreign key to Order
+- foreign key to PaymentBankAccount
+- required indexes
+- nullable fields only where justified
+
+Migration must be reversible where the project's migration conventions
+require it.
+
+==================================================
+23. OBSERVABILITY
+==================================================
+
+Use the existing logging/observability conventions.
+
+Useful structured context:
+
+requestId
+orderId
+paymentReference
+externalTransactionId
+provider
+result
+errorCode
+
+Never log webhook secrets.
+
+Useful results include:
+
+PAYMENT_REFERENCE_CREATED
+PAYMENT_REFERENCE_EXPIRED
+PAYMENT_REFERENCE_REGENERATED
+PAYMENT_REFERENCE_MATCHED
+PAYMENT_REFERENCE_ALREADY_MATCHED
+PAYMENT_REFERENCE_NOT_FOUND
+PAYMENT_REFERENCE_EXPIRED_REJECTED
+PAYMENT_REFERENCE_CONFLICT
+
+==================================================
+24. DO NOT OVER-ENGINEER
+==================================================
+
+Do NOT add:
+
+- Redis
+- Elasticsearch
+- new message brokers
+- unnecessary services
+- unnecessary repositories
+- duplicate handlers
+- duplicate payment systems
+- frontend-only payment state
+- MacroDroid-specific business logic
+
+Reuse the current architecture.
+
+==================================================
+25. ACCEPTANCE CRITERIA
+==================================================
+
+The implementation is complete only when:
+
+A.
+
+A bank-transfer checkout creates and persists:
+
+PAY reference
+Order
+Bank Account
+Amount
+expiresAt
+PENDING
+
+B.
+
+The payment UI displays:
+
+PAY reference
+amount
+bank account
+QR
+transfer content
+expiration
+countdown
+
+C.
+
+After expiration:
+
+PENDING → EXPIRED
+
+and UI displays:
+
+"Tạo mã mới"
+
+D.
+
+Clicking "Tạo mã mới":
+
+- creates a new PAY reference
+- keeps same Order
+- stores new expiresAt
+- keeps correct amount
+- uses correct bank account
+- regenerates QR/content
+
+E.
+
+Webhook:
+
+{
+  "content": "PAY5CC393D6E1DF ..."
+}
+
+can find the persisted reference without receiving:
+
+amount
+bankAccountId
+provider
+
+F.
+
+provider is optional tracking metadata.
+
+The implementation MUST NOT require:
+
+provider === "MACRODROID"
+
+G.
+
+Expired references cannot be matched.
+
+H.
+
+Repeated/concurrent webhook delivery cannot double-apply payment.
+
+I.
+
+All relevant tests pass.
+
+==================================================
+26. IMPLEMENTATION OUTPUT
+==================================================
+
+After implementation:
+
+1. Show files created.
+2. Show files modified.
+3. Show database migration.
+4. Show important architecture decisions.
+5. Run PHP syntax checks.
+6. Run Symfony container/lint checks.
+7. Run relevant PHPUnit tests.
+8. Run the full test suite if possible.
+9. Report any environment limitation honestly.
+10. Do not claim tests passed if they were not actually executed.
+
+IMPORTANT:
+
+Do not stop at explaining the solution.
+
+Inspect the existing repository and IMPLEMENT the complete phase.
+```
+
+**Đây mới đúng kiểu prompt source** để bạn đưa cùng `mobile-pos-current.zip` cho coding agent.
+
+Một điểm mình cố tình giữ rất chặt: **không biến `MACRODROID` thành business rule**. `provider` chỉ được lưu để biết notification đến từ đâu; còn việc tìm giao dịch phải dựa trên **PAY reference đã persist**.

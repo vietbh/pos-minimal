@@ -56,6 +56,34 @@ app:
   today: Hôm nay
   overview: Tổng quan
   view_statistics: Xem thống kê
+  dashboard_navigation: Điều hướng trang chủ
+  dashboard_tab_overview: Tổng quan
+  dashboard_tab_operations: Vận hành
+  dashboard_tab_insights: Phân tích
+  dashboard_tab_administration: Quản trị
+  dashboard_default_tab: Tab mặc định khi mở Trang chủ
+  dashboard_default_tab_help: Chọn tab được mở đầu tiên. Theo vai trò sẽ tự chọn theo quyền và vai trò hiện tại.
+  dashboard_default_tab_auto: Theo vai trò
+  dashboard_default_tab_auto_help: Dùng tab mặc định phù hợp với vai trò; nếu không khả dụng sẽ dùng Tổng quan.
+  dashboard_default_tab_option_help: Mở tab này khi vào Trang chủ nếu bạn còn quyền truy cập.
+  dashboard_today_summary: Tóm tắt hôm nay
+  dashboard_completed_orders: Đơn hoàn tất / hoàn tiền trong dữ liệu hôm nay
+  dashboard_last_7_days: 7 ngày gần đây
+  dashboard_sales_7_days: Doanh thu 7 ngày
+  dashboard_chart_summary: Tóm tắt doanh thu 7 ngày
+  dashboard_7_day_total: Tổng 7 ngày
+  dashboard_million_unit: triệu đồng
+  dashboard_highest_day: Ngày cao nhất
+  dashboard_chart_aria: Biểu đồ cột doanh thu 7 ngày; mỗi cột là một ngày và chiều cao thể hiện doanh thu
+  dashboard_chart_empty: Chưa có doanh thu trong 7 ngày gần đây
+  dashboard_chart_empty_help: Biểu đồ sẽ xuất hiện khi có giao dịch bán hàng hoàn tất.
+  dashboard_no_statistics: Không có dữ liệu tổng quan theo quyền hiện tại
+  dashboard_no_statistics_help: Bạn vẫn có thể sử dụng các chức năng được cấp quyền trong tab Vận hành.
+  dashboard_quick_actions: Thao tác nhanh
+  dashboard_admin_actions: Chức năng quản trị
+  dashboard_manage_users: Quản lý tài khoản người dùng theo quyền.
+  dashboard_sales_points: Điểm bán
+  dashboard_root_analytics: Xem phân tích hệ thống theo quyền.
   sales_today: Doanh số hôm nay
   valid_orders: đơn hợp lệ
   completed_refunded_orders: Đơn hoàn tất / hoàn tiền

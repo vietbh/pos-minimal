@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Application;
 
+use App\Application\Dashboard\DashboardNavigationResolver;
 use App\Domain\User\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,6 +25,7 @@ final class SettingsController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         CsrfTokenManagerInterface $csrfTokenManager,
+        DashboardNavigationResolver $navigationResolver,
     ): Response {
         $this->denyAccessUnlessGranted('ROLE_USER');
 
@@ -49,6 +51,13 @@ final class SettingsController extends AbstractController
             $reduceMotion = $request->request->getBoolean('reduce_motion');
             $paymentSoundEnabled = $request->request->getBoolean('payment_sound_enabled');
             $usageGuideEnabled = $request->request->getBoolean('usage_guide_enabled');
+            $dashboardDefaultTab = strtolower(trim((string) $request->request->get('dashboard_default_tab', $user->getDashboardDefaultTab())));
+
+            $allowedDashboardTabs = array_column($navigationResolver->availableTabs($user), 'key');
+            if (!in_array($dashboardDefaultTab, ['auto', ...$allowedDashboardTabs], true)) {
+                $this->addFlash('error', 'Tab mặc định Trang chủ không hợp lệ hoặc bạn không có quyền sử dụng tab này.');
+                return $this->redirectToRoute('app_settings');
+            }
 
             try {
                 $user->changeFontSize($fontSize);
@@ -58,6 +67,7 @@ final class SettingsController extends AbstractController
                 $user->setReduceMotion($reduceMotion);
                 $user->setPaymentSoundEnabled($paymentSoundEnabled);
                 $user->setUsageGuideEnabled($usageGuideEnabled);
+                $user->changeDashboardDefaultTab($dashboardDefaultTab);
 
                 $entityManager->flush();
 
@@ -79,6 +89,7 @@ final class SettingsController extends AbstractController
             'font_sizes' => self::FONT_SIZES,
             'appearances' => self::APPEARANCES,
             'densities' => self::DENSITIES,
+            'dashboard_tabs' => $navigationResolver->availableTabs($user),
         ]);
     }
 }

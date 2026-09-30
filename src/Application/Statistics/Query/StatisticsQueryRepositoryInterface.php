@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Statistics\Query;
 
-use App\Application\Statistics\Query\Model\{DashboardResult,DebtSummary,PaymentBreakdown,SalesSummary,StockSnapshot,TopCustomer,TopProduct};
+use App\Application\Statistics\Query\Model\{DashboardResult,DebtSummary,PaymentBreakdown,SalesSummary,StockSnapshot,TopCustomer,TopProduct,WeeklySalesPoint,WeeklySalesSummary};
 
 interface StatisticsQueryRepositoryInterface
 {
@@ -17,4 +17,5 @@ interface StatisticsQueryRepositoryInterface
     /** @return list<TopCustomer> */
     public function getTopCustomers(StatisticsQueryInput $input): array;
     public function getStockSnapshot(): StockSnapshot;
+    public function getWeeklySales(StatisticsQueryInput $input): WeeklySalesSummary;
 }

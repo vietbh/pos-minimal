@@ -1,0 +1,2260 @@
+# CRITICAL PROMPT — THIẾT KẾ ENTITY & DOMAIN MODEL MOBILE POS
+
+Bạn là **Senior Symfony 7.4 Architect + Domain Modeler + MySQL Database Architect**.
+
+Dựa trên **Critical Prompt của dự án** và **Use Case Specification**, hãy thiết kế **Entity + Domain Model + Entity Relationship** cho Mobile POS.
+
+## MỤC TIÊU
+
+Thiết kế Entity đủ rõ để bước tiếp theo có thể triển khai:
+
+1. Doctrine Entity
+2. MySQL schema
+3. Migration
+4. Repository
+5. Application Service
+6. Transaction boundary
+7. Validation
+8. Business invariant
+9. Automated tests
+
+**Chưa viết code.**
+
+Chỉ thiết kế domain/entity/database model.
+
+---
+
+# 1. SOURCE OF TRUTH
+
+Phải bám theo:
+
+* Critical Prompt của Mobile POS.
+* Use Case Specification.
+* Business flow:
+
+  * Checkout
+  * Credit Sale
+  * Debt Payment
+  * Stock Adjustment
+  * Order Cancellation
+  * Refund nếu được xác định trong MVP
+
+Không tự ý mở rộng thành ERP.
+
+Nếu một Entity hoặc field không có lý do nghiệp vụ rõ ràng → không thêm.
+
+Nếu requirement chưa đủ để quyết định → đưa vào `Open Questions`.
+
+Không tự ý giả định business rule quan trọng.
+
+---
+
+# 2. ENTITY MVP
+
+Bắt đầu với các Entity chính:
+
+```text
+User
+Customer
+Product
+Order
+OrderItem
+Payment
+Debt
+DebtPayment
+StockMovement
+AuditLog
+UserSession
+```
+
+Có thể đề xuất Entity bổ sung nếu thật sự cần.
+
+Mỗi Entity bổ sung phải giải thích:
+
+* Use Case nào cần nó?
+* Vì sao không thể xử lý bằng Entity hiện tại?
+* Nó có ảnh hưởng transaction nào?
+* Có thật sự cần trong MVP không?
+
+---
+
+# 3. ENTITY DESIGN PRINCIPLES
+
+## 3.1 Entity phải phục vụ nghiệp vụ
+
+Không tạo Entity chỉ để normalize database một cách máy móc.
+
+Ngược lại cũng không nhét quá nhiều responsibility vào một Entity.
+
+Phải xác định rõ:
+
+* Entity nào là core domain.
+* Entity nào là transaction/history.
+* Entity nào là security.
+* Entity nào là audit.
+* Entity nào là read/support data.
+
+---
+
+# 4. PHÂN LOẠI ENTITY
+
+Phân loại:
+
+### Core
+
+```text
+Product
+Customer
+Order
+Debt
+```
+
+### Transaction
+
+```text
+OrderItem
+Payment
+DebtPayment
+StockMovement
+```
+
+### Security / Access
+
+```text
+User
+UserSession
+```
+
+### Audit
+
+```text
+AuditLog
+```
+
+Nếu thấy phân loại chưa hợp lý, giải thích và đề xuất thay đổi.
+
+---
+
+# 5. FORMAT CHO TỪNG ENTITY
+
+Với mỗi Entity, bắt buộc trình bày:
+
+## Entity: Product
+
+### Purpose
+
+Entity này đại diện cho cái gì?
+
+### Responsibility
+
+Entity chịu trách nhiệm nghiệp vụ nào?
+
+### Attributes
+
+| Field | Type | Required | Nullable | Default | Unique | Index | Description |
+| ----- | ---- | -------- | -------- | ------- | ------ | ----- | ----------- |
+
+### Relationships
+
+Mô tả:
+
+```text
+Product 1 ── N OrderItem
+Product 1 ── N StockMovement
+```
+
+### Lifecycle
+
+Entity có state/status không?
+
+### Business Invariants
+
+Ví dụ:
+
+```text
+stockQuantity >= 0
+sellingPrice >= 0
+SKU unique
+```
+
+### Mutable Fields
+
+Field nào có thể sửa?
+
+### Immutable Fields
+
+Field nào không được sửa sau khi tạo?
+
+### Audit Requirements
+
+Thay đổi nào phải audit?
+
+### Used By
+
+Use Case nào sử dụng Entity này?
+
+---
+
+# 6. MONEY MODEL
+
+Tất cả tiền phải được thiết kế nhất quán.
+
+Không dùng FLOAT/DOUBLE.
+
+MVP dùng:
+
+```text
+DECIMAL(15,2)
+```
+
+Xác định rõ các field tiền:
+
+```text
+Product.sellingPrice
+Product.costPrice
+Order.subtotal
+Order.discount
+Order.total
+Order.paidAmount
+Order.debtAmount
+OrderItem.unitPrice
+OrderItem.subtotal
+Payment.amount
+Debt.originalAmount
+Debt.paidAmount
+Debt.remainingAmount
+DebtPayment.amount
+```
+
+Nhưng không tạo duplicate field chỉ vì convenience nếu nó làm tăng nguy cơ inconsistency.
+
+Với mỗi field derived/denormalized phải giải thích:
+
+* Source of truth là gì?
+* Khi nào update?
+* Có cần lưu DB hay tính khi query?
+* Làm thế nào đảm bảo consistency?
+
+---
+
+# 7. PRODUCT
+
+Thiết kế Product.
+
+Tối thiểu xem xét:
+
+```text
+id
+sku
+name
+unit
+sellingPrice
+costPrice
+stockQuantity
+lowStockThreshold
+isActive
+createdAt
+updatedAt
+```
+
+Phải quyết định:
+
+### SKU
+
+* nullable hay required?
+* unique hay không?
+* có case-sensitive không?
+
+### Price
+
+* giá hiện tại nằm ở Product.
+* lịch sử Order phải giữ giá snapshot.
+
+### Stock
+
+Xác định:
+
+* `stockQuantity` có phải source of truth hiện tại không?
+* StockMovement là history hay source of truth?
+* Có cho stock âm không?
+
+MVP mặc định:
+
+```text
+Product.stockQuantity = current stock
+StockMovement = immutable history
+```
+
+---
+
+# 8. ORDER
+
+Order là aggregate quan trọng.
+
+Thiết kế:
+
+```text
+Order
+ ├── OrderItem
+ ├── Payment
+ └── Debt (optional)
+```
+
+Phải xác định Order aggregate boundary.
+
+Các field dự kiến:
+
+```text
+id
+orderNumber
+customer
+user
+status
+subtotal
+discount
+total
+paidAmount
+debtAmount
+note
+createdAt
+completedAt
+cancelledAt
+```
+
+Phải phân tích field nào:
+
+* authoritative
+* derived
+* snapshot
+* mutable
+* immutable
+
+---
+
+# 9. ORDER ITEM
+
+OrderItem phải giữ snapshot tại thời điểm bán.
+
+Bắt buộc xem xét:
+
+```text
+product
+productName
+sku
+unitPrice
+quantity
+subtotal
+```
+
+Phải giải thích:
+
+Tại sao cần snapshot:
+
+```text
+productName
+sku
+unitPrice
+```
+
+Không được dựng lại lịch sử bằng Product hiện tại.
+
+Ví dụ:
+
+```text
+Ngày 01:
+Coca Cola = 12,000
+
+Ngày 10:
+Coca Cola = 15,000
+```
+
+Order ngày 01 vẫn phải hiển thị:
+
+```text
+12,000
+```
+
+---
+
+# 10. CUSTOMER
+
+Thiết kế Customer tối giản:
+
+```text
+id
+name
+phone
+note
+createdAt
+updatedAt
+```
+
+Phải quyết định:
+
+* phone có unique không?
+* customer có bắt buộc phone không?
+* có cho duplicate customer không?
+* customer inactive có cần không?
+
+Không thêm address, birthday, gender, loyalty... nếu MVP chưa cần.
+
+---
+
+# 11. DEBT
+
+Debt phải đại diện cho **một khoản nợ phát sinh từ một Order**.
+
+Mô hình:
+
+```text
+Customer
+   │
+   ├── Debt → Order
+   ├── Debt → Order
+   └── Debt → Order
+```
+
+Không sử dụng:
+
+```text
+Customer.totalDebt
+```
+
+làm source of truth.
+
+Thiết kế:
+
+```text
+id
+customer
+order
+originalAmount
+paidAmount
+remainingAmount
+dueDate
+status
+createdAt
+updatedAt
+```
+
+Phải quyết định:
+
+### Status
+
+Đề xuất:
+
+```text
+OPEN
+PARTIALLY_PAID
+PAID
+```
+
+`OVERDUE` nên cân nhắc là derived state:
+
+```text
+remainingAmount > 0
+AND dueDate < now()
+```
+
+Không tạo trạng thái OVERDUE nếu không cần lưu persistence.
+
+Giải thích quyết định.
+
+---
+
+# 12.1 DEBT BALANCE
+
+Phải xác định:
+
+```text
+originalAmount
+paidAmount
+remainingAmount
+```
+
+có cần lưu cả 3 không.
+
+Nếu lưu:
+
+```text
+remainingAmount = originalAmount - paidAmount
+```
+
+phải đảm bảo invariant.
+
+Không cho:
+
+```text
+paidAmount > originalAmount
+remainingAmount < 0
+```
+
+trừ khi business rule explicitly cho phép overpayment.
+
+---
+
+# 13. DEBT PAYMENT
+
+DebtPayment là immutable financial history.
+
+Thiết kế:
+
+```text
+id
+debt
+customer
+user
+amount
+paymentMethod
+note
+createdAt
+```
+
+Phải xác định:
+
+* Có cần `order` reference không?
+* Có cần `Payment` reference không?
+* Có cần transaction/reference number không?
+
+Không duplicate financial data nếu không cần.
+
+Mỗi DebtPayment phải giải thích ảnh hưởng tới:
+
+```text
+Debt.paidAmount
+Debt.remainingAmount
+Debt.status
+```
+
+---
+
+# 14. PAYMENT
+
+Thiết kế Payment cho Order.
+
+```text
+id
+order
+user
+amount
+method
+reference
+createdAt
+```
+
+Payment là immutable history.
+
+Nếu order có nhiều payment:
+
+```text
+Order
+ ├── Payment 40,000 CASH
+ └── Payment 60,000 BANK_TRANSFER
+```
+
+Phải xác định có hỗ trợ split payment trong MVP hay không.
+
+Nếu không chắc, đưa vào Open Questions thay vì tự quyết.
+
+---
+
+# 15. STOCK MOVEMENT
+
+StockMovement là history của mọi thay đổi stock.
+
+Thiết kế:
+
+```text
+id
+product
+order
+user
+session
+type
+quantityBefore
+quantityChange
+quantityAfter
+reason
+createdAt
+```
+
+Phải phân biệt:
+
+```text
+SALE
+SALE_REVERSAL
+ADJUSTMENT
+RETURN
+INITIAL
+```
+
+Nếu có type nào chưa được Use Case yêu cầu, phải đánh dấu optional.
+
+---
+
+# 15.1 STOCK INVARIANTS
+
+Phải đảm bảo:
+
+```text
+quantityAfter
+=
+quantityBefore + quantityChange
+```
+
+Ví dụ:
+
+```text
+Before = 10
+Change = -3
+After = 7
+```
+
+Không được:
+
+```text
+Before = 10
+Change = -3
+After = 8
+```
+
+Phải xác định stock mutation xảy ra ở đâu:
+
+```text
+StockService
+```
+
+không được để Controller hoặc Stimulus tự sửa stock.
+
+---
+
+# 16. ORDER CANCELLATION
+
+Phân tích Entity impact khi cancel:
+
+```text
+Order.status
+StockMovement
+Product.stockQuantity
+AuditLog
+```
+
+Phải xác định:
+
+* Có tạo reversal StockMovement không?
+* Có refund Payment không?
+* Debt xử lý thế nào nếu order có nợ?
+* Có cho cancel order đã partially paid không?
+* Có cho cancel order đã fully paid không?
+
+Nếu chưa có business rule rõ → Open Questions.
+
+---
+
+# 17. REFUND
+
+Nếu Refund thuộc MVP:
+
+Không chỉ đổi:
+
+```text
+Order.status = REFUNDED
+```
+
+Phải xác định financial/stock impact.
+
+Ví dụ:
+
+```text
+Order
+Payment
+StockMovement
+AuditLog
+```
+
+Nếu cần Entity `Refund` riêng, phải giải thích vì sao.
+
+Không tạo Refund Entity chỉ để có thêm bảng.
+
+---
+
+# 18. USER
+
+Thiết kế:
+
+```text
+id
+username/email
+passwordHash
+roles
+isActive
+createdAt
+updatedAt
+```
+
+Phải xác định:
+
+* authentication identifier
+* role model
+* active/inactive
+* relationship với transaction
+* relationship với audit
+* relationship với sessions
+
+Không thiết kế RBAC phức tạp nếu MVP chỉ cần:
+
+```text
+ROLE_USER
+ROLE_ADMIN
+```
+
+---
+
+# 19. USER SESSION
+
+Thiết kế session tracking:
+
+```text
+id
+user
+sessionIdentifier
+loginAt
+lastActivityAt
+logoutAt
+ipAddress
+userAgent
+device
+status
+```
+
+Phải phân biệt:
+
+* application session
+* login session tracking
+
+Không nhất thiết lưu toàn bộ PHP session data.
+
+Mục tiêu là admin có thể biết:
+
+```text
+Ai đang đăng nhập?
+Thiết bị nào?
+Login lúc nào?
+Hoạt động gần nhất?
+Session còn active không?
+```
+
+---
+
+# 20. AUDIT LOG
+
+AuditLog phải immutable.
+
+Thiết kế:
+
+```text
+id
+user
+session
+action
+entityType
+entityId
+oldValues
+newValues
+ipAddress
+userAgent
+createdAt
+```
+
+`oldValues/newValues` có thể là JSON.
+
+Không audit mọi GET.
+
+Chỉ audit meaningful mutation/security event.
+
+Phải xác định:
+
+* Entity nào audit?
+* Action nào audit?
+* Field nào cần old/new?
+* Có cần IP/user agent không?
+
+---
+
+# 21. ENTITY RELATIONSHIP
+
+Tạo ERD dạng text.
+
+Ví dụ:
+
+```text
+User
+ │
+ ├────< Order
+ │
+ ├────< Payment
+ │
+ ├────< DebtPayment
+ │
+ ├────< StockMovement
+ │
+ ├────< AuditLog
+ │
+ └────< UserSession
+
+
+Customer
+ │
+ ├────< Order
+ └────< Debt
+
+
+Order
+ │
+ ├────< OrderItem >──── Product
+ ├────< Payment
+ └────0..1 Debt
+
+
+Debt
+ │
+ └────< DebtPayment
+
+
+Product
+ │
+ ├────< OrderItem
+ └────< StockMovement
+```
+
+Sau đó kiểm tra từng cardinality.
+
+Không mặc định mọi quan hệ là nullable.
+
+---
+
+# 22. OWNERSHIP
+
+Phải xác định Entity ownership.
+
+Ví dụ:
+
+```text
+Order
+ └── OrderItem
+```
+
+OrderItem không có ý nghĩa nếu không có Order.
+
+Do đó cân nhắc:
+
+```text
+Order 1 → N OrderItem
+```
+
+với lifecycle phụ thuộc Order.
+
+Tương tự phân tích:
+
+* DebtPayment → Debt
+* StockMovement → Product
+* Payment → Order
+
+---
+
+# 23. CASCADE / DELETE RULE
+
+Với mỗi relationship phải chỉ rõ:
+
+* cascade persist?
+* cascade remove?
+* orphan removal?
+* restrict?
+* set null?
+
+Đặc biệt:
+
+**Không cascade delete financial history một cách nguy hiểm.**
+
+Ví dụ:
+
+Không cho:
+
+```text
+Delete Order
+→ Delete Payment
+→ Delete Debt
+→ Delete StockMovement
+```
+
+Order/financial history phải immutable hoặc soft-state.
+
+---
+
+# 24. IMMUTABILITY
+
+Phân loại field:
+
+### Immutable
+
+Ví dụ:
+
+```text
+Order.orderNumber
+OrderItem.unitPrice
+OrderItem.productName
+Payment.amount
+DebtPayment.amount
+StockMovement.quantityBefore
+StockMovement.quantityChange
+AuditLog.*
+```
+
+### Mutable
+
+Ví dụ:
+
+```text
+Product.name
+Product.sellingPrice
+Product.stockQuantity
+Customer.name
+Customer.phone
+Order.status
+Debt.status
+```
+
+Nhưng với mutable financial state phải xác định mutation service nào được phép thay đổi.
+
+---
+
+# 25. ENUM / STATUS
+
+Xác định enum cần thiết.
+
+Ví dụ:
+
+```text
+OrderStatus
+PaymentMethod
+DebtStatus
+StockMovementType
+UserSessionStatus
+```
+
+Mỗi enum phải có:
+
+* values
+* meaning
+* transition rules
+
+Không tạo enum nếu field không có lifecycle thực sự.
+
+---
+
+# 26. STATE TRANSITIONS
+
+Tạo state machine conceptual cho:
+
+### Order
+
+```text
+DRAFT
+  ↓
+COMPLETED
+  ↓
+CANCELLED / REFUNDED
+```
+
+### Debt
+
+```text
+OPEN
+ ↓
+PARTIALLY_PAID
+ ↓
+PAID
+```
+
+### Session
+
+```text
+ACTIVE
+ ↓
+LOGGED_OUT
+```
+
+và:
+
+```text
+ACTIVE
+ ↓
+REVOKED
+```
+
+Xác định transition nào hợp lệ và transition nào bị cấm.
+
+---
+
+# 27. DENORMALIZED DATA
+
+Với mọi field duplicate/derived:
+
+Ví dụ:
+
+```text
+Order.paidAmount
+Order.debtAmount
+Debt.paidAmount
+Debt.remainingAmount
+Product.stockQuantity
+```
+
+phải trả lời:
+
+1. Vì sao cần lưu?
+2. Source of truth là gì?
+3. Khi nào update?
+4. Transaction nào update?
+5. Làm sao tránh inconsistency?
+
+Không tạo duplicate field chỉ để query dễ hơn nếu chưa có lý do performance.
+
+---
+
+# 28. INDEX & CONSTRAINTS
+
+Đề xuất:
+
+### Unique
+
+Ví dụ:
+
+```text
+Order.orderNumber
+Product.sku
+```
+
+Chỉ đánh unique nếu business requirement thực sự cần.
+
+### Index
+
+Các field search/filter thường dùng:
+
+```text
+Product.sku
+Product.name
+Customer.phone
+Customer.name
+Order.createdAt
+Order.customer
+Order.status
+Debt.customer
+Debt.status
+Debt.dueDate
+Payment.createdAt
+StockMovement.product
+AuditLog.createdAt
+UserSession.lastActivityAt
+```
+
+Phải giải thích index phục vụ query nào.
+
+---
+
+# 29. DATABASE INTEGRITY
+
+Thiết kế DB constraints để backend không phải là lớp bảo vệ duy nhất.
+
+Xem xét:
+
+* NOT NULL
+* UNIQUE
+* FOREIGN KEY
+* CHECK constraint nếu MySQL version hỗ trợ phù hợp
+* DECIMAL precision
+* positive quantity
+* valid status
+
+Nhưng không phụ thuộc hoàn toàn vào DB constraint cho business logic phức tạp.
+
+---
+
+# 30. TRANSACTION OWNERSHIP
+
+Mapping:
+
+### Checkout
+
+```text
+Order
+OrderItem
+Payment
+Debt
+Product.stockQuantity
+StockMovement
+AuditLog
+```
+
+Một application transaction.
+
+### Debt Payment
+
+```text
+DebtPayment
+Debt
+AuditLog
+```
+
+Một application transaction.
+
+### Stock Adjustment
+
+```text
+Product
+StockMovement
+AuditLog
+```
+
+Một application transaction.
+
+### Cancel Order
+
+Phải xác định transaction scope.
+
+---
+
+# 31. ASYNC ENTITY CONSIDERATIONS
+
+Không tạo Entity chỉ vì Messenger.
+
+Ví dụ:
+
+```text
+DebtReminderMessage
+```
+
+không nhất thiết cần:
+
+```text
+DebtReminder
+```
+
+Entity riêng.
+
+Chỉ tạo nếu cần persistent history/state.
+
+Phân biệt:
+
+```text
+Domain data
+```
+
+và:
+
+```text
+Async job/message
+```
+
+---
+
+# 32. ENTITY → USE CASE MATRIX
+
+Tạo bảng:
+
+| Entity        | Create | Read | Update        | Delete | Use Cases           |
+| ------------- | ------ | ---- | ------------- | ------ | ------------------- |
+| Product       | ✓      | ✓    | ✓             | —      | Product, POS, Stock |
+| Customer      | ✓      | ✓    | ✓             | —      | Customer, Debt      |
+| Order         | ✓      | ✓    | state only    | —      | Checkout, Cancel    |
+| OrderItem     | ✓      | ✓    | —             | —      | Checkout            |
+| Payment       | ✓      | ✓    | —             | —      | Checkout            |
+| Debt          | ✓      | ✓    | state/balance | —      | Credit Sale, Debt   |
+| DebtPayment   | ✓      | ✓    | —             | —      | Pay Debt            |
+| StockMovement | ✓      | ✓    | —             | —      | Stock               |
+| AuditLog      | ✓      | ✓    | —             | —      | Audit               |
+| UserSession   | ✓      | ✓    | status        | —      | Session             |
+
+Không nhất thiết giữ đúng bảng mẫu; phải phản ánh model thực tế.
+
+---
+
+# 33. ENTITY → SERVICE MATRIX
+
+Mapping:
+
+```text
+Product
+→ ProductService
+
+Customer
+→ CustomerService
+
+Order + OrderItem
+→ CheckoutService / OrderService
+
+Payment
+→ PaymentService
+
+Debt + DebtPayment
+→ DebtService / DebtPaymentService
+
+Product + StockMovement
+→ StockService
+
+AuditLog
+→ AuditLogService
+
+UserSession
+→ SessionService
+```
+
+Nếu một service có quá nhiều responsibility, tách.
+
+Nếu hai service luôn nằm trong cùng transaction/business boundary, cân nhắc gom.
+
+---
+
+# 34. ENTITY → VALIDATION
+
+Xác định validation:
+
+### Product
+
+```text
+name required
+price >= 0
+stock >= 0
+```
+
+### OrderItem
+
+```text
+quantity > 0
+unitPrice >= 0
+```
+
+### Payment
+
+```text
+amount > 0
+```
+
+### DebtPayment
+
+```text
+amount > 0
+amount <= debt.remainingAmount
+```
+
+Nhưng phân biệt:
+
+**Validation syntax**
+
+và
+
+**Business invariant**
+
+Ví dụ:
+
+```text
+amount > 0
+```
+
+là validation.
+
+Trong khi:
+
+```text
+payment <= remaining debt
+```
+
+là business rule.
+
+---
+
+# 35. NO SOFT DELETE BY DEFAULT
+
+Không tự động thêm:
+
+```text
+deletedAt
+```
+
+vào mọi Entity.
+
+Chỉ dùng soft delete khi có lý do nghiệp vụ.
+
+Product có thể dùng:
+
+```text
+isActive
+```
+
+thay vì delete.
+
+Order, Payment, Debt, StockMovement, AuditLog không được hard delete trong flow bình thường.
+
+---
+
+# 36. AUDIT VS HISTORY
+
+Phân biệt:
+
+### Business history
+
+```text
+Payment
+DebtPayment
+StockMovement
+```
+
+### Security/system audit
+
+```text
+AuditLog
+```
+
+Không dùng AuditLog thay cho financial history.
+
+Ví dụ:
+
+Không coi:
+
+```text
+AuditLog "payment created"
+```
+
+là payment record.
+
+Payment vẫn phải tồn tại độc lập.
+
+---
+
+# 37. PERFORMANCE
+
+Entity design phải phù hợp mobile-first nhưng không optimize quá sớm.
+
+Ưu tiên:
+
+* index đúng
+* tránh N+1
+* lazy/eager loading có chủ đích
+* pagination
+* query DTO/read model khi cần
+* không load toàn bộ relationship chỉ để hiển thị list
+
+Không biến Entity thành object graph khổng lồ.
+
+---
+
+# 38. OUTPUT BẮT BUỘC
+
+Kết quả phải gồm:
+
+## 1. Entity Catalog
+
+Danh sách Entity + classification.
+
+## 2. Detailed Entity Specification
+
+Chi tiết từng Entity.
+
+## 3. ERD
+
+Text ERD đầy đủ.
+
+## 4. Relationship Matrix
+
+Cardinality + ownership + delete behavior.
+
+## 5. Field Matrix
+
+Type + nullable + default + unique + index.
+
+## 6. Business Invariants
+
+Toàn bộ invariant quan trọng.
+
+## 7. State Machines
+
+Order / Debt / Session / các state khác.
+
+## 8. Money & Balance Model
+
+Source of truth của từng giá trị tiền.
+
+## 9. Stock Model
+
+Source of truth + StockMovement + concurrency.
+
+## 10. Immutability Rules
+
+Field nào immutable/mutable.
+
+## 11. Database Constraints
+
+FK / unique / index / check.
+
+## 12. Transaction Boundaries
+
+Entity nào thay đổi trong transaction nào.
+
+## 13. Entity → Use Case Matrix
+
+Mapping đầy đủ.
+
+## 14. Entity → Service Matrix
+
+Mapping Application Service.
+
+## 15. Validation Rules
+
+Validation + business invariants.
+
+## 16. Delete/Cascade Strategy
+
+Chiến lược delete cho từng relationship.
+
+## 17. Open Questions
+
+Chỉ các vấn đề chưa thể quyết định từ requirements.
+
+---
+
+# 39. KHÔNG ĐƯỢC LÀM
+
+Không viết:
+
+* PHP Entity code
+* Doctrine Attribute
+* YAML
+* Migration
+* Repository code
+* Controller
+* Service code
+* SQL migration
+
+Không chuyển sang implementation.
+
+Chỉ thiết kế.
+
+---
+
+# 40. FINAL REVIEW
+
+Sau khi thiết kế xong, tự kiểm tra:
+
+### Money
+
+Có thể tạo payment/debt sai số không?
+
+### Stock
+
+Có thể stock âm do concurrency không?
+
+### Order
+
+Có thể mất snapshot giá/tên sản phẩm không?
+
+### Debt
+
+Có thể thanh toán vượt nợ không?
+
+### Audit
+
+Có thể thay đổi lịch sử mà không trace được không?
+
+### Delete
+
+Có thể xóa mất financial history không?
+
+### Mobile
+
+Entity có khiến một thao tác đơn giản phải tạo quá nhiều request không?
+
+### Async
+
+Có entity nào đang bị tạo chỉ vì Messenger mà không có lý do domain không?
+
+Nếu phát hiện vấn đề, sửa design trước khi kết luận.
+
+**Mục tiêu cuối cùng: một Domain Model nhỏ, rõ, transaction-safe và đủ linh hoạt cho Mobile POS — không phải một database khổng lồ.**
+# BỔ SUNG CRITICAL PROMPT — IMAGE UPLOAD & NOTE/COMMENT
+
+Bổ sung vào **Entity & Domain Model Specification** của Mobile POS.
+
+Mục tiêu vẫn giữ nguyên:
+
+**Mobile-first → ít thao tác → ít request → đơn giản → data integrity.**
+
+Không biến chức năng upload hình hoặc note thành hệ thống CMS/comment phức tạp.
+
+---
+
+# 1. PRODUCT IMAGE
+
+Product cần hỗ trợ upload hình ảnh.
+
+Mục đích chính:
+
+* Nhận diện sản phẩm nhanh trên POS.
+* Hiển thị hình trong product card.
+* Hiển thị hình trong product detail.
+* Hỗ trợ người bán chọn sản phẩm nhanh hơn trên điện thoại.
+
+## Product Image Requirements
+
+Không nên lưu binary image trực tiếp trong MySQL.
+
+Database chỉ lưu metadata/reference.
+
+File thực tế lưu trên filesystem/object storage tùy infrastructure.
+
+Entity có thể thiết kế:
+
+```text
+Product
+   │
+   └── ProductImage
+```
+
+Hoặc nếu MVP chỉ cần một ảnh:
+
+```text
+Product
+ └── image
+```
+
+Hãy phân tích cả hai phương án và chọn phương án phù hợp với MVP.
+
+Ưu tiên phương án đơn giản nhưng không khóa khả năng mở rộng.
+
+---
+
+# 2. PRODUCT IMAGE ENTITY
+
+Nếu chọn `ProductImage`, xem xét:
+
+```text
+ProductImage
+
+id
+product
+filename
+path
+mimeType
+size
+width
+height
+sortOrder
+isPrimary
+createdAt
+```
+
+Không nhất thiết phải có tất cả field trên.
+
+Chỉ giữ field có giá trị thực tế.
+
+Phải giải thích:
+
+* field nào cần thiết
+* field nào optional
+* file storage nằm ở đâu
+* database lưu gì
+* filename có public trực tiếp hay không
+* cách xác định primary image
+* cách xóa/thay ảnh
+
+---
+
+# 3. IMAGE SECURITY
+
+Upload phải được validate ở backend.
+
+Không tin:
+
+* filename từ client
+* MIME type từ client
+* extension từ client
+
+Phải kiểm tra:
+
+* file có thực sự là image hay không
+* MIME type
+* extension
+* file size
+* image dimensions nếu cần
+
+Không cho upload file executable/script giả dạng image.
+
+Tên file lưu storage nên được generate bởi server.
+
+Không dùng original filename làm tên file vật lý nếu có rủi ro collision/security.
+
+---
+
+# 4. IMAGE UPLOAD UX
+
+Mobile-first.
+
+Không tạo form upload phức tạp.
+
+Product form:
+
+```text
+[ Ảnh sản phẩm ]
+
+[ Chụp ảnh ] [ Chọn từ máy ]
+
+Tên sản phẩm
+Giá bán
+Tồn kho
+
+[ LƯU ]
+```
+
+Nếu browser/device hỗ trợ camera, có thể cho phép:
+
+```text
+capture
+```
+
+nhưng không bắt buộc.
+
+Có preview trước khi upload.
+
+Nếu upload ảnh cùng lúc tạo product:
+
+```text
+User chọn/chụp ảnh
+        ↓
+Preview
+        ↓
+Submit product
+        ↓
+Backend lưu Product
+        ↓
+Lưu image
+```
+
+Không tạo nhiều HTTP request không cần thiết.
+
+Nếu cần xử lý resize/compression thì có thể cân nhắc async.
+
+---
+
+# 5. IMAGE PROCESSING
+
+MVP:
+
+* Không cần image processing phức tạp.
+* Có thể resize ảnh lớn để tiết kiệm storage/bandwidth.
+* Không cần tạo hệ thống CDN riêng.
+
+Nếu xử lý ảnh mất thời gian:
+
+```text
+Upload
+ ↓
+Save original/reference
+ ↓
+Dispatch ProcessProductImageMessage
+ ↓
+Worker resize/compress
+```
+
+Nhưng:
+
+**Không queue việc cần thiết để xác nhận product đã được tạo thành công.**
+
+Nếu product creation và image upload có thể commit an toàn trong cùng request thì ưu tiên cách đơn giản.
+
+---
+
+# 6. PRODUCT CARD
+
+Product image phải phục vụ POS.
+
+Ví dụ:
+
+```text
+┌───────────────┐
+│     IMAGE     │
+│               │
+├───────────────┤
+│ Coca Cola     │
+│ 12.000đ       │
+│ Tồn: 24       │
+└───────────────┘
+```
+
+Tap card:
+
+```text
+→ add to cart
+```
+
+Không bắt user mở product detail chỉ để thêm vào cart.
+
+---
+
+# 7. PRODUCT IMAGE PERFORMANCE
+
+Mobile là thiết bị chính.
+
+Không load ảnh full-size vào product grid.
+
+Phải có chiến lược:
+
+* thumbnail
+* kích thước phù hợp
+* lazy loading khi cần
+* tránh ảnh quá lớn
+* cache static image
+
+POS product list phải nhẹ.
+
+Nếu có 100 sản phẩm thì không tải 100 ảnh full-resolution.
+
+---
+
+# 8. PRODUCT IMAGE LIFECYCLE
+
+Phải xác định:
+
+### Create
+
+Tạo Product + Image.
+
+### Replace
+
+Thay ảnh.
+
+### Delete
+
+Xóa ảnh.
+
+### Product deactivate
+
+Ảnh vẫn có thể giữ.
+
+### Product delete
+
+Không hard delete Product trong flow thông thường nếu Product đã được dùng trong Order.
+
+Ảnh có thể được cleanup riêng.
+
+---
+
+# 9. NOTE / COMMENT
+
+Hệ thống cần hỗ trợ note theo đúng ngữ cảnh nghiệp vụ.
+
+Không tạo comment system kiểu:
+
+```text
+Comment
+author
+mentions
+reactions
+threads
+likes
+```
+
+trừ khi có requirement thực tế.
+
+MVP chỉ cần **plain text note**.
+
+---
+
+# 10. NOTE CHO ORDER
+
+Order nên có:
+
+```text
+Order.note
+```
+
+Mục đích:
+
+* khách dặn giao hàng
+* ghi chú đơn
+* thông tin đặc biệt
+* lý do/ghi chú nghiệp vụ
+
+Ví dụ:
+
+```text
+"Giao sau 18h"
+```
+
+hoặc:
+
+```text
+"Khách lấy hàng chiều"
+```
+
+Note thuộc Order và phải được lưu cùng Order.
+
+---
+
+# 11. NOTE CHO CUSTOMER
+
+Customer có:
+
+```text
+Customer.note
+```
+
+Mục đích:
+
+* thông tin hữu ích lâu dài về khách
+* ghi chú chăm sóc
+* đặc điểm giao dịch
+
+Ví dụ:
+
+```text
+"Thường lấy hàng cuối tháng"
+```
+
+Không dùng Customer.note để lưu lịch sử giao dịch.
+
+---
+
+# 12. NOTE CHO DEBT
+
+Cân nhắc:
+
+```text
+Debt.note
+```
+
+Mục đích:
+
+* thỏa thuận trả nợ
+* ghi chú hạn thanh toán
+* lý do đặc biệt
+
+Ví dụ:
+
+```text
+"Khách hẹn trả ngày 30"
+```
+
+Không dùng note để thay thế `dueDate`.
+
+---
+
+# 13. NOTE CHO DEBT PAYMENT
+
+Có thể có:
+
+```text
+DebtPayment.note
+```
+
+Mục đích:
+
+```text
+"Khách chuyển khoản từ tài khoản A"
+```
+
+hoặc:
+
+```text
+"Thu tiền mặt tại cửa hàng"
+```
+
+Đây là note của **lần thanh toán**, không phải note của khoản nợ.
+
+---
+
+# 14. PRODUCT NOTE
+
+Cân nhắc:
+
+```text
+Product.note
+```
+
+nếu cửa hàng cần ghi chú sản phẩm.
+
+Ví dụ:
+
+```text
+"Hàng nhập đợt mới"
+```
+
+Tuy nhiên không thêm nếu không có use case rõ ràng.
+
+---
+
+# 15. NOTE VS AUDIT LOG
+
+Phải phân biệt rõ.
+
+### Note
+
+Do user chủ động nhập.
+
+Ví dụ:
+
+```text
+Order.note
+"Khách yêu cầu giao buổi tối"
+```
+
+### AuditLog
+
+Do hệ thống ghi nhận.
+
+Ví dụ:
+
+```text
+User A
+changed Product price
+from 10,000
+to 12,000
+```
+
+Không dùng Note để thay thế AuditLog.
+
+Không dùng AuditLog để thay thế Note.
+
+---
+
+# 16. NOTE VS BUSINESS DATA
+
+Không lưu business data quan trọng chỉ trong note.
+
+Không làm:
+
+```text
+Debt.note = "Khách nợ 500k"
+```
+
+mà không có:
+
+```text
+Debt.remainingAmount = 500000
+```
+
+Không làm:
+
+```text
+Order.note = "đã trả 100k"
+```
+
+thay cho:
+
+```text
+Payment.amount = 100000
+```
+
+Note chỉ là contextual information.
+
+Business data phải nằm ở field/entity tương ứng.
+
+---
+
+# 17. NOTE UX
+
+Note trên mobile phải cực nhanh.
+
+Không cần mở một màn hình riêng.
+
+Ví dụ Order:
+
+```text
+[ Ghi chú ]
+Khách lấy hàng lúc 18h
+```
+
+Tap → inline edit hoặc bottom sheet.
+
+Không tạo modal form lớn.
+
+Nếu note không bắt buộc:
+
+```text
+Note = optional
+```
+
+Không bắt user nhập note.
+
+---
+
+# 18. NOTE LENGTH
+
+Đặt giới hạn hợp lý.
+
+Ví dụ:
+
+```text
+Order.note       VARCHAR/TEXT giới hạn hợp lý
+Customer.note    VARCHAR/TEXT giới hạn hợp lý
+Debt.note        VARCHAR/TEXT giới hạn hợp lý
+DebtPayment.note VARCHAR/TEXT giới hạn hợp lý
+```
+
+Không cho unlimited text nếu không cần.
+
+Phải xác định giới hạn phù hợp ở bước Entity design.
+
+---
+
+# 19. NOTE AUDIT
+
+Nếu user sửa note của một Entity quan trọng:
+
+Có thể audit:
+
+```text
+old note
+new note
+user
+timestamp
+```
+
+Đặc biệt cân nhắc audit cho:
+
+* Order note
+* Debt note
+* DebtPayment note
+
+Không nhất thiết audit mọi thay đổi Product/Customer note nếu MVP không yêu cầu.
+
+Phải đưa ra quyết định dựa trên mức độ quan trọng nghiệp vụ.
+
+---
+
+# 20. IMAGE + NOTE USE CASES
+
+Bổ sung các Use Case:
+
+### UC-PRODUCT-IMAGE-01
+
+Upload product image.
+
+### UC-PRODUCT-IMAGE-02
+
+Replace product image.
+
+### UC-PRODUCT-IMAGE-03
+
+Delete product image.
+
+### UC-NOTE-01
+
+Add order note.
+
+### UC-NOTE-02
+
+Update order note.
+
+### UC-NOTE-03
+
+Add customer note.
+
+### UC-NOTE-04
+
+Update customer note.
+
+### UC-NOTE-05
+
+Add debt note.
+
+### UC-NOTE-06
+
+Add debt payment note.
+
+Không nhất thiết tạo UI riêng cho từng Use Case nếu có thể dùng chung interaction.
+
+---
+
+# 21. ENTITY ADDITIONS
+
+Cập nhật Entity Catalog.
+
+Có thể trở thành:
+
+```text
+User
+Customer
+Product
+ProductImage
+Order
+OrderItem
+Payment
+Debt
+DebtPayment
+StockMovement
+AuditLog
+UserSession
+```
+
+`ProductImage` là Entity mới nếu chọn multi-image architecture.
+
+Các Note có thể **không cần Note Entity**.
+
+Ưu tiên:
+
+```text
+Order.note
+Customer.note
+Debt.note
+DebtPayment.note
+```
+
+thay vì:
+
+```text
+Note
+```
+
+cho MVP.
+
+Chỉ tạo `Note` Entity nếu requirement sau này cần:
+
+* nhiều notes
+* author
+* timestamp từng note
+* threaded comments
+* search note
+* note history
+* attachments
+* mentions
+
+---
+
+# 22. PRODUCT IMAGE RELATIONSHIP
+
+Nếu dùng ProductImage:
+
+```text
+Product 1 ─── N ProductImage
+```
+
+Phải quyết định:
+
+* có bắt buộc 1 ảnh không?
+* tối đa bao nhiêu ảnh?
+* có `isPrimary` không?
+* có `sortOrder` không?
+* ProductImage có được tồn tại độc lập không?
+
+Đề xuất MVP:
+
+```text
+Product 1 ─── N ProductImage
+ProductImage → Product required
+ProductImage không tồn tại độc lập về mặt nghiệp vụ
+```
+
+Nếu thực tế chỉ cần một ảnh, có thể chọn đơn giản hơn.
+
+---
+
+# 23. ENTITY → USE CASE MATRIX
+
+Cập nhật matrix để bao gồm:
+
+| Entity        | Use Case                                 |
+| ------------- | ---------------------------------------- |
+| Product       | Product management, POS, Stock           |
+| ProductImage  | Product image upload/replace/delete, POS |
+| Customer      | Customer, Order, Debt                    |
+| Order         | Checkout, Order history, Cancellation    |
+| OrderItem     | Checkout, Order history                  |
+| Payment       | Checkout, Payment history                |
+| Debt          | Credit Sale, Debt management             |
+| DebtPayment   | Debt Payment                             |
+| StockMovement | Sale, Adjustment, Return                 |
+| AuditLog      | Audit                                    |
+| User          | Authentication, Transactions             |
+| UserSession   | Session management                       |
+
+---
+
+# 24. ENTITY RULE
+
+Không tạo:
+
+```text
+Comment
+Attachment
+Media
+File
+```
+
+chỉ vì muốn "thiết kế chuẩn".
+
+Nếu `ProductImage` đủ cho MVP → dùng `ProductImage`.
+
+Nếu `note` chỉ là text thuộc Entity → để trực tiếp trên Entity.
+
+Nếu sau này requirement tăng, mới refactor thành abstraction riêng.
+
+---
+
+# 25. FINAL CHECK
+
+Sau khi thêm Image + Note, kiểm tra:
+
+### Image
+
+* Có upload an toàn không?
+* Có validate file không?
+* Có tránh file quá lớn không?
+* Có tối ưu mobile không?
+* Có request thừa không?
+* Có cần queue image processing không?
+
+### Note
+
+* Note có bị dùng thay cho business data không?
+* Note có đúng Entity không?
+* Có cần audit không?
+* Có giới hạn kích thước không?
+* Có thực sự cần Note Entity không?
+
+### Performance
+
+Product image không được làm POS chậm.
+
+### Simplicity
+
+Không biến hai tính năng nhỏ thành một media management/comment platform.
+
+---
+
+# OUTPUT
+
+Sau khi áp dụng bổ sung này, hãy xuất lại:
+
+1. Updated Entity Catalog
+2. ProductImage decision
+3. Updated Entity Specifications
+4. Updated ERD
+5. Updated Relationship Matrix
+6. Updated Field Matrix
+7. Image storage strategy
+8. Image validation rules
+9. Note strategy
+10. Note placement per Entity
+11. Updated Use Case → Entity Matrix
+12. Updated Entity → Service Matrix
+13. Updated transaction boundaries
+14. Updated audit rules
+15. Updated mobile UX considerations
+16. Open Questions
+
+**Không viết code.**
+
+Mục tiêu:
+
+> Image để bán hàng nhanh hơn.
+> Note để giữ thông tin ngữ cảnh.
+> Cả hai phải đơn giản, mobile-first và không phá performance/data integrity.

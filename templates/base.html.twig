@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html{% if app.user is defined and app.user %} data-font-size="{{ app.user.fontSize }}" data-appearance="{{ app.user.appearance }}" data-density="{{ app.user.uiDensity }}"{% if app.user.highContrast %} data-high-contrast="true"{% endif %}{% if app.user.reduceMotion %} data-reduce-motion="true"{% endif %}{% if app.user.hasPaymentSoundEnabled() %} data-payment-sound-enabled="true"{% endif %}{% if app.user.hasUsageGuideEnabled() %} data-usage-guide-enabled="true"{% endif %}{% endif %}>
+<html data-appearance="{% if app.user is defined and app.user %}{{ app.user.appearance }}{% else %}system{% endif %}"{% if app.user is defined and app.user %} data-font-size="{{ app.user.fontSize }}" data-density="{{ app.user.uiDensity }}"{% if app.user.highContrast %} data-high-contrast="true"{% endif %}{% if app.user.reduceMotion %} data-reduce-motion="true"{% endif %}{% if app.user.hasPaymentSoundEnabled() %} data-payment-sound-enabled="true"{% endif %}{% if app.user.hasUsageGuideEnabled() %} data-usage-guide-enabled="true"{% endif %}{% endif %}>
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">

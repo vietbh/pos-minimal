@@ -1,0 +1,1460 @@
+Chuẩn. Với source hiện tại, **PHASE 1.10.1** nên tập trung đúng một việc: chứng minh **Checkout golden path bằng real Symfony + Doctrine + MySQL**, kiểm tra DB state đầy đủ sau commit. Persistence Gate cũng yêu cầu integration test không chỉ assert DTO/result mà phải verify persistence thực tế và transaction atomicity. fileciteturn16file0 fileciteturn16file1
+
+# CRITICAL PROMPT — PHASE 1.10.1
+## CHECKOUT INTEGRATION TEST
+
+```text id="9fu0fa"
+# PHASE 1.10.1 — CHECKOUT INTEGRATION TEST
+# MOBILE-FIRST POS — SYMFONY 7.4
+
+Bạn là:
+
+Senior Symfony 7.4 Test Architect
++ DDD Application Test Engineer
++ Doctrine Integration Test Engineer
++ MySQL Transaction Engineer
++ POS Business Flow Engineer.
+
+==================================================
+# 1. OBJECTIVE
+==================================================
+
+IMPLEMENT THẬT integration test cho:
+
+Checkout
+
+Không chỉ test:
+
+CheckoutResult
+
+Mà phải chứng minh toàn bộ flow:
+
+HTTP/Application Input
+    ↓
+CheckoutHandler
+    ↓
+Idempotency reservation
+    ↓
+Transaction
+    ↓
+Product
+    ↓
+Order
+    ↓
+OrderItem
+    ↓
+Payment
+    ↓
+Stock
+    ↓
+StockMovement
+    ↓
+AuditLog
+    ↓
+COMMIT
+    ↓
+Idempotency COMPLETED
+
+Test phải dùng:
+
+- real Symfony kernel
+- real Doctrine ORM
+- real MySQL test database
+- real repositories
+- real transaction manager
+- real domain entities
+
+KHÔNG mock database cho integration test.
+
+==================================================
+# 2. SOURCE OF TRUTH
+==================================================
+
+Trước khi code PHẢI inspect:
+
+- CheckoutInput
+- CheckoutHandler
+- CheckoutResult
+- IdempotencyPort
+- DoctrineIdempotencyPort
+- IdempotencyConcurrentStart
+- IdempotencyRecord
+- Product
+- Order
+- OrderItem
+- Payment
+- Debt
+- StockMovement
+- AuditLog
+- TransactionManager
+- ProductLocking
+- Repository interfaces
+- Doctrine repositories
+- database migrations
+- test bootstrap
+- existing IntegrationTestCase
+- existing fixtures
+- PHASE 1.10 test strategy
+- PHASE 1.6.1.5D idempotency/concurrency implementation
+
+KHÔNG tự ý đổi domain/API contract.
+
+Nếu source hiện tại khác với ví dụ:
+
+→ dùng source hiện tại làm source of truth.
+
+Nếu có mismatch:
+
+→ STOP
+→ report mismatch
+→ không âm thầm sửa architecture.
+
+==================================================
+# 3. TEST LOCATION
+==================================================
+
+Ưu tiên:
+
+tests/Integration/Application/Order/Checkout/
+
+Expected:
+
+CheckoutIntegrationTest.php
+
+Nếu project đã có test structure khác:
+
+→ follow existing structure.
+
+Không tạo duplicate IntegrationTestCase/framework.
+
+==================================================
+# 4. TEST DATABASE
+==================================================
+
+Integration test phải chạy trên:
+
+MySQL.
+
+Không dùng SQLite cho Checkout transaction test.
+
+Database phải:
+
+- isolated
+- reproducible
+- migration-compatible
+- resettable
+
+Bootstrap:
+
+fresh test database
+↓
+migrations
+↓
+fixtures
+↓
+test
+↓
+cleanup/reset
+
+Không phụ thuộc database developer.
+
+Không hard-code:
+
+user ID = 1
+product ID = 1
+
+==================================================
+# 5. MINIMAL FIXTURE
+==================================================
+
+Fixture tối thiểu:
+
+USER_CASHIER
+
+PRODUCT_A
+
+PRODUCT_A:
+
+stock = 10
+
+price = 100000.00
+
+Product phải ACTIVE.
+
+Nếu Checkout architecture bắt buộc Customer:
+
+→ tạo CUSTOMER_A.
+
+Nếu không:
+
+→ không tạo Customer chỉ để test.
+
+Fixture phải dùng stable symbolic lookup hoặc returned entity IDs.
+
+==================================================
+# 6. GOLDEN PATH
+==================================================
+
+Test:
+
+authenticated cashier
+
++
+
+active product
+
++
+
+stock = 10
+
++
+
+quantity = 2
+
++
+
+valid payment
+
++
+
+valid idempotency key
+
+Expected:
+
+Checkout SUCCESS.
+
+==================================================
+# 7. GOLDEN PATH TEST
+==================================================
+
+Tên:
+
+checkout_creates_complete_business_transaction
+
+Hoặc convention tương đương.
+
+Flow:
+
+1. Arrange
+
+2. Invoke CheckoutHandler
+
+3. Assert result
+
+4. Clear EntityManager
+
+5. Reload entities from DB
+
+6. Assert database state.
+
+KHÔNG assert chỉ:
+
+$result->success === true
+
+==================================================
+# 8. INPUT
+==================================================
+
+Input phải phản ánh contract hiện tại.
+
+Conceptually:
+
+```text
+items:
+    productId = PRODUCT_A
+    quantity = 2
+
+payment:
+    valid payment data
+
+customer:
+    optional according to contract
+
+idempotencyKey:
+    unique key
+```
+
+Không gửi:
+
+```text id="8dhnf5"
+serverTotal
+serverPrice
+stockAfter
+debtRemaining
+```
+
+nếu contract không yêu cầu.
+
+==================================================
+# 9. RESULT ASSERTION
+==================================================
+
+Assert:
+
+- checkout succeeded
+- orderId exists
+- orderNumber exists
+- final total is correct
+- payment result is correct
+
+Nhưng đây chỉ là lớp assertion đầu tiên.
+
+Sau đó phải verify DB.
+
+==================================================
+# 10. ORDER ASSERTION
+==================================================
+
+Reload Order từ repository/EntityManager.
+
+Assert:
+
+- exactly ONE Order
+- correct user/actor
+- correct status
+- correct total
+- correct creation timestamp nếu contract yêu cầu
+- order number exists
+- order persisted.
+
+Không chỉ lấy Order từ Unit of Work hiện tại.
+
+Phải:
+
+```text id="1qi6bt"
+flush
+→ clear
+→ reload
+```
+
+để chứng minh database persistence.
+
+==================================================
+# 11. ORDER ITEM ASSERTION
+==================================================
+
+Assert:
+
+exactly ONE OrderItem.
+
+Verify:
+
+- correct Product
+- quantity = 2
+- unit price = 100000.00
+- subtotal = 200000.00
+- historical snapshot preserved.
+
+Không tin frontend-sent price.
+
+Nếu OrderItem architecture lưu product name/SKU snapshot:
+
+→ verify snapshot.
+
+==================================================
+# 12. PAYMENT ASSERTION
+==================================================
+
+Assert:
+
+exactly ONE Payment.
+
+Verify:
+
+- linked Order đúng
+- amount chính xác
+- payment method đúng
+- status đúng nếu Payment có status
+- persisted.
+
+Không dùng floating-point comparison nếu Money architecture dùng decimal.
+
+Ví dụ:
+
+```text id="hylj4f"
+100000.00
+```
+
+phải được verify exact.
+
+==================================================
+# 13. STOCK ASSERTION
+==================================================
+
+Initial:
+
+stock = 10
+
+Checkout:
+
+quantity = 2
+
+Expected:
+
+stock = 8
+
+Reload Product sau:
+
+```text id="tj3ifp"
+flush
+→ clear
+→ find
+```
+
+Assert:
+
+```text id="436939"
+8
+```
+
+Không chỉ kiểm tra response.
+
+==================================================
+# 14. STOCK MOVEMENT ASSERTION
+==================================================
+
+Assert:
+
+exactly ONE SALE StockMovement.
+
+Verify:
+
+```text id="ieekvq"
+product = PRODUCT_A
+
+type = SALE
+
+quantityBefore = 10
+
+quantityChange = -2
+
+quantityAfter = 8
+
+order = created Order
+```
+
+Nếu User/UserSession relationship thuộc contract:
+
+→ verify đúng actor/session.
+
+Không cho phép:
+
+quantityBefore = 8
+
+quantityChange = -2
+
+quantityAfter = 6
+
+vì movement phải phản ánh transition thực tế.
+
+==================================================
+# 15. AUDIT LOG ASSERTION
+==================================================
+
+Assert AuditLog được tạo nếu Checkout architecture yêu cầu audit.
+
+Verify:
+
+- actor
+- action
+- resource type
+- resource ID
+- requestId nếu có
+- metadata nếu có
+
+Không assert technical log ở database nếu AuditLog là business audit store.
+
+Không expose sensitive information.
+
+==================================================
+# 16. IDEMPOTENCY ASSERTION
+==================================================
+
+Sau successful Checkout:
+
+assert exactly ONE IdempotencyRecord.
+
+Verify:
+
+```text id="bpjpch"
+user
+idempotencyKey
+operation
+requestHash
+status = COMPLETED
+responseStatus
+responseBody
+completedAt
+```
+
+Nếu entity naming khác:
+
+→ dùng actual contract.
+
+Đặc biệt:
+
+status phải là:
+
+COMPLETED
+
+Không:
+
+PROCESSING
+
+==================================================
+# 17. RESPONSE REPLAY DATA
+==================================================
+
+Verify IdempotencyRecord lưu đủ dữ liệu để replay theo architecture.
+
+Ví dụ:
+
+```text id="8iefmy"
+responseStatus = 200
+
+responseBody != null
+```
+
+Không cần assert implementation-specific serialization nếu architecture không yêu cầu.
+
+Nhưng phải chứng minh retry sau này có thể replay.
+
+==================================================
+# 18. NO DEBT CASE
+==================================================
+
+Nếu golden path thanh toán đủ:
+
+Expected:
+
+NO Debt
+
+hoặc behavior đúng theo final business rule.
+
+Assert database không tạo Debt ngoài ý muốn.
+
+Nếu architecture bắt buộc Debt cho mọi Order:
+
+→ follow actual rule.
+
+Không tự suy diễn.
+
+==================================================
+# 19. COUNT ASSERTIONS
+==================================================
+
+Sau checkout:
+
+Orders = 1
+
+OrderItems = 1
+
+Payments = 1
+
+SALE StockMovements = 1
+
+IdempotencyRecords = 1
+
+Debts:
+
+→ expected theo business rule.
+
+AuditLogs:
+
+→ expected theo audit architecture.
+
+Đây là critical invariant.
+
+==================================================
+# 20. ENTITY MANAGER CLEAR
+==================================================
+
+Sau Handler:
+
+```php id="ypdxox"
+$entityManager->clear();
+```
+
+Sau đó reload.
+
+Không assert toàn bộ bằng cùng object reference đã được Handler mutate.
+
+Mục tiêu:
+
+prove database state.
+
+==================================================
+# 21. REPOSITORY VERIFICATION
+==================================================
+
+Có thể dùng repository để reload:
+
+```text id="japvva"
+$orderRepository->findById()
+$productRepository->findById()
+```
+
+và Query Repository nếu phù hợp.
+
+Không bypass repository chỉ vì test tiện hơn.
+
+Tuy nhiên aggregate-level DB assertions có thể dùng EntityManager/DBAL khi cần verify:
+
+- count
+- uniqueness
+- exact persisted rows.
+
+Không để test phụ thuộc implementation detail không cần thiết.
+
+==================================================
+# 22. TRANSACTION COMMIT PROOF
+==================================================
+
+Test phải chứng minh sau Handler thành công:
+
+Transaction đã COMMIT.
+
+Cách:
+
+1. Handler hoàn thành.
+
+2. Clear EntityManager.
+
+3. Mở/read bằng fresh EntityManager hoặc fresh connection.
+
+4. Reload:
+
+- Order
+- Payment
+- Product
+- StockMovement
+- IdempotencyRecord
+
+Tất cả phải tồn tại đúng.
+
+Không chấp nhận:
+
+response success
++
+EntityManager memory state đúng
++
+DB state chưa commit.
+
+==================================================
+# 23. MULTI-ENTITY ATOMICITY
+==================================================
+
+Golden path phải chứng minh business transaction tạo đồng bộ:
+
+```text id="pjoopb"
+Order
++
+OrderItem
++
+Payment
++
+Stock
++
+StockMovement
++
+Audit
+```
+
+theo actual business flow.
+
+Không có:
+
+Order thành công
++
+Payment missing
+
+hoặc:
+
+Stock changed
++
+StockMovement missing
+
+hoặc:
+
+Payment exists
++
+Order missing.
+
+==================================================
+# 24. FAILURE / ROLLBACK TEST
+==================================================
+
+Tạo test riêng:
+
+checkout_rolls_back_business_transaction_on_failure
+
+Không inject random failure.
+
+Dùng deterministic failure injection đã có architecture.
+
+Ví dụ:
+
+fail tại:
+
+```text id="yb5bz8"
+after payment
+before stock completion
+```
+
+hoặc failure point đã được project hỗ trợ.
+
+Expected:
+
+```text id="v2udoe"
+NO Order
+NO OrderItem
+NO Payment
+NO Stock mutation
+NO StockMovement
+NO Debt
+NO successful Audit
+```
+
+Quan trọng:
+
+Idempotency reservation phải follow architecture 3-transaction.
+
+Nếu reservation đã commit trước business transaction:
+
+Expected:
+
+```text id="r69a3c"
+IdempotencyRecord = FAILED
+```
+
+không biến mất cùng business rollback.
+
+==================================================
+# 25. ROLLBACK STOCK ASSERTION
+==================================================
+
+Sau failed checkout:
+
+Product stock phải vẫn:
+
+10
+
+Không:
+
+8.
+
+Không:
+
+9.
+
+Không:
+
+partial mutation.
+
+==================================================
+# 26. ROLLBACK ORDER ASSERTION
+==================================================
+
+Sau failed checkout:
+
+Order count = 0
+
+OrderItem count = 0
+
+Payment count = 0
+
+theo failed transaction.
+
+Không để orphan records.
+
+==================================================
+# 27. ROLLBACK IDEMPOTENCY ASSERTION
+==================================================
+
+Nếu final architecture dùng:
+
+Transaction #1:
+PROCESSING
+
+Transaction #2:
+business
+
+Transaction #3:
+FAILED
+
+Expected:
+
+```text id="iluewe"
+IdempotencyRecord
+    status = FAILED
+```
+
+Verify:
+
+- key preserved
+- request hash preserved
+- failure response/status persisted nếu architecture yêu cầu.
+
+==================================================
+# 28. SAME-KEY RETRY TEST
+==================================================
+
+Tạo test riêng:
+
+checkout_same_key_same_payload_replays_without_duplicate_side_effect
+
+Flow:
+
+Request #1:
+
+```text id="5ph7t7"
+Checkout
+→ SUCCESS
+```
+
+Request #2:
+
+same:
+
+```text id="l892ah"
+user
++
+operation
++
+idempotencyKey
++
+requestFingerprint
+```
+
+Expected:
+
+```text id="sjcito"
+REPLAY
+```
+
+Không execute business transaction lần thứ hai.
+
+==================================================
+# 29. SAME-KEY RETRY ASSERTIONS
+==================================================
+
+After Request #2:
+
+Orders = 1
+
+OrderItems = 1
+
+Payments = 1
+
+SALE movements = 1
+
+IdempotencyRecords = 1
+
+Stock:
+
+initial 10
+→ final 8
+
+Không:
+
+final 6.
+
+==================================================
+# 30. REPLAY RESULT
+==================================================
+
+Request #2 phải trả cùng logical result:
+
+same:
+
+orderId
+orderNumber
+response status
+
+theo final idempotency contract.
+
+Không tạo Order mới.
+
+==================================================
+# 31. SAME KEY DIFFERENT PAYLOAD
+==================================================
+
+Tạo test:
+
+checkout_same_key_different_payload_is_rejected
+
+Request #1:
+
+```text id="q3oguk"
+quantity = 2
+```
+
+Request #2:
+
+same key
+
+nhưng:
+
+```text id="4rvvv1"
+quantity = 3
+```
+
+Expected:
+
+IDEMPOTENCY_CONFLICT
+
+hoặc exact error defined by architecture.
+
+Không execute second checkout.
+
+Database:
+
+Order = 1
+
+Payment = 1
+
+SALE movement = 1
+
+Stock = 8
+
+IdempotencyRecord = 1
+
+==================================================
+# 32. PRICE AUTHORITY TEST
+==================================================
+
+Nếu CheckoutInput hiện cho phép client gửi price:
+
+test:
+
+DB Product price:
+
+100000.00
+
+Client:
+
+50000.00
+
+Expected:
+
+backend follows authoritative price/business rule.
+
+Nếu input contract KHÔNG cho phép price:
+
+→ không tạo test cho field không tồn tại.
+
+==================================================
+# 33. INACTIVE PRODUCT TEST
+==================================================
+
+Scenario:
+
+Product inactive.
+
+Checkout attempt.
+
+Expected:
+
+business rejection.
+
+No successful mutation.
+
+Verify:
+
+Order = 0
+
+Payment = 0
+
+Stock unchanged.
+
+Exact error must follow final Error Contract if already implemented.
+
+==================================================
+# 34. INSUFFICIENT STOCK TEST
+==================================================
+
+Scenario:
+
+stock = 1
+
+request quantity = 2
+
+Expected:
+
+reject.
+
+Verify:
+
+Order = 0
+
+Payment = 0
+
+StockMovement = 0
+
+Stock remains 1
+
+No successful Debt.
+
+No partial business commit.
+
+==================================================
+# 35. EMPTY CART TEST
+==================================================
+
+Scenario:
+
+items = []
+
+Expected:
+
+validation/business rejection according to final contract.
+
+No:
+
+Order
+Payment
+StockMovement
+
+created.
+
+==================================================
+# 36. INVALID PAYMENT TEST
+==================================================
+
+Scenario:
+
+payment invalid according to final payment contract.
+
+Expected:
+
+reject.
+
+No successful business mutation.
+
+Test according to actual payment business rule.
+
+Do not invent payment rules.
+
+==================================================
+# 37. TEST ISOLATION
+==================================================
+
+Mỗi test phải độc lập.
+
+Không:
+
+test A creates product
+→ test B assumes product exists.
+
+Mỗi test:
+
+fixture/setup
+→ execute
+→ cleanup/reset.
+
+==================================================
+# 38. CLOCK
+==================================================
+
+Nếu entities dùng current time:
+
+ưu tiên project Clock abstraction nếu đã có.
+
+Không dùng:
+
+sleep()
+
+để chờ timestamps.
+
+Không assert exact wall-clock timestamp unless architecture requires.
+
+==================================================
+# 39. ASSERTION QUALITY
+==================================================
+
+Không viết:
+
+```php id="oowdl3"
+self::assertNotNull($result);
+```
+
+rồi kết thúc.
+
+Phải assert business invariants.
+
+Ưu tiên:
+
+```text id="lt5of2"
+exact count
+exact amount
+exact stock
+exact relationship
+exact status
+exact idempotency state
+```
+
+==================================================
+# 40. NO MOCK DATABASE
+==================================================
+
+Không mock:
+
+EntityManager
+Doctrine Connection
+Repositories
+
+trong Integration Test.
+
+Real persistence required.
+
+Nếu cần failure injection:
+
+→ mock/inject chỉ failure boundary đã được thiết kế.
+
+Không mock toàn bộ application.
+
+==================================================
+# 41. NO SQLITE
+==================================================
+
+Không dùng:
+
+SQLite
+
+cho:
+
+- transaction atomicity
+- locking
+- idempotency uniqueness
+- concurrency
+- Checkout integration
+
+Phải dùng MySQL.
+
+==================================================
+# 42. TEST COMMANDS
+==================================================
+
+Sau implementation chạy:
+
+```bash id="ypz5ca"
+APP_ENV=test php bin/console doctrine:database:create --if-not-exists
+APP_ENV=test php bin/console doctrine:migrations:migrate --no-interaction
+```
+
+Sau đó:
+
+```bash id="3duk2u"
+APP_ENV=test php bin/phpunit tests/Integration/Application/Order/Checkout/
+```
+
+Nếu project có command test riêng:
+
+→ dùng command hiện tại.
+
+Sau đó chạy full:
+
+```bash id="g3tmvk"
+APP_ENV=test php bin/phpunit
+```
+
+Không bỏ qua failure.
+
+==================================================
+# 43. DOCTRINE VALIDATION
+==================================================
+
+Trước khi PASS:
+
+```bash id="v988ob"
+APP_ENV=test php bin/console doctrine:schema:validate
+```
+
+Expected:
+
+mapping valid.
+
+Không dùng:
+
+```bash id="jkiejp"
+doctrine:schema:update --force
+```
+
+để sửa test database architecture.
+
+==================================================
+# 44. STATIC CHECK
+==================================================
+
+Chạy project-standard:
+
+- PHP syntax
+- PHPStan nếu có
+- PHP CS Fixer nếu có
+- PHPUnit
+
+Không tạo baseline mới chỉ để che lỗi.
+
+==================================================
+# 45. REQUIRED TEST FILES
+==================================================
+
+Expected:
+
+tests/Integration/Application/Order/Checkout/CheckoutIntegrationTest.php
+
+Nếu project hiện tại đã có:
+
+CheckoutTest.php
+
+hoặc structure khác:
+
+→ extend existing structure.
+
+Không tạo duplicate test suites.
+
+==================================================
+# 46. MINIMUM TEST MATRIX
+==================================================
+
+Bắt buộc:
+
+CHK-INT-001
+checkout_creates_complete_business_transaction
+
+CHK-INT-002
+checkout_persists_order_items_correctly
+
+CHK-INT-003
+checkout_persists_payment_correctly
+
+CHK-INT-004
+checkout_updates_stock_correctly
+
+CHK-INT-005
+checkout_creates_sale_stock_movement
+
+CHK-INT-006
+checkout_creates_audit_log
+
+CHK-INT-007
+checkout_completes_idempotency_record
+
+CHK-INT-008
+checkout_commits_all_business_changes_atomically
+
+CHK-INT-009
+checkout_rolls_back_business_transaction_on_failure
+
+CHK-INT-010
+checkout_marks_idempotency_failed_after_business_rollback
+
+CHK-INT-011
+checkout_same_key_same_payload_replays
+
+CHK-INT-012
+checkout_same_key_different_payload_conflicts
+
+CHK-INT-013
+checkout_rejects_inactive_product
+
+CHK-INT-014
+checkout_rejects_insufficient_stock
+
+CHK-INT-015
+checkout_rejects_empty_cart
+
+CHK-INT-016
+checkout_rejects_invalid_payment
+
+Chỉ giữ cases thực sự phù hợp với final contract.
+
+==================================================
+# 47. TEST ORDER
+==================================================
+
+Chạy theo thứ tự:
+
+1. Golden path
+
+2. Persistence assertions
+
+3. Rollback
+
+4. Idempotency replay
+
+5. Idempotency conflict
+
+6. Business rejection
+
+7. Full suite
+
+Không bắt đầu concurrency ở phase này.
+
+Concurrency là PHASE 1.10.5.
+
+==================================================
+# 48. ACCEPTANCE CRITERIA
+==================================================
+
+PHASE 1.10.1 PASS chỉ khi:
+
+[ ] Golden checkout succeeds
+
+[ ] Exactly one Order
+
+[ ] Correct OrderItem
+
+[ ] Exactly one Payment
+
+[ ] Correct payment amount
+
+[ ] Stock changes exactly once
+
+[ ] StockMovement exists exactly once
+
+[ ] StockMovement before/change/after correct
+
+[ ] AuditLog exists
+
+[ ] IdempotencyRecord exists
+
+[ ] Idempotency status = COMPLETED
+
+[ ] Database state survives EntityManager clear
+
+[ ] No partial commit
+
+[ ] Rollback test passes
+
+[ ] Failed business transaction leaves no business side effects
+
+[ ] Idempotency failure state follows architecture
+
+[ ] Same-key retry replays
+
+[ ] Same-key different payload conflicts
+
+[ ] Insufficient stock rejected
+
+[ ] Inactive product rejected
+
+[ ] Empty cart rejected
+
+[ ] Invalid payment rejected
+
+[ ] Real MySQL used
+
+[ ] No SQLite
+
+[ ] No sequential fake concurrency test
+
+[ ] Static analysis passes
+
+[ ] Full relevant test suite passes
+
+==================================================
+# 49. FINAL REPORT
+==================================================
+
+Sau khi code và chạy test, báo cáo:
+
+## 1. Files Created
+
+## 2. Files Modified
+
+## 3. Fixtures Added
+
+## 4. Tests Added
+
+## 5. Tests Passed
+
+## 6. Tests Failed
+
+## 7. DB Invariants Verified
+
+## 8. Transaction Behavior Verified
+
+## 9. Idempotency Behavior Verified
+
+## 10. Rollback Behavior Verified
+
+## 11. Security/Authorization Coverage
+
+Chỉ report nếu test này thực sự cover.
+
+## 12. Known Issues
+
+## 13. Architecture Violations
+
+## 14. PHASE 1.10.1 STATUS
+
+PASS / FAIL
+
+Nếu FAIL:
+
+- test name
+- expected
+- actual
+- root cause
+- affected production code
+- fix required
+- blocking next phase: YES
+
+==================================================
+# FINAL RULE
+==================================================
+
+Không coi:
+
+```text id="yyqrwz"
+CheckoutResult success
+```
+
+là đủ.
+
+Phải chứng minh:
+
+```text id="46ndfm"
+Checkout success
+        ↓
+DB committed
+        ↓
+Order correct
+Payment correct
+Stock correct
+Movement correct
+Audit correct
+Idempotency correct
+```
+
+và:
+
+```text id="4j4fev"
+Checkout failure
+        ↓
+business transaction rollback
+        ↓
+NO partial state
+```
+
+và:
+
+```text id="vm43or"
+retry same key
+        ↓
+REPLAY
+        ↓
+NO duplicate side effect
+```
+
+Đây là integration proof cho Checkout.
+
+Concurrency proof sẽ được thực hiện riêng ở:
+
+PHASE 1.10.5 — Concurrent Same-Key Checkout
+```
+
+Điểm quan trọng là **đừng gộp concurrency vào `1.10.1`**. `1.10.1` cần trả lời: *“một Checkout bình thường có commit đúng toàn bộ state không?”*; còn `1.10.5` mới trả lời: *“hai process thực sự chạy đồng thời có thể phá invariant không?”* — đúng với test ownership đã chốt trong source. fileciteturn16file2
+
+Sau `1.10.1`, thứ tự hợp lý là **`1.10.2 — Checkout Rollback / Failure Injection`**, rồi **`1.10.3 — Same-Key Retry / Replay`**, trước khi quay lại concurrency thật.

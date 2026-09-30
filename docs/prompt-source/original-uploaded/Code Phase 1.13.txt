@@ -1,0 +1,2150 @@
+Được. Theo source architecture của project, **PHASE 1.14** là phase triển khai production infrastructure: **Deployment + Cron + Messenger Worker + Retry/Failed Transport + Backup/Restore + Health/Smoke Check**, nhưng vẫn giữ MVP đơn giản. Architecture ưu tiên manual controlled deployment, PHP CLI + Cron, Messenger và nếu chỉ có một server/MySQL thì có thể ưu tiên Doctrine Messenger transport; không ép Redis/RabbitMQ/Kubernetes nếu hạ tầng chưa cần. fileciteturn4file1turn4file9
+
+Dưới đây là **prompt implementation đầy đủ** để bạn đưa cho coding agent.
+
+# CRITICAL PROMPT — PHASE 1.14
+## DEPLOYMENT + CRON + WORKER IMPLEMENTATION
+
+```text id="10ju3g"
+# PHASE 1.14 — DEPLOYMENT + CRON + WORKER IMPLEMENTATION
+# MOBILE-FIRST POS — SYMFONY 7.4
+
+Bạn là:
+
+Senior Symfony 7.4 Architect
++ DevOps Engineer
++ Production Deployment Engineer
++ Symfony Messenger Engineer
++ Cron/Worker Reliability Engineer
++ MySQL Operations Engineer
++ Storage Reliability Engineer
++ Security Engineer
++ Disaster Recovery Engineer.
+
+==================================================
+# 0. OBJECTIVE
+==================================================
+
+IMPLEMENT THẬT:
+
+1. Production environment configuration
+2. Deployment procedure
+3. Symfony Messenger production transport
+4. Worker execution
+5. Worker bounded lifecycle
+6. Retry configuration
+7. Failed transport
+8. Failed message inspection/recovery
+9. Cron configuration
+10. Scheduled cleanup jobs
+11. Idempotency cleanup
+12. Session cleanup
+13. Image orphan cleanup
+14. Statistics refresh scheduling nếu feature tồn tại
+15. Database backup
+16. File storage backup
+17. Restore procedure
+18. Health checks
+19. Production smoke checks
+20. Deployment verification
+21. Worker/cron observability
+22. Storage permissions
+23. Production security hardening
+24. Deployment documentation
+25. Integration tests cho worker/cron/production configuration
+
+Đây là IMPLEMENTATION PHASE.
+
+Không chỉ thiết kế.
+
+Không tạo infrastructure enterprise nếu MVP chưa cần.
+
+==================================================
+# 1. SOURCE OF TRUTH
+==================================================
+
+TRƯỚC KHI CODE PHẢI inspect toàn bộ source hiện tại:
+
+Architecture:
+
+- Critical Architecture
+- Performance + Queue + Cache + Async
+- File Upload + Image Processing
+- Error Handling + Observability
+- Deployment + Cron + Worker
+- Final Project Structure
+- Implementation Order
+
+Application:
+
+- CheckoutHandler
+- PayDebtHandler
+- AdjustStockHandler
+- CancelOrderHandler
+- Image processing
+- Messenger messages
+- cleanup services nếu tồn tại
+- statistics services nếu tồn tại
+- idempotency services
+
+Infrastructure:
+
+- Doctrine
+- Messenger
+- Cache
+- Storage
+- Image processing
+- Transaction manager
+- Idempotency persistence
+- AuditLog
+
+Configuration:
+
+- config/packages/messenger.yaml
+- config/packages/framework.yaml
+- config/packages/cache.yaml
+- config/services.yaml
+- config/services_test.yaml
+- .env
+- .env.test
+- .env.local nếu có
+- composer.json
+- composer.lock
+- compose.yaml
+- Docker files nếu tồn tại
+- bin/console
+
+Database:
+
+- migrations
+- Messenger transport tables
+- idempotency tables
+- product image tables
+- indexes
+- constraints
+
+Tests:
+
+- Integration tests
+- Messenger tests
+- Idempotency tests
+- Image processing tests
+- Checkout tests
+- Concurrency tests
+- Error handling tests
+
+KHÔNG tự ý thay architecture nếu source đã có.
+
+Nếu mismatch:
+
+→ STOP
+→ report mismatch
+→ sửa theo finalized architecture
+→ không âm thầm thay đổi business semantics.
+
+==================================================
+# 2. FINAL MVP INFRASTRUCTURE DECISION
+==================================================
+
+Nếu infrastructure thực tế chỉ có:
+
+- 1 application server
+- PHP CLI
+- MySQL
+- Cron
+- filesystem/object storage
+
+thì ưu tiên:
+
+```text
+Symfony 7.4
++
+PHP production version
++
+MySQL
++
+Doctrine ORM
++
+Symfony Messenger
++
+Doctrine Messenger Transport
++
+Cron
++
+short-lived/bounded worker
++
+Symfony Cache
++
+filesystem/object storage
++
+daily database backup
++
+manual controlled deployment
+```
+
+Không tự thêm:
+
+```text id="8jk6sf"
+Redis
+RabbitMQ
+Kafka
+Kubernetes
+Docker
+Elasticsearch
+OpenSearch
+distributed lock service
+```
+
+trừ khi source/infrastructure hiện tại đã yêu cầu.
+
+Architecture source cũng ưu tiên MVP đơn giản với MySQL + Doctrine Messenger nếu hosting phù hợp. fileciteturn4file9
+
+==================================================
+# 3. CRITICAL BUSINESS RULE
+==================================================
+
+TUYỆT ĐỐI KHÔNG chuyển các operation sau thành asynchronous business mutation:
+
+```text id="kxh17r"
+Checkout
+Payment
+Debt Payment
+Stock Mutation
+Stock Adjustment
+Stock Reversal
+Order Cancellation
+Debt Creation
+```
+
+Các operation trên vẫn:
+
+```text id="w6mfsn"
+HTTP
+ ↓
+Application
+ ↓
+Transaction
+ ↓
+COMMIT
+ ↓
+Response
+```
+
+Async chỉ xử lý secondary work:
+
+```text id="r5qi41"
+ProductImage processing
+Thumbnail generation
+Statistics refresh
+Notification nếu feature tồn tại
+Cleanup
+Report export nếu feature tồn tại
+```
+
+Không để Deployment/Worker thay đổi business semantics.
+
+==================================================
+# 4. PRODUCTION ENVIRONMENT
+==================================================
+
+Tạo/hoàn thiện production environment strategy.
+
+Production phải có:
+
+```text id="yvapp4"
+APP_ENV=prod
+APP_DEBUG=0
+APP_SECRET=<secret>
+DATABASE_URL=<production>
+MESSENGER_TRANSPORT_DSN=<production>
+PRODUCT_IMAGE_STORAGE_ROOT=<production path>
+IMAGE_MAGICK_BINARY=<production executable>
+```
+
+Các biến thực tế phải follow source hiện tại.
+
+Không hard-code secrets.
+
+Không commit:
+
+```text id="le9fmr"
+.env
+.env.local
+production credentials
+database password
+API tokens
+```
+
+Production secrets phải được inject từ server environment/configuration.
+
+==================================================
+# 5. ENVIRONMENT SEPARATION
+==================================================
+
+Phải phân biệt:
+
+```text id="n7rx0s"
+dev
+test
+prod
+```
+
+Không để:
+
+```text id="seq352"
+APP_ENV=test
+```
+
+trên production.
+
+Không để:
+
+```text id="df892j"
+APP_DEBUG=1
+```
+
+trên production.
+
+Không để:
+
+```text id="blwdsi"
+DATABASE_URL=test database
+```
+
+trên production.
+
+==================================================
+# 6. PHP VERSION
+==================================================
+
+Production PHP CLI phải tương thích với project.
+
+Verify:
+
+```bash id="4oud9p"
+php -v
+```
+
+Composer:
+
+```bash id="ee14eq"
+composer check-platform-reqs
+```
+
+Nếu web PHP và CLI PHP khác version:
+
+→ STOP
+→ report.
+
+Không để Cron/worker chạy bằng PHP version khác với application runtime.
+
+==================================================
+# 7. DEPLOYMENT SCRIPT
+==================================================
+
+Nếu project chưa có deployment script:
+
+tạo deployment procedure rõ ràng.
+
+Ưu tiên:
+
+```text id="madbiu"
+1. Prepare release
+2. Backup database
+3. Verify disk space
+4. Deploy code
+5. composer install --no-dev --optimize-autoloader
+6. Run migrations
+7. Clear/warm cache
+8. Build/install assets nếu cần
+9. Restart/recycle workers
+10. Verify health
+11. Run critical smoke test
+12. Finish release
+```
+
+Điều chỉnh sequence nếu migration compatibility yêu cầu.
+
+Không blindly rollback migration.
+
+==================================================
+# 8. DEPLOYMENT COMMANDS
+==================================================
+
+Production deployment phải có documented commands.
+
+Ví dụ:
+
+```bash id="22ncuu"
+git fetch --all
+git checkout <release>
+composer install --no-dev --prefer-dist --optimize-autoloader
+php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+php bin/console cache:clear --env=prod
+```
+
+Không dùng command giả định nếu project config khác.
+
+Phải inspect actual project trước khi ghi final command.
+
+==================================================
+# 9. MIGRATION SAFETY
+==================================================
+
+Trước migration:
+
+```text id="77lc1r"
+backup
+```
+
+Migration phải:
+
+- deterministic
+- reviewable
+- production-safe
+- compatible với current code
+
+Không chạy:
+
+```text id="qfxhs5"
+doctrine:schema:update --force
+```
+
+trên production.
+
+Production schema thay đổi qua migrations.
+
+==================================================
+# 10. WORKER ARCHITECTURE
+==================================================
+
+Messenger worker phải:
+
+- short-lived hoặc bounded
+- restartable
+- observable
+- safe retry
+- graceful shutdown
+- không memory leak vô hạn
+
+Nếu hosting không có Supervisor/systemd:
+
+→ ưu tiên Cron-driven bounded worker.
+
+Ví dụ conceptual:
+
+```bash id="8kphf1"
+php bin/console messenger:consume async \
+    --limit=100 \
+    --time-limit=300 \
+    --memory-limit=128M \
+    --env=prod
+```
+
+Các option phải được điều chỉnh theo Messenger version/project thực tế.
+
+Không để:
+
+```bash id="o3d2jq"
+messenger:consume async
+```
+
+chạy vô hạn trên shared hosting nếu không có process manager.
+
+==================================================
+# 11. WORKER CRON
+==================================================
+
+Nếu dùng Cron để chạy worker:
+
+worker phải tự exit sau bounded execution.
+
+Ví dụ:
+
+```text id="j76ika"
+Cron
+ ↓
+messenger:consume
+ ↓
+process bounded messages
+ ↓
+exit
+```
+
+Cron invocation phải dùng absolute paths.
+
+Ví dụ:
+
+```text id="o4gmvg"
+/path/to/php
+/path/to/project/bin/console
+```
+
+Không phụ thuộc interactive shell PATH.
+
+==================================================
+# 12. WORKER OVERLAP
+==================================================
+
+Không để Cron tạo nhiều worker overlap ngoài ý muốn.
+
+Nếu worker không concurrency-safe:
+
+→ dùng lock strategy hoặc Cron schedule phù hợp.
+
+Nếu Messenger transport + handler đã concurrency-safe:
+
+→ vẫn giới hạn worker count theo DB/storage capacity.
+
+Không tăng worker count chỉ để "nhanh hơn".
+
+==================================================
+# 13. WORKER CONCURRENCY
+==================================================
+
+Đánh giá:
+
+```text id="uw9laq"
+database contention
+storage contention
+CPU
+memory
+image processing cost
+queue throughput
+```
+
+Critical DB mutations:
+
+```text id="635avm"
+Checkout
+Debt Payment
+Stock Adjustment
+Cancel Order
+```
+
+không được chuyển sang worker chỉ vì worker có thể chạy nhiều process.
+
+==================================================
+# 14. MESSENGER TRANSPORT
+==================================================
+
+Inspect current:
+
+```text id="f2tsrz"
+config/packages/messenger.yaml
+```
+
+Final production transport phải xác định rõ:
+
+```text id="z6t68w"
+async transport
+failed transport
+retry strategy
+```
+
+Nếu dùng Doctrine transport:
+
+→ verify Messenger table migration exists.
+
+Nếu project đã dùng transport khác:
+
+→ giữ existing finalized architecture.
+
+Không tạo second queue system.
+
+==================================================
+# 15. FAILED TRANSPORT
+==================================================
+
+Production phải có failed message transport.
+
+Failure flow:
+
+```text id="p2gspv"
+Message
+ ↓
+Handler
+ ↓
+Exception
+ ↓
+Retry
+ ↓
+Retry exhausted
+ ↓
+Failed transport
+```
+
+Không silently drop failed messages.
+
+Không ACK success nếu handler thất bại.
+
+Source architecture yêu cầu failed messages phải có khả năng inspect/retry/discard an toàn. fileciteturn4file17
+
+==================================================
+# 16. RETRY STRATEGY
+==================================================
+
+Retry phải:
+
+- bounded
+- deterministic
+- observable
+- phù hợp loại lỗi
+
+Không retry vô hạn.
+
+Phân biệt:
+
+### Temporary failure
+
+Ví dụ:
+
+```text id="mifgi5"
+DB temporary unavailable
+storage temporary unavailable
+```
+
+→ retry.
+
+### Permanent failure
+
+Ví dụ:
+
+```text id="3attuo"
+corrupt image
+invalid resource
+unsupported file
+```
+
+→ không retry vô hạn.
+
+Cuối cùng:
+
+```text id="kqrr12"
+failed transport
+```
+
+==================================================
+# 17. IDEMPOTENT ASYNC HANDLERS
+==================================================
+
+Mỗi async handler phải safe nếu message được delivered nhiều lần.
+
+Ví dụ:
+
+```text id="mjpdir"
+ProcessProductImage
+```
+
+Nếu chạy hai lần:
+
+→ không tạo duplicate primary image state
+→ không corrupt ProductImage state
+→ không tạo duplicate side effects.
+
+Message phải chứa stable identity:
+
+```text id="k83ekm"
+productImageId
+```
+
+Không serialize Entity.
+
+==================================================
+# 18. POST-COMMIT
+==================================================
+
+Async message liên quan business mutation chỉ dispatch sau successful commit.
+
+Không:
+
+```text id="vu6uj9"
+BEGIN
+ ↓
+dispatch
+ ↓
+worker
+ ↓
+COMMIT
+```
+
+Phải:
+
+```text id="tovcgq"
+BEGIN
+ ↓
+business mutation
+ ↓
+COMMIT
+ ↓
+dispatch secondary async work
+```
+
+hoặc sử dụng finalized post-commit mechanism của project.
+
+==================================================
+# 19. IMAGE WORKER
+==================================================
+
+Verify Phase 1.13 integration:
+
+```text id="k0tfeh"
+Upload
+ ↓
+ProductImage metadata
+ ↓
+COMMIT
+ ↓
+ProcessProductImage
+ ↓
+Worker
+ ↓
+ImageMagick
+ ↓
+thumbnail.webp
+medium.webp
+ ↓
+READY
+```
+
+Failure:
+
+```text id="ikcnnn"
+retry
+ ↓
+FAILED
+```
+
+Worker phải dùng production:
+
+```text id="bqyuqk"
+IMAGE_MAGICK_BINARY
+```
+
+Không hard-code `magick`.
+
+Nếu production dùng ImageMagick 6:
+
+```text id="ne7y94"
+/bin/convert
+```
+
+thì environment phải reflect đúng binary.
+
+==================================================
+# 20. IMAGE STORAGE
+==================================================
+
+Verify production storage:
+
+```text id="9q48e0"
+PRODUCT_IMAGE_STORAGE_ROOT
+```
+
+Phải:
+
+- tồn tại
+- writable bởi PHP/worker
+- không executable
+- không public filesystem nếu architecture dùng controller serving
+- backup được
+- có cleanup strategy
+
+Không lưu binary trong database.
+
+==================================================
+# 21. UPLOAD DIRECTORY SECURITY
+==================================================
+
+Nếu web server có thể truy cập upload directory:
+
+→ block execution của:
+
+```text id="t1e6f9"
+.php
+.phtml
+.phar
+.cgi
+.pl
+```
+
+Không cho upload biến thành executable code.
+
+Storage key phải không cho path traversal.
+
+Không trust filename extension.
+
+==================================================
+# 22. CRON STRATEGY
+==================================================
+
+Cron chỉ dùng cho:
+
+```text id="xcwfa7"
+worker execution
+cleanup
+maintenance
+statistics refresh
+backup
+```
+
+Không dùng Cron để thay thế synchronous business API.
+
+Không expose public:
+
+```text id="n74fyd"
+/cron/run
+```
+
+nếu không cần.
+
+Source architecture ưu tiên CLI Cron. fileciteturn4file2
+
+==================================================
+# 23. CRON ENVIRONMENT
+==================================================
+
+Cron thường không có cùng environment với shell/web.
+
+Phải xác định:
+
+```text id="ybcf0l"
+PHP binary
+project directory
+APP_ENV
+DATABASE_URL
+PATH
+```
+
+Ví dụ:
+
+```text id="h25dbq"
+cd /absolute/path/to/project &&
+/absolute/path/to/php bin/console ...
+```
+
+Không assume:
+
+```text id="2fl688"
+~/Documents/...
+```
+
+trên production.
+
+==================================================
+# 24. CRON SCHEDULE MATRIX
+==================================================
+
+Tạo FINAL schedule cụ thể.
+
+MVP default:
+
+```text id="pjv8bi"
+Messenger Worker
+→ every 1-5 minutes hoặc hosting-appropriate frequent interval
+
+Session Cleanup
+→ hourly/daily
+
+Expired Idempotency Cleanup
+→ daily
+
+Orphan Image Cleanup
+→ daily
+
+Statistics Refresh
+→ hourly/daily nếu feature tồn tại
+
+Database Backup
+→ daily
+```
+
+Không chạy mọi thứ mỗi phút.
+
+Mỗi Cron phải:
+
+- idempotent
+- bounded
+- observable
+- safe on retry
+
+==================================================
+# 25. SESSION CLEANUP
+==================================================
+
+Nếu UserSession có expiry:
+
+tạo CLI command nếu chưa có:
+
+```text id="8vofht"
+app:session:cleanup
+```
+
+Tên command phải follow project convention.
+
+Behavior:
+
+```text id="vy025f"
+find expired sessions
+→ mark/revoke/cleanup according to domain
+```
+
+Không xóa session đang active.
+
+Batch operation nếu data lớn.
+
+==================================================
+# 26. IDEMPOTENCY CLEANUP
+==================================================
+
+Nếu IdempotencyRecord có TTL/expiry:
+
+tạo scheduled cleanup.
+
+Chỉ cleanup technical/idempotency records đã hết retention.
+
+Không xóa:
+
+- Orders
+- Payments
+- Debts
+- DebtPayments
+- StockMovements
+- AuditLogs
+
+để giảm database.
+
+Cleanup phải batch-based.
+
+==================================================
+# 27. ORPHAN IMAGE CLEANUP
+==================================================
+
+Xác định orphan:
+
+```text id="5n1xvo"
+storage file exists
+BUT
+no corresponding DB metadata
+```
+
+Cleanup phải:
+
+- safe
+- dry-run capable nếu phù hợp
+- bounded
+- logged
+- không xóa file mới upload chưa commit nếu có race window
+
+Nếu không đủ thông tin để xác định orphan:
+
+→ không delete aggressively.
+
+==================================================
+# 28. STATISTICS CRON
+==================================================
+
+Chỉ implement nếu Statistics feature đã tồn tại.
+
+Nếu statistics refresh có thể chạy async:
+
+```text id="v8136b"
+Cron
+ ↓
+RefreshStatistics
+```
+
+Statistics failure không được làm:
+
+```text id="gz7s18"
+Checkout fail
+```
+
+Statistics là derived data.
+
+==================================================
+# 29. BACKUP
+==================================================
+
+Implement/document database backup.
+
+MVP default:
+
+```text id="yr3nix"
+daily MySQL backup
+```
+
+Backup phải:
+
+- timestamped
+- compressed nếu phù hợp
+- stored outside primary DB failure domain nếu có thể
+- retention defined
+- observable
+
+Không backup duy nhất vào cùng server nếu server loss sẽ mất cả DB và backup.
+
+==================================================
+# 30. BACKUP DATA
+==================================================
+
+Database backup phải chứa:
+
+```text id="5l2ru7"
+Orders
+Payments
+Debts
+DebtPayments
+Products
+Customers
+Stock
+StockMovements
+AuditLogs
+Idempotency records nếu retention cần
+ProductImages metadata
+User/UserSession data cần thiết
+```
+
+Không cần backup cache.
+
+==================================================
+# 31. FILE BACKUP
+==================================================
+
+Product images:
+
+```text id="f40wo3"
+original
+thumbnail
+medium
+```
+
+phải có backup strategy.
+
+Database restore mà không restore image storage:
+
+→ ProductImage metadata có thể tồn tại nhưng binary missing.
+
+Phải document consistency/recovery behavior.
+
+==================================================
+# 32. RESTORE PROCEDURE
+==================================================
+
+Document:
+
+```text id="6ypn4e"
+1. Provision server
+2. Install compatible PHP
+3. Deploy code
+4. Configure secrets
+5. Restore DB
+6. Restore image storage
+7. Clear cache
+8. Verify migrations/schema
+9. Start worker
+10. Verify Cron
+11. Run smoke test
+```
+
+Sau restore:
+
+không restore stale cache.
+
+Cache rebuild.
+
+==================================================
+# 33. QUEUE RECOVERY
+==================================================
+
+Sau disaster recovery:
+
+phải quyết định:
+
+```text id="cqgkuk"
+pending messages
+failed messages
+```
+
+Nếu queue storage được restore:
+
+→ verify duplicate safety.
+
+Không để restored messages tạo duplicate critical business mutation.
+
+Idempotency phải bảo vệ critical operations.
+
+==================================================
+# 34. RPO / RTO
+==================================================
+
+Nếu chưa có requirement:
+
+MVP proposed default:
+
+```text id="a2hr7g"
+RPO:
+≤ 24 hours
+
+RTO:
+≤ 4 hours
+```
+
+Đây là default vận hành MVP, không phải SLA enterprise.
+
+Nếu infrastructure có khả năng tốt hơn:
+
+→ document actual capability.
+
+==================================================
+# 35. HEALTH CHECK
+==================================================
+
+Implement minimal health checks.
+
+Ví dụ:
+
+```text id="s7i78p"
+GET /health
+```
+
+hoặc project convention tương đương.
+
+Health check không được:
+
+- process image
+- run statistics
+- send email
+- mutate DB business data
+
+Có thể kiểm tra:
+
+```text id="ya7ybg"
+application boot
+database connectivity
+```
+
+ở mức nhẹ.
+
+Nếu health endpoint public:
+
+→ không expose credentials/technical details.
+
+==================================================
+# 36. READINESS VS LIVENESS
+==================================================
+
+Nếu architecture cần:
+
+```text id="ydij1v"
+liveness
+readiness
+```
+
+Liveness:
+
+```text id="1ftbdw"
+application process alive
+```
+
+Readiness:
+
+```text id="7jz72h"
+critical dependencies available
+```
+
+MVP không cần Kubernetes-specific complexity nếu hosting không dùng Kubernetes.
+
+==================================================
+# 37. PRODUCTION SMOKE TEST
+==================================================
+
+Sau deployment phải verify:
+
+```text id="9yxcqf"
+Login
+ ↓
+POS opens
+ ↓
+Product Search
+ ↓
+Checkout
+ ↓
+Order History
+ ↓
+Debt Payment
+ ↓
+Stock View
+ ↓
+Image Upload
+ ↓
+Image Processing
+ ↓
+Worker
+ ↓
+Cron
+```
+
+Critical priority:
+
+```text id="v7zj48"
+Authentication
+Checkout
+Stock
+Debt
+```
+
+Source deployment checklist cũng yêu cầu verify login, checkout, stock, debt, image processing, worker, Cron và backup. fileciteturn4file0
+
+==================================================
+# 38. PRODUCTION OBSERVABILITY
+==================================================
+
+Worker/cron phải log structured context:
+
+```text id="754p6h"
+operation
+messageId
+messageType
+requestId nếu available
+actorId nếu available
+resourceId
+attempt
+duration
+outcome
+errorCode
+```
+
+Không log:
+
+```text id="15c0tp"
+password
+token
+session secret
+authorization header
+payment secret
+raw sensitive payload
+```
+
+Theo dõi:
+
+```text id="z1q8qn"
+worker failure
+queue failure
+failed messages
+retry count
+storage failure
+backup failure
+disk usage
+DB failure
+HTTP 5xx
+```
+
+==================================================
+# 39. LOG ROTATION
+==================================================
+
+Production logs không được tăng vô hạn.
+
+Thiết lập:
+
+- rotation
+- retention
+- compression nếu phù hợp
+
+Không xóa audit history chỉ vì log rotation.
+
+Phân biệt:
+
+```text id="6uvjau"
+application logs
+audit logs
+technical logs
+```
+
+==================================================
+# 40. DISK MANAGEMENT
+==================================================
+
+Theo dõi:
+
+```text id="34sy0q"
+logs
+uploads
+cache
+failed messages
+backups
+```
+
+Nếu disk gần full:
+
+→ alert / maintenance behavior.
+
+Không để disk full làm:
+
+```text id="npuolc"
+Checkout fail
+DB fail
+worker fail
+```
+
+mà không có observability.
+
+==================================================
+# 41. DATABASE MAINTENANCE
+==================================================
+
+Không xóa financial history:
+
+```text id="ljdonl"
+Orders
+Payments
+Debts
+DebtPayments
+StockMovements
+AuditLogs
+```
+
+Cleanup chỉ áp dụng technical data:
+
+```text id="tgyais"
+expired sessions
+expired idempotency records
+temporary files
+orphan files
+technical logs
+```
+
+theo retention policy.
+
+==================================================
+# 42. DEPLOYMENT SECURITY
+==================================================
+
+Production KHÔNG được chứa:
+
+```text id="9qk2im"
+.env secrets committed to Git
+test credentials
+test fixtures
+local DB dumps
+APP_DEBUG=1
+development config
+```
+
+Web root:
+
+```text id="c2et3y"
+public/
+```
+
+Không expose:
+
+```text id="yzc2wg"
+src/
+config/
+migrations/
+tests/
+var/
+vendor/
+.env
+```
+
+nếu web server configuration cho phép tránh.
+
+==================================================
+# 43. FILE PERMISSIONS
+==================================================
+
+Verify:
+
+```text id="q3vuen"
+var/
+cache/
+logs/
+uploads/
+```
+
+writable đúng user.
+
+Không:
+
+```text id="9gioyc"
+chmod -R 777
+```
+
+Không làm cả project writable bởi web server nếu không cần.
+
+==================================================
+# 44. DEPLOYMENT ROLLBACK
+==================================================
+
+Nếu deployment fail:
+
+### Before migration
+
+→ rollback code.
+
+### After migration
+
+→ KHÔNG tự động rollback migration.
+
+Đánh giá:
+
+```text id="x98nsp"
+backward compatibility
+data transformation
+backup restore
+```
+
+Nếu migration destructive:
+
+→ restore strategy phải được xác định trước.
+
+==================================================
+# 45. WORKER VERSION COMPATIBILITY
+==================================================
+
+Sau deploy:
+
+old worker có thể vẫn load old classes.
+
+Phải đảm bảo:
+
+```text id="0sovd7"
+message class
+payload
+database schema
+handler
+```
+
+tương thích trong deployment window.
+
+Nếu worker là short-lived Cron-driven:
+
+→ worker bounded exit giúp giảm vấn đề này.
+
+Nếu Supervisor/systemd:
+
+→ restart worker sau deploy.
+
+==================================================
+# 46. CRON VERSION COMPATIBILITY
+==================================================
+
+Cron phải dùng đúng:
+
+```text id="1n9mdr"
+PHP CLI
+project path
+APP_ENV
+environment variables
+```
+
+Không rely vào shell profile.
+
+Test bằng command chạy giống Cron.
+
+==================================================
+# 47. WORKER MANUAL OPERATIONS
+==================================================
+
+Document production commands:
+
+```text id="jxshr9"
+consume
+failed:show
+failed:retry
+failed:remove
+```
+
+Nhưng phải dùng đúng Symfony/Messenger commands có trong installed version.
+
+Không ghi command giả.
+
+==================================================
+# 48. FAILED MESSAGE RUNBOOK
+==================================================
+
+Document:
+
+```text id="myfxo2"
+1. Inspect failed message
+2. Identify error
+3. Determine transient/permanent
+4. Fix root cause
+5. Retry safely
+6. Verify result
+7. Monitor queue
+```
+
+Không blindly retry tất cả failed messages.
+
+==================================================
+# 49. DEPLOYMENT RUNBOOK
+==================================================
+
+Tạo:
+
+```text id="iuzqmx"
+docs/deployment.md
+```
+
+hoặc location đã FINALIZE.
+
+Nội dung:
+
+```text id="u0adoi"
+Prerequisites
+Environment
+Backup
+Deploy
+Migration
+Cache
+Worker
+Cron
+Smoke test
+Rollback
+Recovery
+```
+
+Nếu project không dùng docs directory:
+
+→ follow existing structure.
+
+==================================================
+# 50. OPERATIONS RUNBOOK
+==================================================
+
+Tạo/document:
+
+```text id="5815hi"
+worker failure
+queue backlog
+failed message
+cron failure
+disk full
+DB unavailable
+storage unavailable
+image processing failure
+backup failure
+```
+
+Mỗi case:
+
+```text id="wcfiw6"
+Symptoms
+Check
+Action
+Recovery
+Verification
+```
+
+==================================================
+# 51. TEST STRATEGY
+==================================================
+
+IMPLEMENT tests cho:
+
+### DEPLOY-001
+
+Production container/config compiles.
+
+### DEPLOY-002
+
+Required environment variables resolve.
+
+### DEPLOY-003
+
+Production configuration does not enable debug.
+
+### DEPLOY-004
+
+Doctrine migrations are valid.
+
+### DEPLOY-005
+
+Messenger transport configuration is valid.
+
+### DEPLOY-006
+
+Failed transport exists.
+
+### WORKER-001
+
+Image processing message can be consumed.
+
+### WORKER-002
+
+Successful handler ACKs message.
+
+### WORKER-003
+
+Transient handler failure retries.
+
+### WORKER-004
+
+Permanent failure reaches failed transport.
+
+### WORKER-005
+
+Duplicate message is safe.
+
+### WORKER-006
+
+Worker respects bounded execution.
+
+### WORKER-007
+
+Worker handles missing resource safely.
+
+### CRON-001
+
+Cleanup command is executable.
+
+### CRON-002
+
+Expired idempotency records are cleaned safely.
+
+### CRON-003
+
+Expired sessions are cleaned safely.
+
+### CRON-004
+
+Orphan image cleanup is safe.
+
+### BACKUP-001
+
+Backup command/script produces artifact.
+
+### RESTORE-001
+
+Documented restore procedure is reproducible.
+
+Không giả lập production bằng mock toàn bộ hệ thống.
+
+==================================================
+# 52. REAL MYSQL
+==================================================
+
+Integration tests phải dùng:
+
+REAL MYSQL
+
+cho:
+
+- Messenger Doctrine transport nếu dùng
+- idempotency cleanup
+- repository queries
+- transaction behavior
+- migration verification
+
+Không dùng SQLite để kết luận production MySQL behavior.
+
+==================================================
+# 53. NO BUSINESS REGRESSION
+==================================================
+
+Sau implementation:
+
+chạy lại toàn bộ:
+
+```text id="ggg852"
+Domain tests
+Application tests
+Integration tests
+Security tests
+Concurrency tests
+Idempotency tests
+HTTP tests
+E2E tests
+```
+
+Critical P0 phải:
+
+```text id="y56qhc"
+100% PASS
+```
+
+Không release nếu:
+
+```text id="zrsiky"
+Checkout
+PayDebt
+Stock Adjustment
+Cancel Order
+Idempotency
+Concurrency
+```
+
+fail.
+
+==================================================
+# 54. DEPLOYMENT ACCEPTANCE CRITERIA
+==================================================
+
+PHASE 1.14 chỉ PASS khi:
+
+[ ] Production env defined
+
+[ ] Secrets externalized
+
+[ ] APP_DEBUG disabled in production
+
+[ ] PHP CLI version verified
+
+[ ] Composer production install documented
+
+[ ] Database migration process documented
+
+[ ] Messenger transport configured
+
+[ ] Failed transport configured
+
+[ ] Retry bounded
+
+[ ] Worker bounded
+
+[ ] Worker restart strategy defined
+
+[ ] Worker overlap controlled
+
+[ ] Image worker works
+
+[ ] Duplicate async message safe
+
+[ ] Cron commands defined
+
+[ ] Cron uses absolute paths
+
+[ ] Cron environment defined
+
+[ ] Cleanup jobs bounded
+
+[ ] Idempotency cleanup safe
+
+[ ] Session cleanup safe
+
+[ ] Orphan image cleanup safe
+
+[ ] Backup configured
+
+[ ] Backup retention defined
+
+[ ] File backup defined
+
+[ ] Restore procedure documented
+
+[ ] RPO defined
+
+[ ] RTO defined
+
+[ ] Health check works
+
+[ ] Production smoke checklist exists
+
+[ ] Logging works
+
+[ ] Worker failures observable
+
+[ ] Failed messages inspectable
+
+[ ] Storage permissions safe
+
+[ ] Upload execution blocked
+
+[ ] Disk usage considered
+
+[ ] Rollback strategy documented
+
+[ ] Full test suite PASS
+
+==================================================
+# 55. FINAL INFRASTRUCTURE TOPOLOGY
+==================================================
+
+Final architecture phải là:
+
+```text id="ueev1i"
+                    INTERNET
+                       │
+                       ▼
+                  Web Server
+                       │
+                       ▼
+                 public/index.php
+                       │
+                       ▼
+                Symfony Application
+                       │
+          ┌────────────┼────────────┐
+          │            │            │
+          ▼            ▼            ▼
+        MySQL        Storage      Cache
+          │            │
+          │            │
+          ▼            ▼
+      Messenger     Product Images
+      Transport
+          │
+          ▼
+        Worker
+          │
+          ├── Image Processing
+          ├── Statistics
+          └── Cleanup
+
+Cron
+ │
+ ├── Worker
+ ├── Cleanup
+ ├── Statistics
+ └── Backup
+
+Backup
+ ├── Database
+ └── Product Images
+```
+
+==================================================
+# 56. FINAL DATA FLOW
+==================================================
+
+Critical business:
+
+```text id="hwqx64"
+HTTP
+ ↓
+Application
+ ↓
+Transaction
+ ↓
+MySQL
+ ↓
+COMMIT
+ ↓
+Response
+```
+
+Async:
+
+```text id="scxauj"
+COMMIT
+ ↓
+Messenger
+ ↓
+Worker
+ ↓
+Secondary Work
+```
+
+Cron:
+
+```text id="hjx1t2"
+Cron
+ ↓
+CLI Command
+ ↓
+Bounded Operation
+ ↓
+Exit
+```
+
+Backup:
+
+```text id="w4uupy"
+MySQL
+ ↓
+Backup
+ ↓
+External/Separate Storage
+```
+
+==================================================
+# 57. FINAL SECURITY RULES
+==================================================
+
+RULE-001
+
+Never commit production secrets.
+
+RULE-002
+
+Never expose .env.
+
+RULE-003
+
+APP_DEBUG=0 production.
+
+RULE-004
+
+Only public/ is web root.
+
+RULE-005
+
+Uploads are non-executable.
+
+RULE-006
+
+Cron is not publicly callable.
+
+RULE-007
+
+Worker does not trust message payload blindly.
+
+RULE-008
+
+Async handlers are idempotent.
+
+RULE-009
+
+Failed messages are recoverable.
+
+RULE-010
+
+Database backups are protected.
+
+RULE-011
+
+Logs contain no secrets.
+
+==================================================
+# 58. FINAL OPERATIONS CHECKLIST
+==================================================
+
+### Deployment
+
+[ ] Backup DB
+
+[ ] Verify disk
+
+[ ] Deploy release
+
+[ ] Composer install
+
+[ ] Migration
+
+[ ] Cache clear/warm
+
+[ ] Worker restart/recycle
+
+[ ] Smoke test
+
+### Worker
+
+[ ] Worker running
+
+[ ] Queue consuming
+
+[ ] Retry works
+
+[ ] Failed transport works
+
+### Cron
+
+[ ] Worker Cron
+
+[ ] Cleanup Cron
+
+[ ] Backup Cron
+
+[ ] Statistics Cron if required
+
+### Storage
+
+[ ] Upload directory writable
+
+[ ] Upload execution blocked
+
+[ ] Image processing works
+
+[ ] Backup works
+
+### Recovery
+
+[ ] DB backup exists
+
+[ ] File backup exists
+
+[ ] Restore procedure tested
+
+==================================================
+# 59. FINAL REPORT
+==================================================
+
+Sau khi implementation xong report:
+
+## 1. Executive Decision
+
+## 2. Infrastructure Chosen
+
+## 3. Production Environment
+
+## 4. Environment Variables
+
+## 5. Deployment Flow
+
+## 6. Migration Strategy
+
+## 7. Messenger Transport
+
+## 8. Worker Strategy
+
+## 9. Worker Bounds
+
+## 10. Retry Strategy
+
+## 11. Failed Transport
+
+## 12. Cron Strategy
+
+## 13. Cron Schedule Matrix
+
+## 14. Cleanup Jobs
+
+## 15. Image Worker
+
+## 16. Statistics Worker/Cron
+
+## 17. Database Backup
+
+## 18. File Backup
+
+## 19. Restore Procedure
+
+## 20. RPO/RTO
+
+## 21. Health Checks
+
+## 22. Monitoring
+
+## 23. Logging
+
+## 24. Disk Management
+
+## 25. Security
+
+## 26. Permissions
+
+## 27. Rollback
+
+## 28. Runbooks
+
+## 29. Tests Added
+
+## 30. Tests Passed
+
+## 31. Remaining Risks
+
+## 32. BLOCKING ISSUES
+
+## 33. PHASE 1.14 EXIT DECISION
+
+PASS
+
+hoặc
+
+FAIL
+
+Nếu FAIL:
+
+- scenario
+- expected
+- actual
+- root cause
+- affected layer
+- data integrity impact
+- production impact
+- required fix
+
+==================================================
+# FINAL QUALITY BAR
+==================================================
+
+Production phải đạt:
+
+```text id="jo1dth"
+Code deployed
+    ↓
+Migration safe
+    ↓
+Web works
+    ↓
+Login works
+    ↓
+Checkout works
+    ↓
+Stock works
+    ↓
+Debt works
+    ↓
+Image upload works
+    ↓
+Worker works
+    ↓
+Cron works
+    ↓
+Failed messages recoverable
+    ↓
+Backup exists
+    ↓
+Restore procedure works
+    ↓
+Logs observable
+    ↓
+System recoverable
+```
+
+Không mục tiêu:
+
+```text id="jmolb2"
+Enterprise DevOps
+```
+
+Mục tiêu:
+
+```text id="7f3nnu"
+simple
+repeatable
+secure
+recoverable
+observable
+MVP-production-ready
+```
+
+Đặc biệt:
+
+```text id="esuich"
+Checkout
+Payment
+Debt
+Stock
+Order Cancellation
+```
+
+phải tiếp tục synchronous + transactional + idempotent theo architecture đã FINALIZE.
+``` id="hktupu"
+
+### Gate mình muốn bạn giữ sau khi coding
+
+```text
+PHASE 1.14
+       │
+       ├── Production config       ✅
+       ├── Messenger               ✅
+       ├── Worker                  ✅
+       ├── Retry / Failed          ✅
+       ├── Cron                    ✅
+       ├── Image worker            ✅
+       ├── Cleanup                 ✅
+       ├── Backup                  ✅
+       ├── Restore                 ✅
+       ├── Health                  ✅
+       ├── Security                ✅
+       └── Full regression         ✅
+```
+
+Source architecture đặc biệt nhấn mạnh **không public `/cron/run`**, Cron phải dùng CLI/absolute paths, và sau disaster recovery phải kiểm tra lại Cron + PHP CLI + worker thay vì giả định hosting restore giữ nguyên cấu hình. fileciteturn4file2turn4file6
+
+**Đừng deploy production thật ngay sau khi coding agent hoàn thành Phase 1.14.** Trước hết chạy toàn bộ local gates và đưa output cho mình; mình sẽ rà **worker/cron/messenger configuration** trước, vì đây là phần dễ “test xanh nhưng production không chạy” nhất.

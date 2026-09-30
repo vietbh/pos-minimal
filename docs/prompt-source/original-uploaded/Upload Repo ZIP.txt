@@ -1,0 +1,1070 @@
+Có. Nhưng **chưa có prompt hoàn chỉnh** — lúc trước tôi mới phác thảo scope Phase 2.13.
+
+Với trạng thái hiện tại của project (**Phase 2.12 đã GREEN: 168 tests / 1,043 assertions**), đây là prompt tôi đề xuất dùng làm specification chính:
+
+:::writing{variant="document" id="58321" title="PHASE 2.13 — Post-Release Stabilization & Production Monitoring"}
+# PHASE 2.13 — Post-Release Stabilization & Production Monitoring
+
+## 0. ROLE
+
+You are implementing **PHASE 2.13 — Post-Release Stabilization & Production Monitoring** for the existing Mobile POS project.
+
+This is a **production-readiness and stabilization phase**.
+
+The project has already completed:
+
+- Domain architecture
+- Application layer
+- Doctrine persistence
+- Security / Authentication / Authorization / Voters
+- Twig + Stimulus Mobile POS UI
+- Critical business flows
+- Transaction / concurrency hardening
+- Idempotency
+- Error handling / observability foundation
+- File upload / image processing
+- Performance / queue / async foundation
+- Admin / Product / Customer / Stock UI
+- Orders / Debts / Payments UI
+- Statistics / Reporting / Dashboard
+- Release / Production Hardening
+
+Current release baseline:
+
+- Symfony 7.4
+- PHP 8.2+
+- Doctrine ORM 3.x
+- MySQL
+- Twig
+- Stimulus
+- Symfony Security
+- Symfony Messenger
+- PHPUnit
+- Existing domain/application/integration/security/concurrency tests
+
+The current baseline has passed:
+
+```text id="552pgt"
+168 tests
+1043 assertions
+```
+
+and production hardening has passed:
+
+```text id="58wc74"
+prod cache:clear
+container lint
+Twig lint
+full PHPUnit suite
+git diff --cached --check
+```
+
+Do NOT assume any feature from this prompt exists unless it is verified in the repository.
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+Bring the application from:
+
+```text id="8obluj"
+Release-ready
+```
+
+to:
+
+```text id="ez0v6v"
+Operationally production-ready
+```
+
+without introducing unnecessary product features.
+
+This phase MUST prioritize:
+
+1. production safety
+2. failure visibility
+3. recoverability
+4. operational correctness
+5. backup / restore confidence
+6. worker / cron reliability
+7. security verification
+8. performance baseline
+9. smoke-test coverage
+10. release / rollback documentation
+
+This is NOT a feature-development phase.
+
+---
+
+# 2. NON-GOALS
+
+Do NOT introduce:
+
+- new POS business features
+- new pricing logic
+- new discount logic
+- new payment methods
+- new order lifecycle states
+- new reporting metrics
+- new UI modules
+- speculative microservices
+- unnecessary infrastructure
+- premature distributed architecture
+- unnecessary caching
+- unnecessary asynchronous processing
+- unnecessary database schema changes
+
+Do not refactor working domain logic merely for style.
+
+Do not change financial semantics.
+
+Do not change:
+
+- Order lifecycle rules
+- Payment semantics
+- Debt semantics
+- Refund semantics
+- Stock mutation semantics
+- Idempotency semantics
+- Permission matrix
+
+unless an actual production-readiness defect is demonstrated.
+
+---
+
+# 3. FIRST STEP — REPOSITORY AUDIT
+
+Before modifying anything:
+
+Inspect the actual repository.
+
+Review:
+
+```text id="1ltxj5"
+composer.json
+composer.lock
+.env
+.env.example
+.env.test
+.env.dev
+.env.prod
+config/
+src/
+tests/
+templates/
+assets/
+migrations/
+bin/
+public/
+var/
+```
+
+Inspect:
+
+- Messenger configuration
+- logging configuration
+- Monolog configuration
+- exception handling
+- security configuration
+- CSRF configuration
+- file upload configuration
+- image processing
+- cache configuration
+- database configuration
+- cron-related commands
+- Messenger handlers
+- worker configuration
+- retry/failure transport
+- health-check infrastructure
+- existing deployment documentation
+- existing environment variables
+- existing monitoring hooks
+
+Do not invent infrastructure that the project does not currently use.
+
+Create an audit summary before implementation.
+
+---
+
+# 4. PRODUCTION ENVIRONMENT SAFETY
+
+Verify production configuration.
+
+Required properties:
+
+```text id="zy2q2g"
+APP_ENV=prod
+APP_DEBUG=0
+```
+
+Production must NOT expose:
+
+- stack traces
+- debug toolbar
+- development routes
+- development credentials
+- test database
+- sensitive configuration
+- secrets in logs
+- database credentials in exception messages
+
+Verify that:
+
+```text id="9hlgpp"
+.env
+.env.local
+.env.prod
+```
+
+handling follows the existing deployment model.
+
+Do not commit secrets.
+
+---
+
+# 5. APPLICATION ERROR HANDLING
+
+Review the existing error-handling pipeline.
+
+Ensure expected domain/application failures are translated into appropriate HTTP responses.
+
+Verify:
+
+```text id="t15ip7"
+400
+401
+403
+404
+409
+422
+500
+```
+
+where applicable.
+
+Business conflicts MUST NOT silently become generic 500 errors.
+
+Examples:
+
+- invalid order transition
+- insufficient stock
+- concurrent mutation conflict
+- idempotency conflict
+- duplicate operation
+- unauthorized operation
+- missing resource
+
+must remain distinguishable at the application boundary.
+
+Do not leak internal implementation details to clients.
+
+---
+
+# 6. OBSERVABILITY
+
+Establish a reliable operational logging strategy using the existing logging infrastructure.
+
+At minimum, operationally important events should be identifiable:
+
+### Authentication
+
+- login failure
+- authentication failure
+- authorization denial
+
+### Orders
+
+- order creation
+- checkout failure
+- cancellation failure
+- refund failure
+
+### Payments
+
+- payment failure
+- payment conflict
+- duplicate/idempotent request
+
+### Debt
+
+- debt creation
+- debt payment failure
+- debt reversal failure
+
+### Stock
+
+- stock mutation failure
+- insufficient stock
+- concurrency conflict
+
+### Infrastructure
+
+- database failure
+- Messenger failure
+- worker failure
+- unexpected application exception
+
+Do NOT log:
+
+- passwords
+- session secrets
+- authentication tokens
+- CSRF tokens
+- payment credentials
+- database credentials
+- full sensitive request payloads
+
+Use structured context where the existing logger supports it.
+
+Prefer identifiers such as:
+
+```text id="6zumxa"
+order_id
+payment_id
+debt_id
+product_id
+user_id
+request_id
+operation_id
+idempotency_key_hash
+```
+
+Do not expose raw secrets.
+
+---
+
+# 7. CORRELATION / REQUEST IDENTIFICATION
+
+Inspect whether the project already has request/correlation identification.
+
+If absent, introduce a minimal solution only if it materially improves production troubleshooting.
+
+A request identifier should:
+
+- be generated safely
+- be available in request scope
+- be attached to relevant logs
+- optionally be returned in a response header
+
+Do NOT introduce distributed tracing infrastructure unless required by the current architecture.
+
+---
+
+# 8. MESSENGER / WORKER HARDENING
+
+Audit Symfony Messenger.
+
+Verify:
+
+```text id="1t7exa"
+transport
+retry strategy
+failure transport
+handler behavior
+serialization
+worker lifecycle
+```
+
+For each asynchronous handler, verify:
+
+### Idempotency
+
+A retry MUST NOT create duplicate business effects.
+
+### Transaction safety
+
+Database state must not be left partially mutated.
+
+### Failure behavior
+
+Permanent failures must become observable.
+
+### Retry behavior
+
+Transient failures may retry.
+
+Permanent business errors should not retry indefinitely.
+
+### Failure transport
+
+Failed messages must be inspectable and recoverable.
+
+Verify commands such as:
+
+```bash id="5e4p6w"
+php bin/console messenger:failed:show
+php bin/console messenger:failed:retry
+php bin/console messenger:failed:remove
+```
+
+only where supported by the configured Messenger version.
+
+Do not invent commands or transports.
+
+---
+
+# 9. WORKER OPERATION
+
+Document the production worker lifecycle.
+
+The documentation MUST cover:
+
+```text id="mt5rfb"
+start
+stop
+restart
+graceful shutdown
+failure
+retry
+failure transport
+deployment restart
+```
+
+If the deployment architecture uses Supervisor/systemd/Docker/etc., document the actual mechanism.
+
+Do NOT introduce a new process manager unless necessary.
+
+Verify that deployment can restart workers without corrupting business state.
+
+---
+
+# 10. CRON / SCHEDULED COMMANDS
+
+Audit all scheduled jobs.
+
+For every scheduled command verify:
+
+- safe to execute repeatedly
+- safe against partial failure
+- transaction boundaries
+- logging
+- concurrency behavior
+- duplicate execution behavior
+- failure visibility
+
+If a command is not idempotent, identify and harden it where necessary.
+
+Do not create fake scheduled jobs merely to satisfy this phase.
+
+---
+
+# 11. DATABASE BACKUP
+
+Define a production database backup strategy.
+
+Document:
+
+```text id="5k1iwz"
+backup frequency
+retention
+storage location
+encryption expectations
+restore procedure
+verification procedure
+```
+
+The implementation MUST NOT contain real credentials.
+
+If infrastructure automation is outside the repository, document the expected operational procedure rather than pretending to automate infrastructure that is unavailable.
+
+---
+
+# 12. RESTORE TEST
+
+A backup strategy is incomplete without restore verification.
+
+Define a restore procedure that verifies:
+
+```text id="g6riaz"
+database schema
+orders
+payments
+debts
+stock
+products
+customers
+users
+```
+
+Restore MUST NOT be tested against the live production database.
+
+Use a disposable/staging database.
+
+Document:
+
+```text id="4vdpbc"
+backup created
+restore performed
+integrity checked
+application connected
+critical flows verified
+```
+
+---
+
+# 13. FILE / IMAGE RECOVERY
+
+Because the application supports file/image upload:
+
+Verify that uploaded files are covered by the recovery strategy.
+
+Document:
+
+```text id="l0qhd6"
+database metadata backup
+file storage backup
+restore order
+orphan-file considerations
+missing-file behavior
+```
+
+A database restore without corresponding uploaded assets must be considered an incomplete recovery.
+
+---
+
+# 14. HEALTH CHECK
+
+Inspect whether the application has an existing health endpoint.
+
+If absent, introduce a minimal health/readiness mechanism only if appropriate.
+
+Separate:
+
+### Liveness
+
+Application process is alive.
+
+### Readiness
+
+Application can serve meaningful requests and required infrastructure is available.
+
+A database failure should NOT necessarily make a simple liveness probe fail.
+
+Do not expose sensitive diagnostics through public health endpoints.
+
+---
+
+# 15. SECURITY FINAL REVIEW
+
+Perform a production security review.
+
+Verify:
+
+### Authentication
+
+- password hashing
+- login protection
+- session handling
+- logout
+
+### Authorization
+
+- PermissionVoter
+- permission matrix
+- object-level authorization
+- admin-only operations
+
+### CSRF
+
+Verify state-changing browser requests.
+
+### IDOR
+
+Verify that a user cannot access another user's resources merely by changing IDs.
+
+### Input validation
+
+Verify user-controlled data.
+
+### XSS
+
+Verify escaped Twig output.
+
+### SQL injection
+
+Verify parameterized Doctrine/DBAL queries.
+
+### File upload
+
+Verify:
+
+- MIME validation
+- extension validation
+- filename safety
+- storage isolation
+- image processing
+- executable-file prevention
+- size limits
+
+### Secrets
+
+Verify no credentials or tokens are committed.
+
+---
+
+# 16. PERFORMANCE BASELINE
+
+Do NOT optimize blindly.
+
+Measure the existing application.
+
+Identify critical flows:
+
+```text id="r88zpi"
+GET dashboard
+GET products
+GET orders
+POST checkout
+POST payment
+POST cancel
+POST refund
+GET debts
+GET statistics
+```
+
+Measure where practical:
+
+- response time
+- database query count
+- slow queries
+- memory usage
+- N+1 behavior
+
+For statistics/reporting verify performance on realistic datasets.
+
+Do not add caching unless measurement demonstrates a real need.
+
+---
+
+# 17. CONCURRENCY REGRESSION
+
+Re-run critical concurrency scenarios.
+
+At minimum verify:
+
+### Concurrent checkout
+
+Two requests attempting to mutate the same stock/order state.
+
+### Concurrent same-key idempotency
+
+Two requests with the same idempotency key.
+
+Expected:
+
+```text id="5vnfgs"
+one business effect
+```
+
+not:
+
+```text id="m36zbk"
+two business effects
+```
+
+### Concurrent order lifecycle mutation
+
+Two conflicting lifecycle mutations.
+
+Expected:
+
+```text id="wkmbua"
+one valid transition
+one rejected/conflicting operation
+```
+
+### Concurrent debt/payment mutation
+
+Verify financial consistency.
+
+No:
+
+- duplicate payment
+- negative outstanding balance
+- lost update
+- inconsistent reversal
+
+---
+
+# 18. PRODUCTION SMOKE TEST
+
+Create a documented smoke-test checklist.
+
+Minimum flow:
+
+```text id="wwvm0y"
+Login
+  ↓
+Product lookup
+  ↓
+Create order
+  ↓
+Checkout
+  ↓
+Payment
+  ↓
+Verify stock
+  ↓
+Verify order
+  ↓
+Verify statistics
+```
+
+Also verify:
+
+```text id="otufq0"
+Debt
+Payment against debt
+Cancel
+Refund
+Authorization
+```
+
+Smoke tests must verify persisted state, not only HTTP 200 responses.
+
+---
+
+# 19. RELEASE / ROLLBACK PROCEDURE
+
+Document:
+
+### Release
+
+```text id="enlq7u"
+backup
+↓
+deploy code
+↓
+install dependencies
+↓
+run migrations
+↓
+clear/warm cache
+↓
+restart workers
+↓
+smoke test
+↓
+monitor
+```
+
+### Rollback
+
+Document safe rollback boundaries.
+
+Do NOT blindly recommend:
+
+```bash id="538h61"
+doctrine:migrations:migrate prev
+```
+
+for production unless the migration is proven reversible and rollback is safe.
+
+For destructive migrations, prefer forward-compatible rollback strategy.
+
+---
+
+# 20. DEPLOYMENT CHECKLIST
+
+Create a concise production checklist covering:
+
+### Before deploy
+
+- tests green
+- backup verified
+- environment verified
+- migrations reviewed
+- worker state checked
+
+### Deploy
+
+- code deployed
+- dependencies installed
+- migrations executed
+- cache cleared
+- workers restarted
+
+### After deploy
+
+- health check
+- smoke test
+- logs checked
+- failed Messenger messages checked
+- database integrity checked
+
+### Rollback
+
+- rollback decision
+- code rollback
+- data strategy
+- worker restart
+- smoke test
+
+---
+
+# 21. MONITORING CHECKLIST
+
+Define operational signals worth monitoring:
+
+```text id="5hyi1m"
+HTTP 5xx rate
+HTTP 4xx anomalies
+authentication failures
+authorization denials
+checkout failures
+payment failures
+stock conflicts
+idempotency conflicts
+database errors
+Messenger failures
+failed messages
+worker restarts
+disk usage
+database size
+backup status
+```
+
+Do not build a monitoring platform inside the application unless the project already contains one.
+
+Documentation/configuration is sufficient where external infrastructure is expected.
+
+---
+
+# 22. TESTING REQUIREMENTS
+
+Add tests only for actual production-hardening behavior introduced or changed.
+
+Required categories where applicable:
+
+```text id="0dz6go"
+Application tests
+Integration tests
+HTTP tests
+Security tests
+Concurrency tests
+Idempotency tests
+Messenger tests
+Health-check tests
+File recovery tests
+```
+
+Do not add meaningless tests purely to increase test count.
+
+Existing tests MUST remain green.
+
+---
+
+# 23. REQUIRED VALIDATION GATE
+
+Before declaring Phase 2.13 GREEN:
+
+```bash id="4hi33u"
+APP_ENV=test php bin/phpunit
+```
+
+MUST pass.
+
+Production checks:
+
+```bash id="y36mcs"
+APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear
+APP_ENV=prod APP_DEBUG=0 php bin/console lint:container
+APP_ENV=prod APP_DEBUG=0 php bin/console lint:twig templates/
+```
+
+Also:
+
+```bash id="yvxeii"
+git diff --check
+```
+
+If applicable:
+
+```bash id="oh0dyl"
+APP_ENV=prod APP_DEBUG=0 php bin/console doctrine:migrations:status
+```
+
+No unresolved:
+
+- PHP errors
+- Symfony deprecations caused by our code
+- Doctrine deprecations caused by our code
+- container errors
+- Twig errors
+- test failures
+- schema inconsistencies
+
+---
+
+# 24. DOCUMENTATION DELIVERABLES
+
+Create/update production documentation as appropriate.
+
+Recommended:
+
+```text id="g07jz8"
+docs/production/README.md
+docs/production/deployment.md
+docs/production/rollback.md
+docs/production/backup-restore.md
+docs/production/monitoring.md
+docs/production/worker.md
+docs/production/smoke-test.md
+```
+
+Do NOT create duplicate documentation if equivalent project documentation already exists.
+
+Prefer extending existing documentation.
+
+---
+
+# 25. CHANGE CONTROL
+
+Every change must answer:
+
+```text id="2j3uzw"
+Why is this needed for production stability?
+```
+
+If the answer is unclear:
+
+DO NOT make the change.
+
+Keep the diff small.
+
+Avoid unrelated refactoring.
+
+Avoid dependency upgrades unless strictly required.
+
+Do not modify `composer.lock` merely because a newer version exists.
+
+---
+
+# 26. ACCEPTANCE CRITERIA
+
+Phase 2.13 is GREEN only when:
+
+### Code
+
+- [ ] No unnecessary feature changes
+- [ ] No financial semantic changes
+- [ ] No lifecycle semantic changes
+- [ ] No permission regressions
+- [ ] No idempotency regressions
+- [ ] No concurrency regressions
+
+### Production
+
+- [ ] production environment configuration verified
+- [ ] error handling verified
+- [ ] logging verified
+- [ ] sensitive data excluded from logs
+- [ ] worker operation documented
+- [ ] retry/failure behavior verified
+- [ ] cron behavior verified
+- [ ] backup strategy documented
+- [ ] restore procedure documented/tested
+- [ ] uploaded files included in recovery strategy
+- [ ] health/readiness behavior verified
+- [ ] security review completed
+- [ ] performance baseline recorded
+- [ ] smoke test documented
+- [ ] deployment procedure documented
+- [ ] rollback procedure documented
+- [ ] monitoring checklist documented
+
+### Tests
+
+```text id="zrzndi"
+Existing full suite = GREEN
+```
+
+No known production-blocking issue remains.
+
+---
+
+# 27. FINAL REPORT
+
+At the end provide a concise report:
+
+```text id="pg9nkg"
+PHASE 2.13 — POST-RELEASE STABILIZATION
+========================================
+
+Repository audit:
+PASS/FAIL
+
+Production configuration:
+PASS/FAIL
+
+Error handling:
+PASS/FAIL
+
+Observability:
+PASS/FAIL
+
+Messenger:
+PASS/FAIL/N/A
+
+Cron:
+PASS/FAIL/N/A
+
+Backup:
+PASS/FAIL
+
+Restore:
+PASS/FAIL
+
+File recovery:
+PASS/FAIL
+
+Health check:
+PASS/FAIL/N/A
+
+Security review:
+PASS/FAIL
+
+Performance baseline:
+PASS/FAIL
+
+Concurrency regression:
+PASS/FAIL
+
+Smoke test:
+PASS/FAIL
+
+Deployment documentation:
+PASS/FAIL
+
+Rollback documentation:
+PASS/FAIL
+
+Monitoring:
+PASS/FAIL
+
+Tests:
+XXX tests
+XXX assertions
+
+Overall:
+GREEN / RED
+```
+
+If anything is incomplete, explicitly state:
+
+```text id="3joehw"
+BLOCKED
+```
+
+and explain exactly what remains.
+
+Never claim production-ready when a required acceptance criterion has not been verified.
+:::
+
+### Tôi đề xuất thứ tự thực hiện
+
+Đừng nhảy ngay vào code. Với Phase 2.13 này nên đi theo:
+
+**2.13.0 Audit → 2.13.1 Observability → 2.13.2 Worker/Cron → 2.13.3 Backup/Restore → 2.13.4 Health/Security → 2.13.5 Performance/Concurrency → 2.13.6 Smoke Test → 2.13.7 Release Documentation → GREEN gate.**
+
+Và một nguyên tắc rất quan trọng: **Phase 2.13 không được trở thành “Phase 2.14 trá hình”** 😄 — nếu audit cho thấy một thứ đã đủ tốt thì ghi nhận PASS và đi tiếp, không code thêm cho có.

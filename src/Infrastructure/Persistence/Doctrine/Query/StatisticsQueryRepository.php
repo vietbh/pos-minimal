@@ -5,7 +5,7 @@ namespace App\Infrastructure\Persistence\Doctrine\Query;
 
 use Doctrine\DBAL\Types\Types;
 use App\Application\Statistics\Query\{StatisticsQueryInput,StatisticsQueryRepositoryInterface};
-use App\Application\Statistics\Query\Model\{DebtSummary,PaymentBreakdown,SalesSummary,StockSnapshot,TopCustomer,TopProduct};
+use App\Application\Statistics\Query\Model\{DebtSummary,PaymentBreakdown,SalesSummary,StockSnapshot,TopCustomer,TopProduct,WeeklySalesPoint,WeeklySalesSummary};
 use Doctrine\DBAL\Connection;
 
 final readonly class StatisticsQueryRepository implements StatisticsQueryRepositoryInterface
@@ -166,10 +166,137 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
         return array_map(fn(array $r)=>new TopCustomer((int)$r['customer_id'],(string)$r['name'],(int)$r['order_count'],(string)$r['total_spent']),$rows);
     }
 
+    /**
+     * Return one database-aggregated value for each of the seven requested days.
+     * Refund reversals are aggregated separately so the chart follows the same
+     * net-sales semantics as getSalesSummary without loading orders into PHP.
+     *
+     */
+    public function getWeeklySales(StatisticsQueryInput $input): WeeklySalesSummary
+    {
+        $from = $input->from->modify('-6 days');
+        $toExclusive = $input->toExclusive;
+        $filter = $this->salesPointFilter($input, 'o');
+        $params = [
+            'from' => $from,
+            'to' => $toExclusive,
+        ];
+        if ($input->salesPointId !== null) {
+            $params['salesPointId'] = $input->salesPointId;
+        }
+
+        $salesRows = $this->connection->fetchAllAssociative(
+            "SELECT DATE(o.created_at) AS day_key,
+                    COALESCE(SUM(CASE WHEN o.status IN ('COMPLETED','REFUNDED') THEN o.total ELSE 0 END),0) AS gross_sales
+             FROM orders o
+             WHERE o.created_at >= :from
+               AND o.created_at < :to
+               {$filter['sql']}
+             GROUP BY DATE(o.created_at)",
+            $params,
+            $this->dateRangeTypes($filter['params']),
+        );
+
+        $refundRows = $this->connection->fetchAllAssociative(
+            "SELECT DATE(r.created_at) AS day_key,
+                    COALESCE(SUM(r.amount),0) AS refunded_amount
+             FROM order_financial_reversals r
+             INNER JOIN orders o ON o.id=r.order_id
+             WHERE r.type='REFUND'
+               AND r.created_at >= :from
+               AND r.created_at < :to
+               {$filter['sql']}
+             GROUP BY DATE(r.created_at)",
+            $params,
+            $this->dateRangeTypes($filter['params']),
+        );
+
+        $salesByDay = [];
+        foreach ($salesRows as $row) {
+            $salesByDay[(string) $row['day_key']] = (string) $row['gross_sales'];
+        }
+        $refundsByDay = [];
+        foreach ($refundRows as $row) {
+            $refundsByDay[(string) $row['day_key']] = (string) $row['refunded_amount'];
+        }
+
+        $rawValues = [];
+        for ($day = 0; $day < 7; ++$day) {
+            $date = $from->modify(sprintf('+%d days', $day));
+            $key = $date->format('Y-m-d');
+            $rawValues[$key] = $this->decimalSub(
+                $salesByDay[$key] ?? '0.00',
+                $refundsByDay[$key] ?? '0.00',
+            );
+        }
+
+        $maxMinor = 0;
+        foreach ($rawValues as $value) {
+            $maxMinor = max($maxMinor, $this->decimalParts($value));
+        }
+
+        $points = [];
+        foreach ($rawValues as $key => $value) {
+            $date = new \DateTimeImmutable($key, $from->getTimezone());
+            $minor = max(0, $this->decimalParts($value));
+            $percent = $maxMinor > 0 ? (int) round(($minor / $maxMinor) * 100) : 0;
+            $points[] = new WeeklySalesPoint(
+                date: $date,
+                label: $this->weekdayLabel($date),
+                netSales: $value,
+                displayMillions: $this->toMillionsLabel($value),
+                barPercent: $percent,
+            );
+        }
+
+        $totalMinor = 0;
+        $highestMinor = 0;
+        foreach ($rawValues as $value) {
+            $minor = max(0, $this->decimalParts($value));
+            $totalMinor += $minor;
+            $highestMinor = max($highestMinor, $minor);
+        }
+
+        return new WeeklySalesSummary(
+            points: $points,
+            total: $this->minorToDecimal($totalMinor),
+            highest: $this->minorToDecimal($highestMinor),
+        );
+    }
+
     public function getStockSnapshot(): StockSnapshot
     {
         $row=$this->connection->fetchAssociative("SELECT COUNT(*) total_products, COALESCE(SUM(is_active=1),0) active_products, COALESCE(SUM(is_active=1 AND stock_quantity <= low_stock_threshold AND stock_quantity > 0),0) low_stock_products, COALESCE(SUM(stock_quantity=0),0) out_of_stock_products, COALESCE(SUM(stock_quantity),0) total_stock_quantity FROM products");
         return new StockSnapshot((int)$row['total_products'],(int)$row['active_products'],(int)$row['low_stock_products'],(int)$row['out_of_stock_products'],(int)$row['total_stock_quantity']);
+    }
+
+    private function toMillionsLabel(string $value): string
+    {
+        $minor = $this->decimalParts($value);
+        $tenthsTotal = intdiv(abs($minor) + 5_000_000, 10_000_000);
+        $wholeMillions = intdiv($tenthsTotal, 10);
+        $tenths = $tenthsTotal % 10;
+        $prefix = $minor < 0 ? '-' : '';
+
+        return $prefix.$wholeMillions.'.'.$tenths;
+    }
+
+    private function minorToDecimal(int $minor): string
+    {
+        return sprintf('%d.%02d', intdiv(max(0, $minor), 100), max(0, $minor) % 100);
+    }
+
+    private function weekdayLabel(\DateTimeImmutable $date): string
+    {
+        return match ((int) $date->format('N')) {
+            1 => 'T2',
+            2 => 'T3',
+            3 => 'T4',
+            4 => 'T5',
+            5 => 'T6',
+            6 => 'T7',
+            default => 'CN',
+        };
     }
 
     private function normalizeDecimal(string $value): string {

@@ -63,6 +63,7 @@ final class SettingsControllerTest extends WebTestCase
         self::assertSelectorExists('input[name="reduce_motion"]');
         self::assertSelectorExists('input[name="payment_sound_enabled"][checked]');
         self::assertSelectorExists('input[name="usage_guide_enabled"][checked]');
+        self::assertSelectorExists('input[name="dashboard_default_tab"][value="auto"][checked]');
         self::assertSelectorExists('a[href="/app/guide"]');
         self::assertSelectorExists('a[href="/app/profile"]');
     }
@@ -123,6 +124,7 @@ final class SettingsControllerTest extends WebTestCase
             'reduce_motion' => '1',
             'payment_sound_enabled' => '1',
             'usage_guide_enabled' => '1',
+            'dashboard_default_tab' => 'operations',
         ]);
 
         self::assertResponseRedirects('/app/settings');
@@ -152,6 +154,58 @@ final class SettingsControllerTest extends WebTestCase
         self::assertTrue($persisted->hasReduceMotion());
         self::assertTrue($persisted->hasPaymentSoundEnabled());
         self::assertTrue($persisted->hasUsageGuideEnabled());
+        self::assertSame('operations', $persisted->getDashboardDefaultTab());
+    }
+
+
+    public function testDashboardDefaultTabIsPermissionAwareAndPersists(): void
+    {
+        $user = $this->loginAs('admin-dashboard');
+        $user->setRoles(['ROLE_ADMIN']);
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/app/settings');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('input[name="dashboard_default_tab"][value="auto"][checked]');
+        self::assertSelectorExists('input[name="dashboard_default_tab"][value="administration"]');
+        self::assertSelectorExists('input[name="dashboard_default_tab"][value="insights"]');
+
+        $this->client->submitForm('Lưu cài đặt', [
+            'font_size' => 'medium',
+            'appearance' => 'system',
+            'density' => 'comfortable',
+            'dashboard_default_tab' => 'administration',
+        ]);
+
+        self::assertResponseRedirects('/app/settings');
+        $this->entityManager->clear();
+        $persisted = $this->entityManager->getRepository(User::class)->find($user->getId());
+        self::assertInstanceOf(User::class, $persisted);
+        self::assertSame('administration', $persisted->getDashboardDefaultTab());
+
+        $this->client->request('GET', '/');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('.dashboard-tab.is-active[aria-current="page"]');
+        self::assertSelectorTextContains('.dashboard-tab.is-active', 'Quản trị');
+    }
+
+    public function testUnauthorizedDashboardDefaultTabIsNotPersisted(): void
+    {
+        $user = $this->loginAs('cashier-unauthorized-tab');
+
+        $this->client->request('GET', '/app/settings');
+        $this->client->submitForm('Lưu cài đặt', [
+            'font_size' => 'medium',
+            'appearance' => 'system',
+            'density' => 'comfortable',
+            'dashboard_default_tab' => 'administration',
+        ]);
+
+        self::assertResponseRedirects('/app/settings');
+        $this->entityManager->clear();
+        $persisted = $this->entityManager->getRepository(User::class)->find($user->getId());
+        self::assertInstanceOf(User::class, $persisted);
+        self::assertSame('auto', $persisted->getDashboardDefaultTab());
     }
 
     public function testPaymentSoundAndUsageGuideCanBeDisabled(): void

@@ -79,6 +79,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'usage_guide_enabled', options: ['default' => true])]
     private bool $usageGuideEnabled = true;
 
+    #[ORM\Column(name: 'dashboard_default_tab', length: 32, options: ['default' => 'auto'])]
+    private string $dashboardDefaultTab = 'auto';
+
     #[ORM\Column(
         name: 'created_at',
         type: 'datetime_immutable'
@@ -381,6 +384,27 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
 
         $this->paymentSoundEnabled = $enabled;
+        $this->touch();
+    }
+
+    public function getDashboardDefaultTab(): string
+    {
+        return $this->dashboardDefaultTab;
+    }
+
+    public function changeDashboardDefaultTab(string $tab): void
+    {
+        $tab = strtolower(trim($tab));
+
+        if (!in_array($tab, ['auto', 'overview', 'activity', 'operations', 'insights', 'administration'], true)) {
+            throw new \InvalidArgumentException('Dashboard default tab is invalid.');
+        }
+
+        if ($this->dashboardDefaultTab === $tab) {
+            return;
+        }
+
+        $this->dashboardDefaultTab = $tab;
         $this->touch();
     }
 

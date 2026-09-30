@@ -1,0 +1,1045 @@
+Đúng, mình hiểu ý bạn. Hiện tại cần **sửa flow authentication/navigation trước**, rồi mới dựng **Base Layout dùng chung cho toàn bộ app, trừ POS**.
+
+Source UI/UX hiện tại cũng đã định hướng template hierarchy:
+
+`base layout → authenticated layout → POS layout / admin layout`, và Login thành công phải đi vào **Application Shell**, không phải POS trực tiếp. fileciteturn1file0L118-L145 fileciteturn1file7L1427-L1440
+
+### Flow nên chốt
+
+```text id="khoeln"
+                    ┌──────────────┐
+                    │    LOGIN     │
+                    └──────┬───────┘
+                           │ success
+                           ▼
+                 ┌────────────────────┐
+                 │ APPLICATION / HOME │
+                 │     BASE SHELL     │
+                 └─────────┬──────────┘
+                           │
+          ┌────────────────┼────────────────┐
+          ▼                ▼                ▼
+      Products          Orders          Customers
+          │                │                │
+          ▼                ▼                ▼
+       Stock             Debts           Reports
+                                           
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │     POS     │
+                    │ POS Layout  │
+                    └─────────────┘
+
+LOGOUT
+   ↓
+invalidate/revoke session
+   ↓
+redirect LOGIN
+```
+
+Đặc biệt **POS không nên là trang mặc định sau login**. POS là một workspace riêng; Base Shell là nơi chứa các màn hình application/admin thông thường.
+
+Và logout phải kết thúc bằng redirect về Login, thay vì quay lại một trang trung gian.
+
+Mình sẽ coi đây là **Phase 2.14 — Authentication Flow + Global Base Layout**, chứ không nhét vào POS nữa. UI source list cũng đang định hướng Phase 2.14 cho Login UI/UX + Global application UI/UX. fileciteturn1file6L1254-L1260
+
+Nếu bạn muốn đưa thẳng cho coding agent, dùng prompt này:
+
+:::writing{variant="document" id="68427" title="PHASE 2.14 — Authentication Flow + Global Base Layout"}
+# CRITICAL IMPLEMENTATION PROMPT
+# PHASE 2.14 — AUTHENTICATION FLOW + GLOBAL BASE LAYOUT
+## MOBILE POS — SYMFONY 7.4
+
+## 0. OBJECTIVE
+
+Implement thật PHASE 2.14 cho project Mobile POS hiện tại.
+
+Mục tiêu chính:
+
+```text id="t7ko4m"
+LOGIN
+  ↓
+AUTHENTICATED APPLICATION HOME
+  ↓
+GLOBAL BASE LAYOUT
+  ↓
+ADMIN / APPLICATION PAGES
+  ↓
+POS remains a separate POS workspace
+```
+
+Và:
+
+```text id="f5m0wf"
+LOGOUT
+  ↓
+SESSION TERMINATED / REVOKED
+  ↓
+LOGIN
+```
+
+Phase này KHÔNG redesign Domain hoặc Application business logic.
+
+Phase này tập trung:
+
+- Authentication navigation
+- Login UX
+- Logout behavior
+- Global authenticated shell
+- Base Twig layout
+- Authenticated layout
+- Navigation
+- Permission-aware navigation
+- Flash messages
+- Global page states
+- Responsive/mobile layout
+- Redirect rules
+- Authentication integration tests
+- Security regression tests
+
+---
+
+# 1. CURRENT PROBLEM
+
+Current behavior:
+
+```text id="cgkv48"
+LOGIN SUCCESS
+    ↓
+POS
+```
+
+Behavior này KHÔNG còn phù hợp với application structure.
+
+POS phải là một workspace riêng.
+
+Sau login user phải đi vào:
+
+```text id="fomrzi"
+APPLICATION HOME
+```
+
+hoặc dashboard/home route đã tồn tại.
+
+Không redirect mặc định vào POS.
+
+---
+
+# 2. REQUIRED AUTHENTICATION FLOW
+
+## Login success
+
+Required:
+
+```text id="ui00fn"
+GET /login
+    ↓
+submit credentials
+    ↓
+Symfony Security authentication
+    ↓
+authenticated session
+    ↓
+APPLICATION HOME
+```
+
+Không:
+
+```text id="9becp2"
+LOGIN
+ ↓
+POS
+```
+
+trừ khi architecture hiện tại có explicit configuration yêu cầu như vậy.
+
+Default destination phải là global authenticated home.
+
+---
+
+# 3. AUTHENTICATED HOME
+
+Tạo hoặc reuse một authenticated home route.
+
+Ví dụ:
+
+```text id="y1j4ij"
+/admin
+```
+
+hoặc:
+
+```text id="91c2rq"
+/home
+```
+
+hoặc route convention hiện tại.
+
+KHÔNG tự ý tạo route mới nếu repository đã có authenticated landing page phù hợp.
+
+Home page có thể hiển thị:
+
+```text id="vh0e7i"
+Welcome
+
+Quick Actions
+
+POS
+Orders
+Products
+Customers
+Stock
+Debts
+Reports
+Settings
+```
+
+Nhưng navigation/action phải permission-aware.
+
+Backend remains authority.
+
+---
+
+# 4. LOGOUT
+
+Logout phải có behavior:
+
+```text id="kcls9w"
+authenticated user
+        ↓
+logout
+        ↓
+session invalidated / revoked
+        ↓
+redirect to LOGIN
+```
+
+Required:
+
+```text id="4zbuoi"
+GET/POST logout
+```
+
+phải follow Symfony Security configuration hiện tại.
+
+Không tự implement logout bằng JavaScript.
+
+Không tự xóa session bằng controller nếu Symfony Security đã chịu trách nhiệm.
+
+Không bypass existing UserSession architecture.
+
+---
+
+# 5. POST-LOGOUT BEHAVIOR
+
+Sau logout:
+
+```text id="sly2g7"
+GET /login
+```
+
+phải được hiển thị.
+
+Nếu user cố truy cập authenticated route:
+
+```text id="nc5nby"
+GET /admin
+GET /orders
+GET /products
+GET /customers
+GET /stock
+GET /debts
+```
+
+khi chưa authenticated:
+
+```text id="6ji179"
+→ redirect LOGIN
+```
+
+Không được:
+
+```text id="778xqo"
+→ POS
+→ 403
+→ blank page
+```
+
+nếu route chỉ yêu cầu authentication.
+
+---
+
+# 6. LOGIN PAGE
+
+Login UI phải:
+
+```text id="bra76n"
+┌──────────────────────────────┐
+│                              │
+│        MOBILE POS            │
+│                              │
+│  Username                    │
+│  ┌────────────────────────┐  │
+│  │                        │  │
+│  └────────────────────────┘  │
+│                              │
+│  Password                    │
+│  ┌────────────────────────┐  │
+│  │                  👁     │  │
+│  └────────────────────────┘  │
+│                              │
+│  ┌────────────────────────┐  │
+│  │          LOGIN         │  │
+│  └────────────────────────┘  │
+│                              │
+└──────────────────────────────┘
+```
+
+Requirements:
+
+- mobile-first
+- minimum 360px
+- large input
+- clear labels
+- visible focus
+- show/hide password
+- loading state
+- authentication error
+- no duplicate submit
+- CSRF according to current Security configuration
+- English UI text
+- reuse existing translation keys where available
+
+---
+
+# 7. TEMPLATE ARCHITECTURE
+
+Implement a simple hierarchy:
+
+```text id="7cfqep"
+templates/
+│
+├── base.html.twig
+│
+├── auth/
+│   └── login.html.twig
+│
+├── layout/
+│   ├── authenticated.html.twig
+│   └── pos.html.twig
+│
+├── home/
+│   └── index.html.twig
+│
+├── products/
+├── customers/
+├── orders/
+├── debts/
+├── stock/
+├── reports/
+└── pos/
+```
+
+Preferred inheritance:
+
+```text id="m52has"
+base.html.twig
+      ↓
+authenticated.html.twig
+      ↓
+application pages
+```
+
+POS:
+
+```text id="m6hglm"
+base.html.twig
+      ↓
+pos.html.twig
+      ↓
+POS pages
+```
+
+Do NOT force POS to inherit the entire authenticated application layout if that creates unnecessary navigation or UI duplication.
+
+---
+
+# 8. BASE.HTML.TWIG
+
+`base.html.twig` owns global HTML concerns:
+
+```text id="d28hml"
+<!DOCTYPE html>
+<html>
+<head>
+    meta
+    title
+    viewport
+    styles
+</head>
+
+<body>
+
+    global flash/messages
+
+    {% block body %}{% endblock %}
+
+    global javascript/importmap
+
+</body>
+</html>
+```
+
+It must NOT contain:
+
+- business logic
+- database queries
+- authorization decisions
+- transaction logic
+- POS cart logic
+
+---
+
+# 9. AUTHENTICATED LAYOUT
+
+Authenticated layout owns:
+
+```text id="vuqr1i"
+Header
+Navigation
+User identity
+Logout
+Flash messages
+Main content
+Mobile navigation
+```
+
+Example:
+
+```text id="evqij7"
+┌────────────────────────────────┐
+│ Mobile POS              User ▼ │
+├────────────────────────────────┤
+│                                │
+│          PAGE CONTENT          │
+│                                │
+│                                │
+├────────────────────────────────┤
+│ Home Orders Products More      │
+└────────────────────────────────┘
+```
+
+Desktop may use:
+
+```text id="pfgtu5"
+┌─────────────┬──────────────────┐
+│ Navigation  │                  │
+│             │ Main content     │
+│ Home        │                  │
+│ Orders      │                  │
+│ Products    │                  │
+│ Customers   │                  │
+│ Stock       │                  │
+│ Reports     │                  │
+│ Settings    │                  │
+│             │                  │
+│ Logout      │                  │
+└─────────────┴──────────────────┘
+```
+
+---
+
+# 10. NAVIGATION
+
+Global navigation may contain:
+
+```text id="x0qlme"
+Home
+POS
+Orders
+Products
+Customers
+Stock
+Debts
+Reports
+Settings
+```
+
+But visibility must be permission-aware.
+
+Examples:
+
+```text id="t35cwt"
+PRODUCT_VIEW
+    → Products
+
+STOCK_VIEW
+    → Stock
+
+ORDER_VIEW
+    → Orders
+
+DEBT_VIEW
+    → Debts
+
+REPORT_VIEW
+    → Reports
+```
+
+Do NOT hardcode role names when Permission Matrix is already the source of truth.
+
+The existing architecture explicitly requires permission-aware navigation while backend remains the final authority. fileciteturn1file0L147-L164
+
+---
+
+# 11. POS NAVIGATION
+
+POS remains a separate workspace.
+
+When user selects:
+
+```text id="9sk4yg"
+POS
+```
+
+navigate to existing POS route.
+
+POS should have its own layout:
+
+```text id="5cbevc"
+base
+  ↓
+pos layout
+  ↓
+POS screen
+```
+
+POS layout may contain:
+
+```text id="xe4xju"
+POS Header
+Cart
+Checkout
+Payment
+```
+
+Do NOT duplicate the entire admin/application navigation inside POS.
+
+---
+
+# 12. USER MENU
+
+Authenticated header should expose:
+
+```text id="iidyuv"
+User name
+Role/permission-aware information if already available
+Logout
+```
+
+Example:
+
+```text id="l2wc8w"
+┌──────────────────────┐
+│ Nguyen Van A      ▼  │
+├──────────────────────┤
+│ Profile              │
+│ Settings             │
+│ Logout               │
+└──────────────────────┘
+```
+
+Only expose pages that actually exist.
+
+Do not create fake Profile/Settings pages merely for UI completeness.
+
+If unavailable:
+
+```text id="vtrijm"
+User name
+Logout
+```
+
+is sufficient.
+
+---
+
+# 13. FLASH MESSAGE SYSTEM
+
+Create/reuse a shared partial:
+
+```text id="ca2n2p"
+components/_flash.html.twig
+```
+
+Support:
+
+```text id="zu8r9z"
+success
+error
+warning
+info
+```
+
+Requirements:
+
+- consistent styling
+- accessible
+- readable
+- dismissible if appropriate
+- no SQL
+- no stack trace
+- no internal exception details
+
+---
+
+# 14. GLOBAL UI STATES
+
+Authenticated application pages must support:
+
+```text id="owjp5e"
+LOADING
+EMPTY
+SUCCESS
+ERROR
+FORBIDDEN
+NOT FOUND
+CONFLICT
+VALIDATION ERROR
+```
+
+Keep behavior consistent across:
+
+```text id="fbuvwi"
+Products
+Customers
+Orders
+Debts
+Stock
+Reports
+```
+
+Do not put business rules into Twig.
+
+---
+
+# 15. MOBILE-FIRST DESIGN
+
+Target:
+
+```text id="i93chq"
+360px+
+```
+
+Requirements:
+
+- touch-friendly
+- no hover dependency
+- clear primary action
+- readable typography
+- sufficient contrast
+- minimum ~48px touch targets
+- sticky actions only when useful
+- avoid nested scroll
+- responsive tablet/desktop
+- keyboard accessible
+
+Use the existing project design system rather than introducing a second visual language.
+
+The global UI source already requires mobile-first, readable, predictable and touch-friendly behavior. fileciteturn1file0L33-L59
+
+---
+
+# 16. SECURITY
+
+Do NOT weaken:
+
+```text id="8tuc30"
+Authentication
+Authorization
+CSRF
+Session security
+Voter
+Permission Matrix
+```
+
+UI hiding is not authorization.
+
+For example:
+
+```text id="8hu5t9"
+Cancel button hidden
+```
+
+does NOT replace:
+
+```text id="zm2tt4"
+backend authorization
+```
+
+Backend remains final authority.
+
+---
+
+# 17. REDIRECT RULES
+
+Implement/document deterministic redirect rules.
+
+## Anonymous
+
+```text id="sonfz5"
+GET protected route
+    ↓
+LOGIN
+```
+
+## Login success
+
+```text id="te7c0a"
+LOGIN
+    ↓
+APPLICATION HOME
+```
+
+NOT POS.
+
+## Logout
+
+```text id="l133fp"
+LOGOUT
+    ↓
+LOGIN
+```
+
+## Already authenticated user visiting login
+
+Use existing project convention.
+
+Preferred behavior:
+
+```text id="0c4jq5"
+GET /login
+    ↓
+APPLICATION HOME
+```
+
+Do not create redirect loops.
+
+---
+
+# 18. TURBO / UX NATIVE
+
+Inspect current Turbo / UX Native configuration before modifying.
+
+Do not disable existing navigation infrastructure merely to simplify redirects.
+
+Ensure:
+
+```text id="yyna1g"
+login
+logout
+protected navigation
+```
+
+behave correctly under Turbo/UX Native if those features are enabled.
+
+Authentication boundaries must remain reliable even when navigation is enhanced.
+
+---
+
+# 19. STIMULUS
+
+Stimulus may handle:
+
+```text id="px00d8"
+password visibility
+mobile menu
+user menu
+dismiss flash
+loading UI
+```
+
+Stimulus must NOT handle:
+
+```text id="8v7cqz"
+authentication decision
+authorization decision
+session creation
+session invalidation
+business rules
+```
+
+---
+
+# 20. TESTING
+
+Implement real tests.
+
+## Authentication tests
+
+Test:
+
+```text id="dcy6hz"
+anonymous → login page
+valid credentials → authenticated
+invalid credentials → error
+authenticated → login behavior
+logout → login
+post logout → protected route redirects login
+```
+
+## Navigation tests
+
+Test:
+
+```text id="wrad30"
+authenticated home
+POS navigation
+Products navigation
+Orders navigation
+Customers navigation
+Stock navigation
+Debts navigation
+Reports navigation
+```
+
+according to existing permission configuration.
+
+## Security regression
+
+Test:
+
+```text id="9cr376"
+anonymous cannot access protected pages
+ROLE_USER/permissions behave correctly
+unauthorized navigation does not grant access
+logout terminates authenticated access
+```
+
+## HTTP tests
+
+Verify:
+
+```text id="r6qaz4"
+status code
+redirect target
+session state
+response content
+```
+
+Do not only test Twig rendering.
+
+---
+
+# 21. ACCEPTANCE CRITERIA
+
+Phase is GREEN only when:
+
+```text id="j3kego"
+LOGIN
+   ↓
+APPLICATION HOME
+```
+
+works.
+
+And:
+
+```text id="rjqpym"
+LOGOUT
+   ↓
+LOGIN
+```
+
+works.
+
+And:
+
+```text id="0e7adi"
+anonymous
+   ↓
+protected route
+   ↓
+LOGIN
+```
+
+works.
+
+And:
+
+```text id="y5arz9"
+LOGIN
+   ↓
+POS
+```
+
+does NOT happen automatically.
+
+POS is still reachable explicitly through navigation.
+
+---
+
+# 22. REGRESSION PROTECTION
+
+Before changes:
+
+```text id="iqlywk"
+run full PHPUnit suite
+```
+
+Record:
+
+```text id="k3g8h4"
+tests
+assertions
+failures
+errors
+```
+
+After changes:
+
+```text id="wq0rmb"
+full PHPUnit suite
+```
+
+must remain GREEN.
+
+Also run appropriate:
+
+```text id="qpl7ry"
+php bin/console lint:twig
+php bin/console lint:container
+```
+
+and existing frontend/build checks.
+
+Do not accept a phase as complete with a partially passing test suite.
+
+---
+
+# 23. INSPECTION REQUIREMENT
+
+Before coding, inspect actual repository:
+
+```text id="2t38xv"
+security.yaml
+framework.yaml
+routes
+controllers
+Login
+Logout
+User
+UserSession
+Security configuration
+Voters
+PermissionMatrix
+base templates
+POS templates
+Stimulus controllers
+Turbo configuration
+UX Native configuration
+existing tests
+```
+
+Do not assume route names.
+
+Do not assume controller names.
+
+Do not create duplicate authentication infrastructure.
+
+Reuse existing implementation wherever possible.
+
+---
+
+# 24. IMPLEMENTATION RULE
+
+Work incrementally:
+
+```text id="rej61t"
+1. Inspect
+2. Identify current login route
+3. Identify current logout route
+4. Identify current post-login redirect
+5. Fix login destination
+6. Fix logout destination
+7. Verify session termination
+8. Create/reuse base.html.twig
+9. Create authenticated layout
+10. Separate POS layout
+11. Build global navigation
+12. Add permission-aware navigation
+13. Add shared flash
+14. Add responsive styling
+15. Add tests
+16. Run full suite
+17. Run lint
+18. Verify critical flows
+```
+
+Do not rewrite unrelated pages.
+
+---
+
+# 25. FINAL DELIVERABLE
+
+At the end provide:
+
+```text id="ijjxjd"
+1. Files created
+2. Files modified
+3. Login redirect behavior
+4. Logout behavior
+5. Base layout hierarchy
+6. Authenticated layout
+7. POS layout separation
+8. Navigation rules
+9. Security changes
+10. Tests added
+11. Test result
+12. Lint result
+13. Remaining issues
+```
+
+Final architecture should be:
+
+```text id="t0px9d"
+                    base.html.twig
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+ authenticated.html.twig          pos.html.twig
+              │                         │
+       Application pages             POS pages
+              │
+      ┌───────┼────────┐
+      │       │        │
+   Products Orders Customers
+      │       │        │
+    Stock   Debts    Reports
+```
+
+Authentication flow:
+
+```text id="vh8t9m"
+                    LOGIN
+                      │
+                      ▼
+              APPLICATION HOME
+                      │
+          ┌───────────┼───────────┐
+          ▼           ▼           ▼
+        ADMIN         POS       REPORTS
+        PAGES       WORKSPACE
+          │
+          ▼
+       LOGOUT
+          │
+          ▼
+        LOGIN
+```
+
+This structure is the source of truth for subsequent global UI/UX phases.
+:::
+
+**Một điểm mình đặc biệt khuyên giữ:** đừng tạo `base.html.twig` rồi bắt POS kế thừa toàn bộ menu Admin. Tách `authenticated.html.twig` và `pos.html.twig` như trên sẽ sạch hơn rất nhiều: cùng chung HTML/design system, nhưng POS vẫn là workspace riêng. Source hiện tại cũng đã định hướng chính xác kiểu inheritance này. fileciteturn1file7L1427-L1440

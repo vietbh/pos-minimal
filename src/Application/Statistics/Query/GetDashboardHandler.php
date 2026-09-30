@@ -18,6 +18,7 @@ final readonly class GetDashboardHandler
             topProducts: $this->repository->getTopProducts($input),
             topCustomers: $this->repository->getTopCustomers($input),
             stock: $this->repository->getStockSnapshot(),
+            weeklySales: $this->repository->getWeeklySales($input),
             from: $input->from,
             toExclusive: $input->toExclusive,
         );

@@ -1,0 +1,873 @@
+# CRITICAL PROMPT — PHÂN TÍCH USE CASE MOBILE POS
+
+Bạn đang thiết kế nghiệp vụ cho một **Mobile-first POS nhỏ** sử dụng:
+
+* Symfony 7.4
+* MySQL
+* Doctrine ORM
+* Twig
+* Stimulus
+* Symfony Messenger
+* Cronjob trên hosting
+
+Hãy phân tích và thiết kế **Use Case đầy đủ cho MVP** dựa trên Critical Prompt của dự án.
+
+## MỤC TIÊU
+
+Tạo một bộ Use Case đủ rõ để từ đó có thể tiếp tục thiết kế:
+
+1. Domain model
+2. Entity
+3. Database schema
+4. Application Service
+5. Controller/Route
+6. Stimulus Controller
+7. Messenger Message/Handler
+8. Permission
+9. Test case
+
+**Không code ở bước này.**
+
+Chỉ phân tích nghiệp vụ và interaction.
+
+---
+
+# 1. NGUYÊN TẮC BẮT BUỘC
+
+## 1.1 Mobile-first
+
+Mọi Use Case phải ưu tiên:
+
+* điện thoại
+* thao tác một tay
+* ít bước
+* ít request
+* phản hồi nhanh
+* touch-friendly
+
+Không thiết kế flow desktop rồi thu nhỏ xuống mobile.
+
+---
+
+## 1.2 POS phải cực nhanh
+
+Với các thao tác thường xuyên, hãy tìm cách giảm:
+
+* số lần tap
+* số màn hình
+* số modal
+* số lần nhập dữ liệu
+* số HTTP request
+
+Đặc biệt:
+
+**Add product, change quantity, remove product không được yêu cầu request server cho từng thao tác.**
+
+Cart được xử lý local bằng Stimulus và chỉ submit khi checkout.
+
+---
+
+# 2. PHÂN LOẠI USE CASE
+
+Chia Use Case thành các nhóm:
+
+## A. Authentication & Session
+
+Ví dụ:
+
+* Login
+* Logout
+* Session heartbeat/activity
+* View active sessions
+* Revoke session
+
+## B. POS / Sales
+
+Ví dụ:
+
+* Open POS
+* Search product
+* Add product to cart
+* Change quantity
+* Remove item
+* Clear cart
+* Checkout
+* Full payment
+* Partial payment
+* Credit sale
+* Complete order
+* Cancel order
+* Refund nếu thuộc MVP
+
+## C. Customer
+
+* Search customer
+* Create customer
+* Update customer
+* View customer
+* View customer purchase history
+* View customer debt
+
+## D. Debt
+
+* View debt list
+* View customer debts
+* View overdue debts
+* Record debt payment
+* Partial debt payment
+* Full debt payment
+* Debt reminder
+
+## E. Product
+
+* Create product
+* Update product
+* Change price
+* Activate/deactivate product
+* Search product
+* View product
+
+## F. Stock
+
+* View stock
+* View low-stock products
+* Adjust stock
+* View stock movement
+* Stock deduction from sale
+* Stock restoration from cancellation/refund
+
+## G. Order
+
+* View orders
+* Search orders
+* Filter orders
+* View order detail
+* Cancel order
+* Refund order nếu MVP hỗ trợ
+
+## H. Statistics
+
+* Daily sales
+* Sales by period
+* Payment summary
+* Debt summary
+* Top products
+* Low stock
+
+## I. Audit
+
+* View audit logs
+* Filter audit logs
+* View audit detail
+
+---
+
+# 3. ACTORS
+
+Xác định actor cho từng Use Case.
+
+MVP tối thiểu:
+
+### Guest
+
+Chưa đăng nhập.
+
+### User
+
+Nhân viên bán hàng.
+
+Có thể:
+
+* bán hàng
+* xem sản phẩm
+* xem khách hàng
+* xử lý thanh toán
+* xử lý công nợ theo permission
+
+### Admin
+
+Có toàn quyền quản trị.
+
+Có thể:
+
+* quản lý product
+* điều chỉnh stock
+* cancel/refund
+* xem audit
+* xem active sessions
+* quản lý user
+* xem statistics
+
+Nếu có hành động cần actor khác, hãy đề xuất nhưng không tự ý thêm role phức tạp.
+
+---
+
+# 4. FORMAT MỖI USE CASE
+
+Mỗi Use Case phải có cấu trúc:
+
+## UC-XXX — Tên Use Case
+
+### Goal
+
+Mục tiêu nghiệp vụ.
+
+### Actor
+
+Ai thực hiện.
+
+### Trigger
+
+Điều gì bắt đầu Use Case.
+
+### Preconditions
+
+Điều kiện trước khi bắt đầu.
+
+### Main Flow
+
+Luồng thành công từng bước.
+
+Ví dụ:
+
+```text
+1. User mở POS.
+2. User search product.
+3. User chọn product.
+4. Stimulus thêm product vào local cart.
+5. User thay đổi quantity.
+6. Stimulus cập nhật UI.
+7. User tap Checkout.
+8. Client gửi một checkout request.
+9. Backend validate dữ liệu.
+10. Backend kiểm tra stock.
+11. Backend tính lại total.
+12. Backend tạo order/payment.
+13. Backend trừ stock.
+14. Transaction commit.
+15. UI hiển thị success.
+```
+
+### Alternative Flows
+
+Các trường hợp hợp lệ khác.
+
+Ví dụ:
+
+* thanh toán một phần
+* ghi nợ
+* khách chưa tồn tại
+* nhiều phương thức thanh toán nếu hỗ trợ
+
+### Exception Flows
+
+Các trường hợp lỗi:
+
+* product không tồn tại
+* product inactive
+* thiếu stock
+* duplicate checkout
+* database error
+* session hết hạn
+
+### Postconditions
+
+Trạng thái hệ thống sau khi thành công.
+
+### Data Changed
+
+Entity/data nào bị tạo hoặc thay đổi.
+
+### HTTP Requests
+
+Phải chỉ rõ:
+
+* request nào cần server
+* request nào xử lý local bằng Stimulus
+* request nào async
+
+### Transaction Boundary
+
+Chỉ rõ có database transaction hay không.
+
+### Async Jobs
+
+Nếu có Messenger job, chỉ rõ message được dispatch sau khi transaction thành công.
+
+### Permission
+
+Role/permission cần thiết.
+
+### Audit
+
+Có audit log hay không và audit action nào.
+
+### Mobile UX Notes
+
+Chỉ rõ cách thiết kế interaction trên mobile.
+
+### Acceptance Criteria
+
+Danh sách điều kiện để Use Case được coi là hoàn thành.
+
+---
+
+# 5. ĐẶC BIỆT PHÂN TÍCH POS CHECKOUT
+
+Đây là Use Case quan trọng nhất.
+
+Phải phân tích riêng:
+
+## UC-POS-CHECKOUT
+
+Phải mô tả chính xác:
+
+### Input
+
+* cart items
+* product ID
+* quantity
+* customer ID optional
+* payment method
+* paid amount
+* idempotency key
+
+### Backend phải tự xác định lại
+
+* product tồn tại
+* product active
+* current selling price
+* stock
+* subtotal
+* total
+* paid amount
+* debt amount
+
+Frontend total chỉ dùng cho UX.
+
+### Transaction
+
+Toàn bộ:
+
+```text
+Order
+OrderItem
+Payment
+Debt
+StockMovement
+AuditLog
+```
+
+phải được xử lý trong transaction phù hợp.
+
+### Concurrency
+
+Phải mô tả cách tránh:
+
+```text
+Stock = 1
+
+User A mua 1
+User B mua 1
+```
+
+Không được để cả hai transaction thành công.
+
+### Idempotency
+
+Phải mô tả cách chống:
+
+```text
+User tap Checkout
+User tap Checkout lần 2
+```
+
+không được tạo hai Order.
+
+---
+
+# 6. PHÂN TÍCH CART
+
+Cart không phải database transaction.
+
+Cart là UI state.
+
+Phân tích rõ:
+
+```text
+Product search
+      ↓
+Stimulus
+      ↓
+Local cart
+      ↓
+UI calculation
+      ↓
+Checkout
+      ↓
+Backend authoritative validation
+```
+
+Các action:
+
+* add
+* increase quantity
+* decrease quantity
+* remove
+* clear
+
+phải ưu tiên **zero HTTP request**.
+
+---
+
+# 7. PHÂN TÍCH DEBT
+
+Debt phải được thiết kế theo từng khoản phát sinh từ Order.
+
+Không dùng:
+
+```text
+Customer.totalDebt
+```
+
+làm nguồn dữ liệu duy nhất.
+
+Mô hình logic:
+
+```text
+Customer
+ ├── Debt #001 → Order #1001
+ ├── Debt #002 → Order #1010
+ └── Debt #003 → Order #1050
+```
+
+Phải phân tích:
+
+* tạo debt
+* partial payment
+* full payment
+* overdue
+* due date
+* reminder
+* debt history
+
+Dư nợ customer có thể được tính từ các Debt còn outstanding.
+
+---
+
+# 8. PHÂN TÍCH STOCK
+
+Stock là dữ liệu quan trọng.
+
+Phải có Use Case cho:
+
+* sale deduction
+* cancellation reversal
+* refund reversal
+* manual adjustment
+* initial stock
+
+Mỗi thay đổi stock phải có StockMovement.
+
+Phải xác định rõ:
+
+```text
+quantityBefore
+quantityChange
+quantityAfter
+```
+
+và actor/reference.
+
+---
+
+# 9. ASYNC USE CASE
+
+Xác định các Use Case có thể dùng Messenger.
+
+Ví dụ:
+
+```text
+UC-ASYNC-01
+Debt Reminder
+
+UC-ASYNC-02
+Statistics Aggregation
+
+UC-ASYNC-03
+Report Export
+
+UC-ASYNC-04
+Notification
+
+UC-ASYNC-05
+Cleanup
+```
+
+Với mỗi Use Case async phải xác định:
+
+* Message
+* Message payload
+* Handler
+* Trigger
+* Retry
+* Failure behavior
+* Idempotency
+
+Không được đưa:
+
+* checkout
+* stock deduction
+* payment
+* debt creation
+* debt payment
+
+vào async nếu điều đó làm người dùng không nhận được kết quả transaction ngay lập tức.
+
+---
+
+# 10. USE CASE DEPENDENCY
+
+Sau khi liệt kê Use Case, tạo dependency map.
+
+Ví dụ:
+
+```text
+UC Search Product
+       ↓
+UC Add To Cart
+       ↓
+UC Checkout
+       ├── UC Payment
+       ├── UC Stock Deduction
+       └── UC Create Debt
+                  ↓
+             UC Debt Payment
+```
+
+Phân biệt:
+
+* required dependency
+* optional dependency
+* async dependency
+
+---
+
+# 11. USE CASE → ENTITY MAPPING
+
+Sau khi phân tích Use Case, tạo bảng:
+
+| Use Case         | Entity đọc        | Entity tạo                | Entity cập nhật | Audit |
+| ---------------- | ----------------- | ------------------------- | --------------- | ----- |
+| Checkout         | Product           | Order, OrderItem, Payment | Product         | Yes   |
+| Credit Sale      | Product, Customer | Order, OrderItem, Debt    | Product         | Yes   |
+| Pay Debt         | Customer, Debt    | DebtPayment               | Debt            | Yes   |
+| Stock Adjustment | Product           | StockMovement             | Product         | Yes   |
+
+Không bỏ qua entity nào bị thay đổi.
+
+---
+
+# 12. USE CASE → SERVICE MAPPING
+
+Đề xuất Application Service.
+
+Ví dụ:
+
+```text
+Checkout
+→ OrderService / CheckoutService
+
+Pay Debt
+→ DebtPaymentService
+
+Stock Adjustment
+→ StockService
+
+Cancel Order
+→ OrderCancellationService
+
+Product Management
+→ ProductService
+
+Customer Management
+→ CustomerService
+```
+
+Không nhất thiết tạo một service cho mọi Use Case nếu chúng thực sự thuộc cùng một transaction/business boundary.
+
+---
+
+# 13. USE CASE → ROUTE MAPPING
+
+Chỉ đề xuất route ở mức conceptual.
+
+Ví dụ:
+
+```text
+GET  /pos
+POST /pos/checkout
+
+GET  /products/search
+GET  /customers/search
+
+GET  /orders
+GET  /orders/{id}
+
+GET  /customers
+GET  /customers/{id}
+
+POST /debts/{id}/payments
+
+GET  /stock
+POST /stock/adjust
+
+GET /admin/audit-logs
+GET /admin/sessions
+```
+
+Phân biệt:
+
+* HTML route
+* AJAX/fetch endpoint
+* Admin route
+
+Không tạo endpoint cho những interaction Stimulus có thể xử lý local.
+
+---
+
+# 14. USE CASE → STIMULUS MAPPING
+
+Đề xuất các Stimulus Controller cần thiết.
+
+Ví dụ:
+
+```text
+pos-cart
+product-search
+checkout
+customer-search
+debt-payment
+session-status
+```
+
+Mỗi controller phải có responsibility nhỏ.
+
+Không tạo một `app_controller.js` khổng lồ.
+
+---
+
+# 15. USE CASE → MESSENGER MAPPING
+
+Đề xuất:
+
+```text
+DebtReminderMessage
+StatisticsAggregationMessage
+ExportReportMessage
+CleanupMessage
+```
+
+Chỉ sử dụng khi thực sự cần async.
+
+---
+
+# 16. EDGE CASES
+
+Phải chủ động phân tích các edge case quan trọng:
+
+### POS
+
+* cart rỗng
+* product bị inactive sau khi thêm vào cart
+* price thay đổi sau khi thêm vào cart
+* stock thay đổi sau khi thêm vào cart
+* thiếu stock
+* duplicate checkout
+* network timeout sau khi backend đã commit
+* user tap nhiều lần
+* session hết hạn
+
+### Debt
+
+* payment bằng đúng remaining amount
+* payment nhỏ hơn remaining
+* payment lớn hơn remaining
+* debt đã PAID
+* debt overdue
+* customer có nhiều debt
+
+### Stock
+
+* stock = 0
+* adjustment âm
+* adjustment làm stock âm
+* concurrent sale
+* cancel order hai lần
+
+### Order
+
+* cancel order đã cancelled
+* cancel order đã refunded
+* refund nhiều lần
+* order không tồn tại
+
+---
+
+# 17. NETWORK FAILURE
+
+Đặc biệt phân tích trường hợp:
+
+```text
+User checkout
+      ↓
+Backend commit thành công
+      ↓
+Network timeout
+      ↓
+Frontend không biết success
+```
+
+Không được thiết kế đơn giản bằng cách:
+
+```text
+Retry POST
+```
+
+vì có thể tạo duplicate order.
+
+Phải sử dụng idempotency key hoặc cơ chế tương đương.
+
+Frontend phải có flow an toàn để kiểm tra trạng thái transaction trước khi retry.
+
+---
+
+# 18. ACCEPTANCE CRITERIA
+
+Mỗi Use Case phải có acceptance criteria có thể chuyển thành automated test.
+
+Ví dụ:
+
+```text
+Given product stock = 10
+When user buys quantity 3
+Then order is completed
+And stock becomes 7
+And StockMovement is created
+```
+
+Hoặc:
+
+```text
+Given debt remaining = 100,000
+When customer pays 40,000
+Then DebtPayment = 40,000
+And debt remaining = 60,000
+And status = PARTIALLY_PAID
+```
+
+Acceptance criteria phải rõ ràng, deterministic và testable.
+
+---
+
+# 19. OUTPUT FORMAT
+
+Kết quả cuối cùng phải gồm đúng các phần:
+
+## 1. Actors
+
+Danh sách actor + quyền.
+
+## 2. Use Case Catalog
+
+Danh sách tất cả Use Case với ID.
+
+## 3. Detailed Use Cases
+
+Chi tiết từng Use Case theo format ở trên.
+
+## 4. Critical Business Flows
+
+Đặc biệt:
+
+* Checkout
+* Credit Sale
+* Debt Payment
+* Stock Adjustment
+* Order Cancellation
+
+## 5. Use Case Dependency Map
+
+Sơ đồ dependency.
+
+## 6. Use Case → Entity Matrix
+
+Mapping đầy đủ.
+
+## 7. Use Case → Service Matrix
+
+Mapping service.
+
+## 8. Use Case → Route Matrix
+
+Mapping route.
+
+## 9. Use Case → Stimulus Matrix
+
+Mapping frontend controller.
+
+## 10. Use Case → Messenger Matrix
+
+Mapping async jobs.
+
+## 11. Transaction Boundaries
+
+Liệt kê chính xác transaction nào synchronous/atomic.
+
+## 12. Edge Cases
+
+Danh sách edge cases + expected behavior.
+
+## 13. Acceptance Criteria
+
+Acceptance criteria cho các flow quan trọng.
+
+## 14. Open Questions
+
+Chỉ đưa ra câu hỏi nếu requirement thực sự chưa đủ để quyết định.
+
+Không tự ý phát minh business rule.
+
+---
+
+# 20. QUY TẮC CUỐI
+
+Không code.
+
+Không tạo Entity code.
+
+Không tạo migration.
+
+Không tạo Controller code.
+
+Không tạo Twig code.
+
+Không tạo Stimulus code.
+
+Chỉ thiết kế **Use Case và nghiệp vụ**.
+
+Nếu một quyết định ảnh hưởng đến:
+
+* tiền
+* stock
+* debt
+* transaction
+* audit
+
+phải chỉ rõ decision và lý do.
+
+Luôn ưu tiên:
+
+**Correctness → Mobile UX → Few Requests → Performance → Simplicity.**
+
+Hãy thiết kế hệ thống như một **POS thực tế dùng hàng ngày trên điện thoại**, không phải một bài demo CRUD.

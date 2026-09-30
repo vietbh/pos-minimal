@@ -56,6 +56,34 @@ app:
   today: Today
   overview: Overview
   view_statistics: View statistics
+  dashboard_navigation: Home navigation
+  dashboard_tab_overview: Overview
+  dashboard_tab_operations: Operations
+  dashboard_tab_insights: Insights
+  dashboard_tab_administration: Administration
+  dashboard_default_tab: Default tab when opening Home
+  dashboard_default_tab_help: Choose the tab opened first. Role-based selection follows your current permissions and role.
+  dashboard_default_tab_auto: Based on role
+  dashboard_default_tab_auto_help: Use the role-based default; if unavailable, fall back to Overview.
+  dashboard_default_tab_option_help: Open this tab when entering Home while you still have access.
+  dashboard_today_summary: Today summary
+  dashboard_completed_orders: Completed / refunded orders in today’s data
+  dashboard_last_7_days: Last 7 days
+  dashboard_sales_7_days: Sales for 7 days
+  dashboard_chart_summary: 7-day sales summary
+  dashboard_7_day_total: 7-day total
+  dashboard_million_unit: million VND
+  dashboard_highest_day: Highest day
+  dashboard_chart_aria: Seven-day sales bar chart; each bar represents a day and its height represents sales
+  dashboard_chart_empty: No sales in the last 7 days
+  dashboard_chart_empty_help: The chart will appear when completed sales are available.
+  dashboard_no_statistics: Overview data is not available for your current permissions
+  dashboard_no_statistics_help: You can still use the functions available in the Operations tab.
+  dashboard_quick_actions: Quick actions
+  dashboard_admin_actions: Administration functions
+  dashboard_manage_users: Manage user accounts according to your permissions.
+  dashboard_sales_points: Sales points
+  dashboard_root_analytics: View system analytics according to your permissions.
   sales_today: Sales today
   valid_orders: valid orders
   completed_refunded_orders: Completed / refunded orders

@@ -1,0 +1,1307 @@
+Được. Với source hiện tại và architecture đã chốt, **2.28.1 nên là một diagnostic phase riêng**, chưa vội làm `MomoNotificationParser` hay thay đổi reconciliation backend.
+
+Mục tiêu là trả lời chính xác một câu:
+
+> **Android OS có chuyển notification MoMo vào `NotificationListenerService` hay không, và nếu có thì app đang drop nó ở tầng nào?**
+
+Source architecture hiện tại yêu cầu notification phải được persist local trước rồi mới enqueue delivery, đồng thời không log raw bank notification lên production backend. fileciteturn2file1 fileciteturn2file2
+
+:::writing{variant="document" id="58321" title="PHASE 2.28.1 — Android Notification Diagnostic + Real MoMo Capture"}
+# PHASE 2.28.1 — ANDROID NOTIFICATION DIAGNOSTIC + REAL MOMO CAPTURE
+
+## 0. ROLE
+
+Bạn là:
+
+- Senior Android Engineer
+- Kotlin Engineer
+- Android NotificationListenerService Engineer
+- Mobile Reliability Engineer
+- Security Engineer
+- POS Payment Integration Engineer
+
+Bạn đang tiếp tục project:
+
+**Mobile POS — REAL MONEY BRIDGE**
+
+Phase hiện tại:
+
+**PHASE 2.28.1 — Android Notification Diagnostic + Real MoMo Capture**
+
+---
+
+# 1. OBJECTIVE
+
+Mục tiêu của phase này là:
+
+1. xác định chính xác notification MoMo thực tế trên Android;
+2. xác nhận `NotificationListenerService` có nhận được notification MoMo hay không;
+3. xác định `packageName`, `title`, `text`, `bigText`, `subText`, `notificationKey`, `postedAt`;
+4. tìm chính xác tầng đang drop notification;
+5. bảo đảm notification MoMo được capture vào local event store nếu Android OS cung cấp nó;
+6. không phụ thuộc vào package name MoMo được đoán trước;
+7. không phá vỡ VCB notification hiện đang hoạt động;
+8. không thay đổi Symfony payment authority;
+9. không tạo payment chỉ vì Android capture được notification;
+10. tạo nền tảng để Phase 2.28.2 implement parser MoMo thực tế.
+
+Phase này là:
+
+```text id="v9pas9"
+DIAGNOSTIC + CAPTURE
+```
+
+Không phải:
+
+```text id="x3zjxe"
+PAYMENT RECONCILIATION
+```
+
+---
+
+# 2. SOURCE OF TRUTH
+
+TRƯỚC KHI CODE:
+
+Inspect toàn bộ repository hiện tại.
+
+Đặc biệt inspect:
+
+```text id="fp82n9"
+NotificationListenerService
+NotificationEvent
+notification filtering
+provider/source configuration
+parser
+local database / Room
+repository
+WorkManager
+webhook client
+delivery queue
+UI/ViewModel
+settings
+tests
+```
+
+Không tạo architecture mới nếu repository đã có implementation tương ứng.
+
+Nếu source hiện tại khác prompt:
+
+```text id="o2a12f"
+STOP
+→ report exact mismatch
+→ preserve existing finalized architecture
+→ implement minimal compatible change
+```
+
+Không silently rewrite architecture.
+
+---
+
+# 3. EXISTING ARCHITECTURE MUST REMAIN
+
+Architecture hiện tại:
+
+```text id="xrp4oh"
+Android UI
+    ↓
+ViewModel
+    ↓
+Use Case
+    ↓
+Repository
+    ↓
+Room / WorkManager
+    ↓
+Webhook API
+```
+
+Notification path:
+
+```text id="9vt7hi"
+NotificationListenerService
+        ↓
+Notification Parser / Capture
+        ↓
+Local Event Store
+        ↓
+Delivery Queue
+        ↓
+Webhook Client
+```
+
+Giữ nguyên architecture này.
+
+Source architecture yêu cầu Android chỉ xử lý notification mà Android OS chuyển cho `NotificationListenerService`; Android không được truy cập trực tiếp ngân hàng hoặc tự quyết định payment. fileciteturn2file5
+
+---
+
+# 4. PHASE BOUNDARY
+
+Phase 2.28.1 chỉ giải quyết:
+
+```text id="zaq0kl"
+Android OS
+    ↓
+NotificationListenerService
+    ↓
+Raw Notification Diagnostic
+    ↓
+NotificationEvent
+    ↓
+Local persistence
+```
+
+KHÔNG giải quyết:
+
+```text id="gimjbo"
+MoMo → Payment
+MoMo → Order
+MoMo → PaymentReference
+MoMo → COMPLETED
+```
+
+KHÔNG thay đổi backend reconciliation.
+
+KHÔNG thay đổi PaymentReference.
+
+KHÔNG thay đổi Payment.
+
+KHÔNG thay đổi Order state machine.
+
+---
+
+# 5. CORE DEBUG QUESTION
+
+Sau khi implementation hoàn thành, khi user thực hiện một giao dịch MoMo thật, phải xác định được:
+
+```text id="4euiw1"
+Did onNotificationPosted() fire?
+```
+
+Nếu YES:
+
+```text id="85gvbk"
+What packageName?
+What title?
+What text?
+What bigText?
+What subText?
+What notification key?
+What timestamp?
+Was it filtered?
+Was it persisted?
+Was it queued?
+```
+
+Nếu NO:
+
+```text id="pn408o"
+Android OS
+    ↓
+NotificationListenerService
+       X
+```
+
+thì phải thể hiện rõ:
+
+```text id="kwd8kv"
+NOTIFICATION_NOT_RECEIVED_BY_LISTENER
+```
+
+Không được giả định package name.
+
+---
+
+# 6. NOTIFICATION LISTENER
+
+Inspect existing:
+
+```kotlin id="o5xffb"
+NotificationListenerService
+```
+
+Đảm bảo `onNotificationPosted()` capture được metadata tối thiểu:
+
+```text id="fcjczh"
+packageName
+title
+content
+receivedAt
+```
+
+Có thể capture thêm:
+
+```text id="q0w1zc"
+notificationKey
+postedAt
+bigText
+subText
+```
+
+nếu Android API cung cấp.
+
+---
+
+# 7. CAPTURE ALL NOTIFICATIONS IN DIAGNOSTIC MODE
+
+Thêm một diagnostic mode có thể bật/tắt.
+
+Ví dụ:
+
+```text id="id7m1y"
+Diagnostic Mode
+[ OFF ]
+
+hoặc
+
+Diagnostic Mode
+[ ON ]
+```
+
+Khi:
+
+```text id="kf30yg"
+Diagnostic Mode = ON
+```
+
+KHÔNG áp dụng provider filter trước khi capture.
+
+Behavior:
+
+```text id="qanm06"
+ANY ANDROID NOTIFICATION
+        ↓
+capture diagnostic metadata
+        ↓
+persist locally
+```
+
+Không được:
+
+```text id="szdnzp"
+notification
+    ↓
+provider filter
+    ↓
+drop
+    ↓
+không biết notification tồn tại
+```
+
+Mục đích là phát hiện notification MoMo thực tế.
+
+---
+
+# 8. DO NOT GUESS MOMO PACKAGE NAME
+
+KHÔNG hard-code:
+
+```text id="latz9f"
+com.mservice.momotransfer
+```
+
+làm điều kiện duy nhất để capture MoMo.
+
+KHÔNG giả định:
+
+```text id="3g4fqs"
+packageName = known package
+```
+
+là đúng trên mọi thiết bị/version.
+
+Diagnostic mode phải ghi nhận package name thực tế.
+
+Sau khi user nhận notification MoMo, UI/log diagnostic phải cho phép xác định:
+
+```text id="4gobm8"
+Actual packageName
+Actual title
+Actual content
+```
+
+---
+
+# 9. DO NOT DROP BEFORE DIAGNOSTIC CAPTURE
+
+Nếu code hiện tại có logic tương tự:
+
+```kotlin id="vwp685"
+if (!shouldTrack(...)) {
+    return
+}
+```
+
+phải review.
+
+Trong diagnostic mode:
+
+```text id="amk6w6"
+onNotificationPosted()
+        ↓
+capture metadata
+        ↓
+persist diagnostic event
+        ↓
+optional provider classification
+```
+
+KHÔNG:
+
+```text id="z3vc03"
+onNotificationPosted()
+        ↓
+shouldTrack()
+        ↓
+return
+```
+
+trước khi diagnostic information được capture.
+
+---
+
+# 10. NOTIFICATION DATA EXTRACTION
+
+Extract notification data defensively.
+
+Ưu tiên đọc:
+
+```text id="cinghw"
+Notification.EXTRA_TITLE
+Notification.EXTRA_TEXT
+Notification.EXTRA_BIG_TEXT
+Notification.EXTRA_SUB_TEXT
+```
+
+Nếu một field không tồn tại:
+
+```text id="c4egqj"
+null
+```
+
+Không crash.
+
+Không coi:
+
+```text id="n5wye0"
+text == null
+```
+
+là notification invalid.
+
+---
+
+# 11. MULTI-TEXT NOTIFICATIONS
+
+Một số Android notification có thể chứa nhiều text representation.
+
+Diagnostic capture phải ưu tiên:
+
+```text id="5v0u1a"
+title
+text
+bigText
+subText
+```
+
+Nếu cần tạo:
+
+```text id="b68faf"
+content
+```
+
+thì dùng deterministic precedence rõ ràng.
+
+Ví dụ:
+
+```text id="un8g0c"
+content =
+    bigText
+    ?: text
+    ?: subText
+    ?: ""
+```
+
+Nhưng:
+
+KHÔNG xóa các field gốc nếu model hiện tại có khả năng lưu chúng.
+
+Diagnostic information phải đủ để debug notification thực tế.
+
+---
+
+# 12. RAW CONTENT SECURITY
+
+Notification có thể chứa:
+
+- số tiền;
+- tên người chuyển;
+- số tài khoản;
+- mã giao dịch;
+- nội dung chuyển khoản;
+- dữ liệu cá nhân.
+
+Do đó:
+
+KHÔNG log raw notification content vào production backend.
+
+KHÔNG gửi raw diagnostic payload lên Symfony chỉ để debug.
+
+Diagnostic data nên ở local Android device trong thời gian ngắn.
+
+Source architecture cũng yêu cầu không log raw bank notification và full webhook payload. fileciteturn2file1
+
+---
+
+# 13. LOCAL DIAGNOSTIC EVENT
+
+Nếu existing `NotificationEvent` đủ dùng:
+
+→ reuse.
+
+Nếu chưa đủ:
+
+→ mở rộng minimal.
+
+Conceptual fields:
+
+```text id="ukz828"
+id
+clientEventId
+packageName
+title
+content
+bigText
+subText
+notificationKey
+postedAt
+receivedAt
+source
+diagnostic
+deliveryStatus
+```
+
+Không duplicate event model nếu repository đã có model tương đương.
+
+---
+
+# 14. CLIENT EVENT ID
+
+Giữ nguyên invariant hiện tại:
+
+```text id="9iedyt"
+one logical notification
+        ↓
+one clientEventId
+```
+
+Retry:
+
+```text id="g42pto"
+same event
+    ↓
+same clientEventId
+```
+
+Không tạo UUID mới mỗi retry.
+
+Client event ID phải deterministic/unique và stable across retries.
+
+---
+
+# 15. LOCAL PERSISTENCE FIRST
+
+Notification phải:
+
+```text id="7t732i"
+received
+   ↓
+persist locally
+   ↓
+enqueue delivery
+```
+
+Không:
+
+```text id="miofv2"
+received
+   ↓
+HTTP
+   ↓
+persist
+```
+
+Source architecture yêu cầu local DB là durability boundary của Android client. fileciteturn2file1
+
+---
+
+# 16. DIAGNOSTIC MODE MUST NOT CHANGE PAYMENT SEMANTICS
+
+Diagnostic capture:
+
+```text id="j8nof7"
+capture notification
+```
+
+KHÔNG đồng nghĩa:
+
+```text id="8ob3qu"
+payment successful
+```
+
+Android vẫn là:
+
+```text id="ez4wab"
+untrusted edge
+```
+
+Symfony vẫn là:
+
+```text id="a1i97g"
+authoritative backend
+```
+
+Backend không được tin rằng notification capture đồng nghĩa payment success. fileciteturn2file1
+
+---
+
+# 17. UI — DIAGNOSTIC SCREEN
+
+Thêm hoặc mở rộng một màn hình diagnostic tối giản.
+
+Ví dụ:
+
+```text id="mm8jx2"
+┌─────────────────────────────────┐
+│ Notification Diagnostic         │
+│                                 │
+│ Diagnostic Mode                 │
+│ [ ON ]                          │
+│                                 │
+│ Notifications captured: 12      │
+│                                 │
+│ Latest notification             │
+│                                 │
+│ Package                         │
+│ com.example.actual.package      │
+│                                 │
+│ Title                           │
+│ MoMo                            │
+│                                 │
+│ Text                            │
+│ ...                             │
+│                                 │
+│ Big Text                        │
+│ ...                             │
+│                                 │
+│ Received                        │
+│ 16:20:31                        │
+└─────────────────────────────────┘
+```
+
+UI phải phục vụ diagnostic.
+
+Không cần dashboard phức tạp.
+
+---
+
+# 18. SENSITIVE CONTENT UI
+
+Diagnostic screen có thể hiển thị sensitive notification content vì đây là local diagnostic tool.
+
+Nhưng phải:
+
+- chỉ hiển thị local;
+- không upload tự động;
+- không log vào production;
+- có nút clear diagnostics;
+- giới hạn số lượng events;
+- giới hạn kích thước content.
+
+Không lưu vô hạn notification.
+
+---
+
+# 19. DIAGNOSTIC RETENTION
+
+Diagnostic data phải bounded.
+
+Ví dụ:
+
+```text id="dirqvz"
+maximum events = configured limit
+maximum content length = configured limit
+```
+
+Khi vượt giới hạn:
+
+```text id="9yljob"
+remove oldest diagnostic event
+```
+
+Không để notification database tăng vô hạn.
+
+---
+
+# 20. NORMAL PROVIDER FLOW MUST REMAIN
+
+Diagnostic mode OFF:
+
+```text id="tgjkze"
+Notification
+    ↓
+existing provider/filter architecture
+    ↓
+existing parser
+    ↓
+existing NotificationEvent
+    ↓
+existing queue
+```
+
+VCB hiện tại phải tiếp tục hoạt động.
+
+MoMo chưa parse được cũng không được làm VCB hỏng.
+
+---
+
+# 21. DIAGNOSTIC MODE ON
+
+Khi ON:
+
+```text id="5phhvn"
+Notification
+    ↓
+CAPTURE
+    ↓
+persist diagnostic metadata
+    ↓
+display in diagnostic UI
+```
+
+Có thể tiếp tục provider/parser flow nếu architecture hiện tại hỗ trợ.
+
+Nhưng diagnostic capture không được phụ thuộc parser thành công.
+
+---
+
+# 22. DO NOT IMPLEMENT MOMO BUSINESS PARSER YET
+
+KHÔNG viết:
+
+```text id="c3lpdv"
+MomoNotificationParser
+```
+
+nếu chưa có notification thực tế để làm source of truth.
+
+KHÔNG đoán format:
+
+```text id="icvm8o"
+"Bạn vừa nhận..."
+```
+
+KHÔNG đoán:
+
+```text id="r9hqr7"
+amount regex
+reference regex
+sender regex
+```
+
+KHÔNG map MoMo notification trực tiếp thành Payment.
+
+Phase 2.28.1 phải lấy dữ liệu thật trước.
+
+Phase tiếp theo mới implement parser dựa trên captured notification.
+
+---
+
+# 23. LOGGING
+
+Trong DEBUG/diagnostic development có thể log metadata cần thiết:
+
+```text id="9bq262"
+eventId
+packageName
+notificationKey
+receivedAt
+deliveryStatus
+```
+
+Raw content chỉ được phép trong local diagnostic UI/development nếu thực sự cần.
+
+Production logging:
+
+KHÔNG log:
+
+```text id="5897ii"
+raw notification
+full content
+authorization header
+webhook secret
+```
+
+---
+
+# 24. NOTIFICATION ACCESS STATUS
+
+UI phải tiếp tục hiển thị:
+
+```text id="01s9tb"
+Notification Listener permission
+```
+
+Nếu chưa bật:
+
+```text id="9s365v"
+Notification access required
+```
+
+và có action:
+
+```text id="3n7beo"
+Open Android Settings
+```
+
+Không bypass permission.
+
+Source architecture đã quy định behavior này. fileciteturn2file1
+
+---
+
+# 25. SERVICE LIFECYCLE
+
+Không thêm polling.
+
+KHÔNG:
+
+```text id="wmxcij"
+poll MoMo app every N seconds
+```
+
+KHÔNG:
+
+```text id="ftsg9s"
+launch MoMo
+scrape screen
+```
+
+KHÔNG:
+
+```text id="5qb8vm"
+AccessibilityService
+```
+
+để đọc dữ liệu ngân hàng nếu không cần.
+
+Chỉ dùng:
+
+```text id="42hc4j"
+NotificationListenerService
+```
+
+theo architecture hiện tại.
+
+---
+
+# 26. TEST CASES
+
+Phải thêm/update tests phù hợp với architecture hiện tại.
+
+## TEST 01 — VCB still captured
+
+Given:
+
+```text id="be3326"
+VCB notification
+```
+
+Expect:
+
+```text id="tblljg"
+existing VCB flow still works
+```
+
+---
+
+## TEST 02 — Diagnostic captures arbitrary notification
+
+Given:
+
+```text id="vtl08m"
+Diagnostic Mode = ON
+notification package = unknown.package
+```
+
+Expect:
+
+```text id="19xepl"
+notification captured
+```
+
+Không drop chỉ vì package unknown.
+
+---
+
+## TEST 03 — Diagnostic captures MoMo notification
+
+Given actual MoMo-like notification:
+
+```text id="jh3bb0"
+package = actual runtime package
+title = actual runtime title
+content = actual runtime content
+```
+
+Expect:
+
+```text id="iogrpj"
+NotificationEvent persisted locally
+```
+
+---
+
+## TEST 04 — Package name is recorded
+
+Expect:
+
+```text id="7c898o"
+event.packageName == actual packageName
+```
+
+---
+
+## TEST 05 — Title is recorded
+
+Expect:
+
+```text id="xq93ho"
+event.title == actual title
+```
+
+---
+
+## TEST 06 — Text is recorded
+
+Expect:
+
+```text id="58qsd7"
+event.content == actual extracted content
+```
+
+---
+
+## TEST 07 — Big text is preserved when available
+
+Given:
+
+```text id="8eymoi"
+EXTRA_BIG_TEXT
+```
+
+Expect:
+
+```text id="wkyapg"
+event.bigText != null
+```
+
+nếu model hỗ trợ.
+
+---
+
+## TEST 08 — Missing extras do not crash
+
+Given:
+
+```text id="cj2k2r"
+title = null
+text = null
+bigText = null
+```
+
+Expect:
+
+```text id="2tldj8"
+notification callback does not crash
+```
+
+---
+
+## TEST 09 — Diagnostic mode OFF preserves existing filter
+
+Given:
+
+```text id="jziev9"
+Diagnostic Mode = OFF
+unknown notification
+```
+
+Expect:
+
+```text id="rrhlik"
+existing provider/filter behavior
+```
+
+---
+
+## TEST 10 — Diagnostic mode does not create payment
+
+Given:
+
+```text id="7ard39"
+MoMo notification captured
+```
+
+Expect:
+
+```text id="5y0nmm"
+Payment count unchanged
+Order state unchanged
+PaymentReference unchanged
+```
+
+---
+
+## TEST 11 — Local persistence before delivery
+
+Given:
+
+```text id="pb6n2p"
+notification received
+```
+
+Expect:
+
+```text id="x0zevm"
+local event exists before webhook delivery
+```
+
+---
+
+## TEST 12 — Stable clientEventId
+
+Given same notification event:
+
+```text id="frkr28"
+initial delivery
+retry
+```
+
+Expect:
+
+```text id="9p5wwa"
+same clientEventId
+```
+
+---
+
+## TEST 13 — Bounded diagnostic storage
+
+Given:
+
+```text id="zzim7f"
+more notifications than configured retention
+```
+
+Expect:
+
+```text id="am4uil"
+oldest diagnostic records removed
+```
+
+and storage remains bounded.
+
+---
+
+# 27. MANUAL REAL-DEVICE TEST
+
+Sau khi build APK:
+
+### Step 1
+
+Install APK trên Android device.
+
+### Step 2
+
+Open:
+
+```text id="wdg1a3"
+Settings
+→ Notification Access
+```
+
+Enable:
+
+```text id="fcwnj1"
+POS Notification Client
+```
+
+### Step 3
+
+Trong app:
+
+```text id="96wmbf"
+Diagnostic Mode = ON
+```
+
+### Step 4
+
+Thực hiện một giao dịch MoMo thật.
+
+### Step 5
+
+Chờ notification MoMo xuất hiện.
+
+### Step 6
+
+Mở:
+
+```text id="gai6sc"
+Notification Diagnostic
+```
+
+### Step 7
+
+Ghi nhận chính xác:
+
+```text id="gtoz9q"
+packageName
+title
+content
+bigText
+subText
+notificationKey
+receivedAt
+```
+
+### Step 8
+
+Không cần gửi notification này lên payment webhook để kết luận thành công.
+
+Mục tiêu test này chỉ là:
+
+```text id="ty3ysb"
+REAL MOMO NOTIFICATION
+        ↓
+REAL ANDROID CAPTURE
+```
+
+---
+
+# 28. ACCEPTANCE CRITERIA
+
+Phase 2.28.1 chỉ được coi là COMPLETE khi:
+
+### A
+
+`NotificationListenerService` hoạt động ổn định.
+
+### B
+
+VCB notification hiện tại không bị regression.
+
+### C
+
+Diagnostic mode có thể capture notification không phụ thuộc provider.
+
+### D
+
+Một notification MoMo thật được capture nếu Android OS cung cấp notification cho listener.
+
+### E
+
+Actual `packageName` được xác định.
+
+### F
+
+Actual title/content được xác định.
+
+### G
+
+Không hard-code package name dựa trên giả định.
+
+### H
+
+Notification được persist local trước delivery.
+
+### I
+
+Không có payment nào được tạo chỉ vì diagnostic capture.
+
+### J
+
+Không gửi raw diagnostic notification lên Symfony một cách tự động.
+
+### K
+
+Diagnostic storage bounded.
+
+### L
+
+Tests pass.
+
+---
+
+# 29. IMPORTANT OUTCOME
+
+Sau phase này phải thu được một evidence record kiểu:
+
+```text id="jjvvw8"
+REAL MOMO NOTIFICATION
+----------------------
+
+packageName:
+<actual value>
+
+title:
+<actual value>
+
+content:
+<actual value>
+
+bigText:
+<actual value or null>
+
+subText:
+<actual value or null>
+
+notificationKey:
+<actual value>
+
+postedAt:
+<actual value>
+
+receivedAt:
+<actual value>
+```
+
+Đây là **source of truth cho Phase 2.28.2 — Real MoMo Notification Parser**.
+
+Không được tự suy đoán các field trên trước khi có notification thực tế.
+
+---
+
+# 30. FINAL ARCHITECTURE AFTER PHASE 2.28.1
+
+```text id="1aigug"
+                 Android OS
+                     │
+                     ▼
+       NotificationListenerService
+                     │
+                     ▼
+             Notification Capture
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+          ▼                     ▼
+ Diagnostic Store         Normal Pipeline
+          │                     │
+          ▼                     ▼
+ Diagnostic UI             Parser Registry
+                                  │
+                         ┌────────┼────────┐
+                         ▼        ▼        ▼
+                        VCB     MoMo     Generic
+                         │        │        │
+                         └────────┼────────┘
+                                  ▼
+                           NotificationEvent
+                                  │
+                                  ▼
+                             Local Room
+                                  │
+                                  ▼
+                            WorkManager
+                                  │
+                                  ▼
+                           HTTPS Webhook
+                                  │
+                                  ▼
+                         Symfony Backend
+                                  │
+                                  ▼
+                         Payment Authority
+```
+
+Backend remains authoritative.
+
+Android remains an untrusted notification observer/transport.
+
+---
+
+# 31. IMPLEMENTATION RULE
+
+IMPLEMENT THẬT.
+
+Không chỉ mô tả.
+
+Phải:
+
+1. inspect repository;
+2. identify current notification listener;
+3. identify current filter;
+4. identify current event model;
+5. identify Room persistence;
+6. identify WorkManager;
+7. implement diagnostic capture;
+8. implement bounded local diagnostic storage;
+9. implement diagnostic UI;
+10. add tests;
+11. build APK;
+12. run tests;
+13. verify no VCB regression.
+
+Nếu build/test failure:
+
+```text id="v02f91"
+STOP
+→ report exact failure
+→ fix root cause
+→ rerun
+```
+
+Không bỏ qua test.
+
+Không fake successful real-device verification.
+
+---
+
+# 32. DO NOT EXPAND SCOPE
+
+Không implement trong Phase 2.28.1:
+
+- MoMo payment reconciliation;
+- PaymentReference matching;
+- automatic payment creation;
+- Order completion;
+- bank account validation;
+- amount authorization;
+- new backend endpoint;
+- new payment architecture;
+- banking login;
+- OTP;
+- screen scraping;
+- accessibility automation;
+- polling;
+- Casso integration;
+- production payment authority changes.
+
+Phase này chỉ làm:
+
+```text id="b9rawz"
+REAL MOMO NOTIFICATION
+        ↓
+REAL ANDROID CAPTURE
+        ↓
+DIAGNOSTIC EVIDENCE
+```
+
+Sau khi có evidence thực tế mới tiến hành parser và real-money reconciliation.
+:::
+
+Điểm mấu chốt của prompt này là **không đoán MoMo package name nữa**. Ta mở một “cửa sổ quan sát” ngay tại `NotificationListenerService`; nếu MoMo có đi vào Android notification pipeline thì chắc chắn sẽ biết nó mang `packageName/title/content` gì. Kiến trúc gốc cũng đã yêu cầu không giả định package/format của từng ngân hàng khi chưa có dữ liệu thực tế. fileciteturn2file5
+
+Sau khi bạn chạy phase này và có **1 notification MoMo thật**, bước kế tiếp sẽ rất sạch: lấy evidence đó làm input để viết **PHASE 2.28.2 — Real MoMo Notification Parser + Normalization**.

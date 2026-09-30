@@ -318,3 +318,21 @@ current.backup-20260921-043015
 và `current/` đang rỗng.
 
 👉 Vì vậy **bước tiếp theo duy nhất là E — `rsync repo/ → current/`**.
+
+#Reset db
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Các bảng phụ thuộc Order
+TRUNCATE TABLE order_items;
+TRUNCATE TABLE payments;
+TRUNCATE TABLE external_payment_transactions;
+TRUNCATE TABLE checkout_payment_sessions;
+TRUNCATE TABLE payment_references;
+
+-- Audit liên quan đến order (nếu muốn reset sạch)
+-- TRUNCATE TABLE audit_logs;
+
+-- Cuối cùng
+TRUNCATE TABLE orders;
+
+SET FOREIGN_KEY_CHECKS = 1;

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller\Application;
 
+use App\Application\Dashboard\DashboardNavigationResolver;
 use App\Application\Security\Permission;
 use App\Application\Statistics\Query\GetDashboardHandler;
 use App\Application\Statistics\Query\StatisticsQueryInput;
 use App\Domain\User\Enum\UserRole;
 use App\Domain\User\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -20,7 +22,11 @@ final class HomeController extends AbstractController
     }
 
     #[Route('/', name: 'app_home', methods: ['GET'])]
-    public function index(GetDashboardHandler $handler): Response
+    public function index(
+        GetDashboardHandler $handler,
+        DashboardNavigationResolver $navigationResolver,
+        Request $request,
+    ): Response
     {
         $this->denyAccessUnlessGranted('ROLE_USER');
 
@@ -50,12 +56,18 @@ final class HomeController extends AbstractController
             $roleLabel = 'Quản trị viên';
         }
 
+        $navigation = $navigationResolver->resolve(
+            $user,
+            $request->query->get('tab'),
+        );
+
         return $this->render('application/home.html.twig', [
             'user' => $user,
             'dashboard' => $dashboard,
             'can_open_pos' => $this->isGranted(Permission::POS_ACCESS->value),
             'role_label' => $roleLabel,
             'is_admin_role' => $user->hasRole(UserRole::ADMIN) || $user->hasRole(UserRole::ROOT),
+            'dashboard_navigation' => $navigation,
         ]);
     }
 }

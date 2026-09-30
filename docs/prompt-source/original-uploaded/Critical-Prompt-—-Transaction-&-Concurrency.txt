@@ -1,0 +1,1127 @@
+# CRITICAL PROMPT — TRANSACTION & CONCURRENCY MOBILE POS
+
+Bạn là **Senior Database Architect + Symfony Transaction Designer + Distributed Systems Engineer**.
+
+Dựa trên:
+
+1. Critical Prompt.
+2. Use Cases.
+3. Entity Model.
+4. Business Rules & State Machine.
+5. Permission Matrix.
+
+Hãy thiết kế **Transaction Boundary, Concurrency Control, Idempotency và Failure Recovery** cho Mobile POS.
+
+**Chưa viết code.**
+
+---
+
+# 1. OBJECTIVE
+
+Đảm bảo:
+
+* không bán vượt stock
+* không tạo duplicate Order
+* không tạo duplicate Payment
+* không tạo Debt sai
+* không ghi StockMovement sai
+* không partial commit
+* retry request an toàn
+* network timeout không gây duplicate
+* concurrent checkout xử lý deterministic
+* audit không bị lệch transaction
+
+---
+
+# 2. TRANSACTION PRINCIPLE
+
+Mỗi business operation quan trọng phải xác định:
+
+```text
+Transaction Start
+        ↓
+Validate
+        ↓
+Lock / Concurrency Control
+        ↓
+Business Mutation
+        ↓
+Audit
+        ↓
+Commit
+```
+
+Nếu fail:
+
+```text
+ROLLBACK
+```
+
+Không commit từng entity riêng lẻ.
+
+---
+
+# 3. TRANSACTION CATALOG
+
+Phải xác định transaction boundary cho:
+
+```text
+TX-001 Checkout
+TX-002 Debt Payment
+TX-003 Stock Adjustment
+TX-004 Order Cancellation
+TX-005 Refund nếu có
+TX-006 Product Price Change nếu cần atomic audit
+TX-007 Session Revoke nếu cần
+```
+
+Với mỗi transaction:
+
+* input
+* entities read
+* entities write
+* locks
+* validation
+* invariant
+* commit
+* rollback
+* audit
+
+---
+
+# 4. CHECKOUT TRANSACTION
+
+Thiết kế chi tiết:
+
+```text
+POST /pos/checkout
+        ↓
+BEGIN TRANSACTION
+        ↓
+Validate idempotency
+        ↓
+Load products
+        ↓
+Lock/check stock
+        ↓
+Resolve current price
+        ↓
+Calculate totals
+        ↓
+Validate customer
+        ↓
+Validate payment
+        ↓
+Create Order
+        ↓
+Create OrderItems
+        ↓
+Create Payment
+        ↓
+Create Debt if necessary
+        ↓
+Update stock
+        ↓
+Create StockMovement
+        ↓
+Create AuditLog
+        ↓
+COMMIT
+```
+
+Sau commit mới:
+
+```text
+Dispatch async messages
+```
+
+---
+
+# 5. WHAT MUST BE ATOMIC
+
+Checkout phải xác định chính xác atomic set.
+
+Mặc định:
+
+```text
+Order
+OrderItem
+Payment
+Debt
+Product.stockQuantity
+StockMovement
+AuditLog
+Idempotency record
+```
+
+Nếu một phần fail:
+
+→ toàn bộ rollback.
+
+Không có:
+
+```text
+Order = success
+Stock = failed
+```
+
+---
+
+# 6. STOCK CONCURRENCY
+
+Phân tích scenario:
+
+```text
+Stock = 1
+
+Transaction A wants 1
+Transaction B wants 1
+```
+
+Phải đảm bảo:
+
+```text
+A = success
+B = fail
+```
+
+hoặc ngược lại.
+
+Không:
+
+```text
+A = success
+B = success
+```
+
+---
+
+# 7. CHOOSE LOCK STRATEGY
+
+So sánh:
+
+### Pessimistic Lock
+
+```text
+SELECT ... FOR UPDATE
+```
+
+### Atomic Update
+
+```sql
+UPDATE product
+SET stock_quantity = stock_quantity - :qty
+WHERE id = :id
+AND stock_quantity >= :qty
+```
+
+### Optimistic Lock
+
+Version field.
+
+Đánh giá:
+
+* MySQL
+* Doctrine
+* hosting
+* POS workload
+* implementation complexity
+
+Chọn strategy phù hợp MVP.
+
+Giải thích vì sao.
+
+Không dùng nhiều strategy chồng chéo nếu không cần.
+
+---
+
+# 8. MULTI-PRODUCT CHECKOUT
+
+Một order có:
+
+```text
+Product A
+Product B
+Product C
+```
+
+Phải xác định lock order.
+
+Mục tiêu tránh deadlock.
+
+Ví dụ:
+
+```text
+Lock products theo ascending Product ID
+```
+
+Nếu tất cả transaction lock cùng thứ tự:
+
+→ giảm deadlock risk.
+
+Nếu chọn strategy khác:
+
+→ giải thích.
+
+---
+
+# 9. DEADLOCK
+
+Phải phân tích:
+
+```text
+Transaction A
+locks Product 1
+then Product 2
+
+Transaction B
+locks Product 2
+then Product 1
+```
+
+Có thể deadlock.
+
+Thiết kế:
+
+* consistent lock ordering
+* retry transaction nếu deadlock
+* giới hạn retry
+* log
+
+Không retry vô hạn.
+
+---
+
+# 10. DUPLICATE CHECKOUT
+
+Scenario:
+
+```text
+User tap Checkout
+↓
+Request A
+
+User tap again
+↓
+Request B
+```
+
+Hai request có cùng:
+
+```text
+idempotencyKey
+```
+
+Backend phải đảm bảo:
+
+```text
+ONE BUSINESS TRANSACTION
+```
+
+---
+
+# 11. IDEMPOTENCY DESIGN
+
+Phải thiết kế:
+
+```text
+idempotencyKey
+user
+request fingerprint
+status
+response/result reference
+createdAt
+```
+
+Không nhất thiết tất cả phải thành Entity riêng.
+
+Có thể dùng bảng/support storage phù hợp.
+
+Phải xác định:
+
+* unique constraint
+* scope theo user
+* key expiration
+* payload mismatch
+* concurrent duplicate requests
+* response replay
+
+---
+
+# 12. SAME KEY + DIFFERENT PAYLOAD
+
+Scenario:
+
+```text
+Key = ABC
+
+Request 1:
+qty = 1
+
+Request 2:
+qty = 5
+```
+
+Phải fail request thứ hai.
+
+Không cho reuse idempotency key với payload khác.
+
+---
+
+# 13. TIMEOUT AFTER COMMIT
+
+Scenario:
+
+```text
+Backend:
+COMMIT SUCCESS
+
+Network:
+response lost
+```
+
+Frontend:
+
+```text
+does not know result
+```
+
+Retry cùng idempotency key:
+
+→ backend phải trả lại result của transaction trước.
+
+Không tạo Order mới.
+
+---
+
+# 14. TIMEOUT BEFORE COMMIT
+
+Nếu transaction rollback:
+
+→ retry cùng idempotency key có thể thực hiện lại.
+
+Phải phân biệt:
+
+```text
+NOT_STARTED
+PROCESSING
+COMPLETED
+FAILED
+```
+
+nếu persistence model cần.
+
+Không để idempotency state gây stuck request vô thời hạn.
+
+---
+
+# 15. PAYMENT CONCURRENCY
+
+Nếu hai request đồng thời thanh toán cùng Debt:
+
+```text
+Debt remaining = 100,000
+
+Request A = 70,000
+Request B = 50,000
+```
+
+Không được cả hai thành công nếu overpayment không được phép.
+
+Kết quả hợp lệ:
+
+```text
+A success
+B fail
+```
+
+hoặc:
+
+```text
+B success
+A fail
+```
+
+Phải lock Debt row hoặc dùng atomic strategy.
+
+---
+
+# 16. DEBT PAYMENT TRANSACTION
+
+Atomic:
+
+```text
+DebtPayment
+Debt.paidAmount
+Debt.remainingAmount
+Debt.status
+AuditLog
+```
+
+Nếu fail:
+
+```text
+ROLLBACK
+```
+
+Không tạo DebtPayment mà Debt không update.
+
+---
+
+# 17. STOCK ADJUSTMENT CONCURRENCY
+
+Scenario:
+
+```text
+Stock = 10
+
+Admin A: +5
+Admin B: -3
+```
+
+Kết quả phải deterministic:
+
+```text
+12
+```
+
+Không để lost update:
+
+```text
+A reads 10
+B reads 10
+A writes 15
+B writes 7
+```
+
+→ sai.
+
+Phải lock/atomic update.
+
+---
+
+# 18. ORDER CANCELLATION CONCURRENCY
+
+Scenario:
+
+```text
+Admin A cancel Order
+Admin B cancel Order
+```
+
+Chỉ một cancellation transaction được xử lý.
+
+Không được:
+
+* restore stock hai lần
+* refund hai lần
+* tạo hai reversal movements
+
+Phải lock Order hoặc có state transition guard.
+
+---
+
+# 19. REFUND CONCURRENCY
+
+Nếu có refund:
+
+```text
+Admin A refund
+Admin B refund
+```
+
+Không được double refund.
+
+Phải có:
+
+* state transition protection
+* idempotency
+* transaction
+* payment/refund constraint
+
+---
+
+# 20. STATE + TRANSACTION
+
+State transition phải nằm trong transaction.
+
+Ví dụ:
+
+```text
+Order.COMPLETED
+```
+
+không được set thành:
+
+```text
+CANCELLED
+```
+
+trước khi stock reversal thành công.
+
+Đúng:
+
+```text
+BEGIN
+ ↓
+validate state
+ ↓
+lock order
+ ↓
+restore stock
+ ↓
+create reversal
+ ↓
+change order state
+ ↓
+audit
+ ↓
+COMMIT
+```
+
+---
+
+# 21. ISOLATION LEVEL
+
+Phân tích MySQL transaction isolation phù hợp.
+
+Đánh giá:
+
+* READ COMMITTED
+* REPEATABLE READ
+* SERIALIZABLE
+
+MVP không tự động chọn SERIALIZABLE.
+
+Phải chọn mức isolation đủ cho:
+
+* stock
+* debt
+* payment
+* order
+
+và tránh contention không cần thiết.
+
+Giải thích lựa chọn.
+
+---
+
+# 22. LOCK SCOPE
+
+Lock tối thiểu cần thiết.
+
+Không lock:
+
+```text
+entire database
+```
+
+Không lock toàn bộ customer/product table.
+
+Lock row/resource liên quan transaction.
+
+Ví dụ:
+
+```text
+Checkout:
+Product rows cần bán
+```
+
+```text
+Debt payment:
+Debt row
+```
+
+```text
+Cancel:
+Order row + affected Product rows
+```
+
+---
+
+# 23. LOCK ORDER
+
+Thiết kế thứ tự lock nhất quán.
+
+Ví dụ Checkout:
+
+```text
+Order/idempotency
+→ Product rows ascending ID
+→ Customer/Debt nếu cần
+```
+
+Hoặc strategy khác.
+
+Phải tránh lock order không nhất quán giữa các transaction.
+
+---
+
+# 24. READ VS WRITE
+
+Phân biệt:
+
+### Read-only
+
+Có thể không cần transaction dài.
+
+### Business write
+
+Phải transaction.
+
+Không giữ transaction mở trong lúc:
+
+* upload file
+* gọi HTTP external service
+* gửi email
+* gọi SMS
+* xử lý image
+* render UI
+
+Transaction phải ngắn nhất có thể.
+
+---
+
+# 25. EXTERNAL SERVICE
+
+Không gọi:
+
+```text
+SMS
+Email
+Payment Gateway
+Image Processing
+```
+
+bên trong transaction database nếu không cần.
+
+Không:
+
+```text
+BEGIN
+→ update stock
+→ call SMS API
+→ wait
+→ COMMIT
+```
+
+Thay vào đó:
+
+```text
+BEGIN
+→ commit business transaction
+→ dispatch Messenger
+→ external service
+```
+
+Nếu external payment gateway sau này cần atomicity phức tạp:
+
+→ phải thiết kế saga/outbox riêng.
+
+Không tự thêm vào MVP.
+
+---
+
+# 26. MESSENGER AFTER COMMIT
+
+Async message chỉ được dispatch sau khi business transaction commit thành công.
+
+Ví dụ:
+
+```text
+Checkout
+ ↓
+COMMIT
+ ↓
+DebtReminderMessage
+StatisticsMessage
+NotificationMessage
+```
+
+Không gửi message "OrderCompleted" trước commit nếu consumer có thể nhìn thấy dữ liệu chưa committed.
+
+---
+
+# 27. OUTBOX CONSIDERATION
+
+Phân tích có cần Outbox Pattern không.
+
+MVP:
+
+Nếu Messenger sử dụng Doctrine transport trong cùng DB:
+
+→ có thể cân nhắc transactional dispatch.
+
+Nếu cần guarantee mạnh giữa:
+
+```text
+DB transaction
++
+message dispatch
+```
+
+→ đánh giá Outbox.
+
+Không triển khai Outbox nếu chưa có requirement thực tế.
+
+Nhưng phải ghi rõ trade-off.
+
+---
+
+# 28. RETRY POLICY
+
+Retry các lỗi transient:
+
+* deadlock
+* temporary DB failure
+* queue failure
+
+Không retry blindly:
+
+* insufficient stock
+* invalid state
+* unauthorized
+* invalid payment
+* debt already paid
+
+Phân biệt:
+
+```text
+Retryable
+Non-retryable
+```
+
+---
+
+# 29. TRANSACTION TIMEOUT
+
+Không giữ transaction lâu.
+
+Không:
+
+```text
+BEGIN
+→ upload image
+→ process image
+→ calculate report
+→ external API
+→ COMMIT
+```
+
+Transaction chỉ chứa DB business operations cần atomic.
+
+---
+
+# 30. FAILURE MATRIX
+
+Tạo bảng:
+
+| Failure              |                      Rollback |         Retry | User Response                            |
+| -------------------- | ----------------------------: | ------------: | ---------------------------------------- |
+| Insufficient stock   |                             ✓ |            No | Business error                           |
+| Duplicate checkout   |                             — | Replay result | Existing result                          |
+| DB deadlock          |                             ✓ |           Yes | Transparent retry                        |
+| Invalid debt payment |                             ✓ |            No | Validation/business error                |
+| DB unavailable       |                             ✓ |         Maybe | Temporary error                          |
+| Queue unavailable    | Business TX depends on design |         Later | Do not fail committed sale unnecessarily |
+
+---
+
+# 31. OBSERVABILITY
+
+Critical transaction phải log:
+
+* transaction type
+* request ID
+* idempotency key
+* user ID
+* order ID
+* affected entities
+* failure reason
+* retry count
+* duration
+
+Không log:
+
+* password
+* sensitive secrets
+* full payment credentials
+* unnecessary PII
+
+---
+
+# 32. CORRELATION ID
+
+Request critical nên có correlation identifier:
+
+```text
+requestId
+```
+
+Dùng để trace:
+
+```text
+HTTP request
+→ Application Service
+→ DB transaction
+→ Messenger message
+```
+
+Không nhất thiết persist mọi request.
+
+---
+
+# 33. CONSISTENCY CHECKS
+
+Đề xuất reconciliation checks nếu cần.
+
+Ví dụ:
+
+```text
+Order total
+=
+sum(OrderItem)
+
+Debt balance
+=
+original - paid
+
+Stock movement arithmetic
+=
+before + change = after
+```
+
+Có thể chạy bằng Cronjob định kỳ nếu dataset lớn hoặc hệ thống cần self-check.
+
+Không chạy reconciliation nặng trong checkout.
+
+---
+
+# 34. RECOVERY
+
+Phải mô tả recovery khi:
+
+### Worker crash
+
+Business transaction đã commit:
+
+→ queue message có thể retry.
+
+### HTTP process crash
+
+Transaction chưa commit:
+
+→ DB rollback.
+
+### HTTP response lost
+
+→ idempotency replay.
+
+### Deadlock
+
+→ rollback + limited retry.
+
+### Database unavailable
+
+→ fail safely, không partial business state.
+
+---
+
+# 35. CONCURRENCY TEST MATRIX
+
+Bắt buộc thiết kế test:
+
+### Test 1
+
+Hai checkout cùng sản phẩm cuối cùng.
+
+### Test 2
+
+Hai payment cùng Debt.
+
+### Test 3
+
+Hai cancellation cùng Order.
+
+### Test 4
+
+Hai stock adjustment cùng Product.
+
+### Test 5
+
+Duplicate checkout same idempotency key.
+
+### Test 6
+
+Same idempotency key + different payload.
+
+### Test 7
+
+Network timeout after commit.
+
+### Test 8
+
+Deadlock retry.
+
+### Test 9
+
+Transaction rollback giữa chừng.
+
+### Test 10
+
+Concurrent product price change + checkout.
+
+---
+
+# 36. TRANSACTION → ENTITY MATRIX
+
+Tạo:
+
+| Transaction      | Read              | Write                             | Lock                      |
+| ---------------- | ----------------- | --------------------------------- | ------------------------- |
+| Checkout         | Product, Customer | Order, Item, Payment, Debt, Stock | Product                   |
+| Debt Payment     | Debt              | DebtPayment, Debt                 | Debt                      |
+| Stock Adjustment | Product           | Product, Movement                 | Product                   |
+| Cancel           | Order, Product    | Order, Movement, Payment/Debt     | Order + Product           |
+| Refund           | Order, Payment    | Refund/Payment, Stock             | Order + Payment + Product |
+
+Điều chỉnh theo domain thực tế.
+
+---
+
+# 37. CONCURRENCY CONTROL MATRIX
+
+Tạo:
+
+| Resource         | Race Condition    | Control                  |
+| ---------------- | ----------------- | ------------------------ |
+| Product stock    | Overselling       | Row lock / atomic update |
+| Debt             | Overpayment       | Debt row lock            |
+| Order            | Double cancel     | Order row lock/state     |
+| Checkout         | Duplicate request | Idempotency              |
+| Stock adjustment | Lost update       | Row lock / atomic update |
+| Refund           | Double refund     | State + idempotency      |
+
+---
+
+# 38. CRITICAL INVARIANTS
+
+Tất cả invariant phải survive concurrent requests.
+
+Ví dụ:
+
+```text
+stockQuantity >= 0
+
+debt.remainingAmount >= 0
+
+paymentTotal <= order.total
+
+debt.paidAmount <= debt.originalAmount
+
+order state transition valid
+
+one idempotency key → one business result
+```
+
+Không chỉ test single-thread.
+
+---
+
+# 39. FINAL OUTPUT
+
+Kết quả bắt buộc gồm:
+
+## 1. Transaction Catalog
+
+## 2. Transaction Boundary per Use Case
+
+## 3. Atomic Entity Sets
+
+## 4. Lock Strategy
+
+## 5. Isolation Level Decision
+
+## 6. Lock Ordering
+
+## 7. Deadlock Strategy
+
+## 8. Idempotency Design
+
+## 9. Retry Policy
+
+## 10. Failure Matrix
+
+## 11. Network Failure Handling
+
+## 12. Messenger / After-Commit Strategy
+
+## 13. Outbox Decision
+
+## 14. Concurrency Matrix
+
+## 15. Transaction → Entity Matrix
+
+## 16. Concurrency Test Matrix
+
+## 17. Recovery Strategy
+
+## 18. Observability / Correlation
+
+## 19. Open Questions
+
+## 20. Final Architecture Decision
+
+Cuối cùng phải đưa ra **một recommendation rõ ràng cho MVP**, không chỉ liệt kê nhiều lựa chọn.
+
+---
+
+# 40. STRICT PROHIBITIONS
+
+Không viết:
+
+* PHP
+* Doctrine code
+* SQL migration
+* Controller
+* Service
+* Stimulus
+* Messenger Handler code
+
+Không tự triển khai:
+
+* Redis lock
+* distributed lock
+* microservice
+* saga
+* event sourcing
+
+trừ khi phân tích cho thấy thật sự bắt buộc.
+
+MVP phải ưu tiên:
+
+**MySQL transaction + row-level concurrency control + Symfony application service + idempotency + Messenger after commit.**
+
+---
+
+# FINAL PRINCIPLE
+
+Thiết kế sao cho:
+
+> **Một transaction business hoặc thành công hoàn toàn, hoặc không để lại business state dở dang.**
+
+Và:
+
+> **Concurrent request có thể xảy ra bất kỳ lúc nào; hệ thống phải đúng ngay cả khi hai người cùng bán món hàng cuối cùng hoặc cùng thu một khoản nợ.**
+
+Mobile network có thể chậm.
+
+User có thể tap hai lần.
+
+Browser có thể retry.
+
+Worker có thể crash.
+
+Database có thể deadlock.
+
+**Domain vẫn phải đúng.**

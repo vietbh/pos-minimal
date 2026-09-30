@@ -11,6 +11,7 @@ final readonly class DashboardResult
         /** @var list<TopProduct> */ public array $topProducts,
         /** @var list<TopCustomer> */ public array $topCustomers,
         public StockSnapshot $stock,
+        public WeeklySalesSummary $weeklySales,
         public \DateTimeImmutable $from,
         public \DateTimeImmutable $toExclusive,
     ) {}

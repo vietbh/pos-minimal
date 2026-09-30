@@ -1,0 +1,2736 @@
+Đúng, bước này rất hợp lý để đưa POS từ “nhập từng sản phẩm” sang **vận hành thực tế**. Mình sẽ tách **Product Import** và **Stock Import** thành hai loại import nhưng dùng chung một Import Infrastructure: Excel → upload → validate/preview → tạo ImportBatch → Messenger → worker → transaction → report kết quả.
+
+Điểm quan trọng: **Stock Import tuyệt đối không được update `stockQuantity` trực tiếp**; phải đi qua cơ chế Stock/`StockMovement` và lock hiện có. Điều này phù hợp với architecture đã khóa: critical mutation phải giữ transaction/concurrency boundary, còn Messenger chỉ dành cho công việc không cần hoàn thành trong HTTP request. fileciteturn1file7L1-L15 fileciteturn1file6L1-L22
+
+:::writing{variant="document" id="58342" title="PHASE 2.31 — Excel Product Import + Stock Import + Template + Messenger Queue"}
+# CRITICAL SOURCE IMPLEMENTATION PROMPT
+
+# PHASE 2.31
+# EXCEL PRODUCT IMPORT + STOCK IMPORT
+# TEMPLATE + PREVIEW + VALIDATION + MESSENGER QUEUE
+
+---
+
+# 0. ROLE
+
+Bạn đang làm việc trực tiếp trên repository Mobile POS Symfony hiện tại.
+
+Act as:
+
+- Senior Symfony 7.4 Architect
+- PHP 8.2+ Engineer
+- Doctrine/MySQL Engineer
+- Excel Import Engineer
+- PhpSpreadsheet Engineer nếu project chưa có thư viện Excel tương đương
+- Messenger / Queue Engineer
+- Inventory Transaction Engineer
+- Data Validation Engineer
+- POS Reliability Engineer
+- Security Engineer
+- Integration Test Engineer.
+
+Đây là **SOURCE IMPLEMENTATION PHASE**.
+
+Không chỉ mô tả solution.
+
+Phải:
+
+```text id="bc2dts"
+INSPECT SOURCE
+→ IMPLEMENT
+→ MIGRATE
+→ TEST
+→ VERIFY DATABASE
+→ VERIFY QUEUE
+→ VERIFY IMPORT RESULT
+```
+
+---
+
+# 1. OBJECTIVE
+
+Implement một hệ thống import Excel dùng chung cho:
+
+```text id="zsqz8m"
+PRODUCT IMPORT
++
+STOCK IMPORT
+```
+
+Flow tổng thể:
+
+```text id="s4ao4s"
+Download Excel Template
+        ↓
+User fills Excel
+        ↓
+Upload Excel
+        ↓
+File Security Validation
+        ↓
+Create ImportBatch
+        ↓
+Parse Workbook
+        ↓
+Validate Headers
+        ↓
+Validate Rows
+        ↓
+Preview / Validation Result
+        ↓
+User confirms import
+        ↓
+Messenger Queue
+        ↓
+Import Worker
+        ↓
+Chunk Processing
+        ↓
+Transaction
+        ↓
+Persistence
+        ↓
+StockMovement nếu là Stock Import
+        ↓
+AuditLog
+        ↓
+Import Result
+        ↓
+Completed / Partial / Failed
+```
+
+Mục tiêu:
+
+- người dùng có template chuẩn để điền;
+- không phải tự nhớ format Excel;
+- backend validate toàn bộ dữ liệu;
+- import file lớn không block HTTP;
+- Messenger xử lý background;
+- có progress;
+- có lỗi theo từng dòng;
+- có thể tải error report;
+- không tạo duplicate do retry;
+- Stock Import giữ nguyên stock concurrency/invariant;
+- Product Import không phá architecture hiện tại.
+
+---
+
+# 2. SOURCE OF TRUTH
+
+TRƯỚC KHI CODE, PHẢI INSPECT SOURCE HIỆN TẠI.
+
+## Domain
+
+Inspect:
+
+```text id="ij4i68"
+Product
+Sku
+Money
+Category
+Stock
+StockMovement
+StockMovementType
+AuditLog
+User
+```
+
+Nếu tên entity khác:
+
+→ dùng tên thực tế.
+
+Không tự tạo entity duplicate.
+
+---
+
+## Application
+
+Inspect:
+
+```text id="1cch6x"
+CreateProduct
+UpdateProduct
+ProductSearch
+AdjustStock
+StockMovement
+TransactionManager
+Idempotency
+```
+
+Nếu đã có:
+
+```text id="3o3yhu"
+AdjustStockHandler
+StockAdjustmentHandler
+ProductCommandHandler
+```
+
+→ import phải reuse Application layer tương ứng.
+
+Không bypass Application layer để Doctrine trực tiếp mutate domain.
+
+---
+
+## Infrastructure
+
+Inspect:
+
+```text id="79ecpc"
+ProductRepository
+ProductQueryRepository
+StockMovementRepository
+CategoryRepository
+AuditLogRepository
+TransactionManager
+IdempotencyRepository
+Messenger configuration
+Filesystem / Storage
+```
+
+---
+
+## HTTP / UI
+
+Inspect:
+
+```text id="bwbnek"
+base layout
+Product UI
+Stock UI
+Settings
+Security/Voter
+CSRF
+Flash messages
+Error handling
+Stimulus
+```
+
+---
+
+## Existing async architecture
+
+Inspect:
+
+```text id="srq8zv"
+messenger.yaml
+transports
+routing
+retry_strategy
+failure_transport
+workers
+commands
+```
+
+Nếu Messenger đã tồn tại:
+
+→ reuse.
+
+Không tạo queue framework thứ hai.
+
+---
+
+# 3. ABSOLUTE ARCHITECTURE RULE
+
+Import không được bypass architecture.
+
+Không:
+
+```text id="y29k6x"
+Excel
+ ↓
+Controller
+ ↓
+Doctrine Entity
+ ↓
+flush()
+```
+
+Không:
+
+```text id="dhi5b7"
+Excel
+ ↓
+ProductRepository->save()
+```
+
+rải business logic trực tiếp trong Controller.
+
+Chuẩn:
+
+```text id="4labs4"
+HTTP
+ ↓
+Import Upload Application Service
+ ↓
+ImportBatch
+ ↓
+Validation
+ ↓
+Messenger
+ ↓
+ImportHandler
+ ↓
+Application Command
+ ↓
+Domain
+ ↓
+Transaction
+ ↓
+Persistence
+```
+
+---
+
+# 4. IMPORT TYPES
+
+Implement ít nhất:
+
+```text id="f050uf"
+PRODUCT
+STOCK
+```
+
+Có thể dùng:
+
+```text id="llvjy1"
+ImportType
+```
+
+ví dụ:
+
+```text id="ra0iii"
+PRODUCT
+STOCK
+```
+
+Không hard-code string rải khắp project.
+
+---
+
+# 5. IMPORT BATCH
+
+Tạo hoặc reuse một abstraction tương đương:
+
+```text id="nae6eh"
+ImportBatch
+```
+
+Nếu project chưa có import infrastructure, implement entity/application model tương ứng.
+
+ImportBatch tối thiểu cần có:
+
+```text id="s0rfsm"
+id
+type
+status
+originalFilename
+storedFilename / storageKey
+fileSize
+totalRows
+validRows
+invalidRows
+processedRows
+successRows
+failedRows
+createdBy
+createdAt
+startedAt
+finishedAt
+errorSummary
+```
+
+Có thể bổ sung:
+
+```text id="jl81x4"
+idempotencyKey
+progress
+```
+
+nếu architecture hiện tại phù hợp.
+
+---
+
+# 6. IMPORT STATE MACHINE
+
+ImportBatch phải có lifecycle rõ ràng.
+
+Đề xuất:
+
+```text id="4i0dhk"
+UPLOADED
+    ↓
+VALIDATING
+    ↓
+READY
+    ↓
+PROCESSING
+    ↓
+COMPLETED
+```
+
+Failure:
+
+```text id="jxwtml"
+UPLOADED
+    ↓
+VALIDATING
+    ↓
+VALIDATION_FAILED
+```
+
+hoặc:
+
+```text id="qbnt2y"
+READY
+    ↓
+PROCESSING
+    ↓
+PARTIAL
+```
+
+hoặc:
+
+```text id="md25ql"
+PROCESSING
+    ↓
+FAILED
+```
+
+Không cho transition tùy tiện.
+
+Ví dụ:
+
+```text id="wzjft9"
+COMPLETED
+→ PROCESSING
+```
+
+không hợp lệ.
+
+---
+
+# 7. EXCEL LIBRARY
+
+Trước tiên inspect:
+
+```text id="n6jtqs"
+composer.json
+```
+
+Nếu project đã có Excel library:
+
+→ reuse.
+
+Nếu chưa có library phù hợp:
+
+→ sử dụng PhpSpreadsheet.
+
+Không tự viết XLSX parser.
+
+Không parse Excel bằng:
+
+```text id="vgviwn"
+explode(',')
+```
+
+hoặc:
+
+```text id="8kqjg1"
+fgetcsv()
+```
+
+đối với `.xlsx`.
+
+---
+
+# 8. FILE SECURITY
+
+Upload phải validate:
+
+```text id="ntu2pq"
+extension
+MIME type
+file size
+storage location
+filename
+```
+
+Allowed:
+
+```text id="iliov8"
+.xlsx
+```
+
+Nếu source architecture cho phép:
+
+```text id="lvsoah"
+.xls
+```
+
+chỉ thêm nếu library/version hiện tại hỗ trợ an toàn.
+
+MVP ưu tiên `.xlsx`.
+
+Không tin:
+
+```text id="c6kqw2"
+$_FILES['type']
+```
+
+là MIME authority.
+
+Backend phải validate file thực tế.
+
+---
+
+# 9. STORAGE
+
+Excel upload không lưu tùy tiện trong:
+
+```text id="wof5td"
+public/
+```
+
+Nếu architecture storage hiện tại đã có:
+
+→ reuse.
+
+Nếu chưa:
+
+```text id="tnxy3k"
+var/storage/imports/
+```
+
+hoặc storage abstraction tương ứng.
+
+Không expose đường dẫn filesystem thật ra client.
+
+---
+
+# 10. TEMPLATE DOWNLOAD
+
+Phải implement:
+
+```text id="kcqgx0"
+Download Product Import Template
+Download Stock Import Template
+```
+
+Ví dụ:
+
+```text id="388faa"
+/products/import/template
+/stock/import/template
+```
+
+Nhưng phải inspect route convention hiện tại trước.
+
+---
+
+# 11. PRODUCT TEMPLATE
+
+Template Product phải là file Excel thật.
+
+Không chỉ CSV.
+
+Workbook đề xuất:
+
+```text id="a9ozw4"
+Sheet 1:
+Products
+
+Sheet 2:
+Instructions
+
+Sheet 3:
+Reference Data
+```
+
+Nếu category/reference data phù hợp với architecture.
+
+---
+
+# 12. PRODUCT TEMPLATE COLUMNS
+
+Phải inspect Product entity hiện tại trước.
+
+Không tự thêm field không tồn tại.
+
+Template phải map đúng Product model hiện tại.
+
+Các field phổ biến nếu source có:
+
+```text id="61ix34"
+SKU
+Barcode
+Name
+Category
+Cost Price
+Selling Price
+Unit
+Status
+```
+
+Nếu source hiện tại có thêm:
+
+```text id="rxf1j1"
+Description
+Image
+Tax
+...
+```
+
+→ chỉ thêm khi thực sự supported.
+
+---
+
+# 13. PRODUCT TEMPLATE RULE
+
+Header phải stable.
+
+Ví dụ:
+
+```text id="8k2wm7"
+SKU
+Barcode
+Name
+Category
+Cost Price
+Selling Price
+Status
+```
+
+Không phụ thuộc column position nếu có thể.
+
+Ưu tiên map bằng header name.
+
+Ví dụ:
+
+```text id="jx129x"
+SKU
+```
+
+thay vì:
+
+```text id="x3ri2a"
+Column A = SKU
+```
+
+---
+
+# 14. PRODUCT TEMPLATE INSTRUCTIONS
+
+Sheet `Instructions` phải giải thích:
+
+```text id="6v3k26"
+Required fields
+Optional fields
+Allowed values
+Money format
+SKU format
+Barcode format
+Category format
+Status values
+Duplicate rules
+Update rules
+```
+
+Ví dụ:
+
+```text id="ajq8xo"
+Selling Price:
+Enter numeric amount without currency symbols.
+
+Status:
+ACTIVE
+INACTIVE
+```
+
+Nhưng các allowed values phải lấy từ source hiện tại.
+
+Không tự invent business values.
+
+---
+
+# 15. CATEGORY HANDLING
+
+Category là domain/persistence thật.
+
+Không cho Excel gửi category name rồi:
+
+```text id="pajqvg"
+$product->setCategoryName(...)
+```
+
+nếu Product đang relation tới Category.
+
+Phải resolve:
+
+```text id="96z75e"
+Excel category
+        ↓
+Category resolver
+        ↓
+existing Category
+```
+
+Nếu category không tồn tại:
+
+→ validation error.
+
+Không tự tạo Category âm thầm trừ khi business rule hiện tại đã cho phép auto-create.
+
+---
+
+# 16. PRODUCT UPSERT SEMANTICS
+
+Phải inspect source để xác định Product import là:
+
+```text id="jou1oh"
+CREATE ONLY
+```
+
+hay:
+
+```text id="kyhdbm"
+CREATE + UPDATE
+```
+
+Nếu source chưa có rule:
+
+→ không tự đoán.
+
+Prompt yêu cầu coding agent:
+
+```text id="tk2pkd"
+STOP
+→ inspect existing product mutation semantics
+→ preserve finalized semantics
+```
+
+Nếu đã có unique identity:
+
+ưu tiên:
+
+```text id="83v1da"
+SKU
+```
+
+hoặc identity đã finalized.
+
+Không dùng:
+
+```text id="oqc9p1"
+name
+```
+
+làm identity.
+
+---
+
+# 17. PRODUCT DUPLICATE RULE
+
+Phải phát hiện duplicate trong cùng file:
+
+```text id="g8xjhq"
+row 2 SKU ABC
+row 15 SKU ABC
+```
+
+→ validation error.
+
+Đồng thời detect duplicate với database.
+
+Không để:
+
+```text id="yis1ti"
+row 2 create
+row 15 create
+```
+
+rồi để database exception trở thành user-facing message.
+
+Database unique constraint vẫn phải tồn tại.
+
+---
+
+# 18. MONEY VALIDATION
+
+Không dùng floating point để làm authoritative money calculation.
+
+Không:
+
+```php id="727mdw"
+(float) $price
+```
+
+làm business money.
+
+Phải reuse:
+
+```text id="z8kngv"
+Money
+```
+
+hoặc money parser hiện tại.
+
+Ví dụ Excel:
+
+```text id="dhafdn"
+125000
+```
+
+→ Money.
+
+Không:
+
+```text id="eqngg1"
+125,000.50
+```
+
+trừ khi format hiện tại đã support.
+
+Template phải ghi rõ format được hỗ trợ.
+
+---
+
+# 19. STOCK TEMPLATE
+
+Stock Import phải là template riêng.
+
+Ví dụ:
+
+```text id="h8ulxc"
+Sheet 1:
+Stock
+
+Sheet 2:
+Instructions
+```
+
+Columns chỉ dùng những field mà Stock Import thực sự cần.
+
+Đề xuất:
+
+```text id="goc14t"
+SKU
+Quantity
+Reason
+Reference
+```
+
+Nhưng:
+
+**TRƯỚC KHI CODE PHẢI INSPECT STOCK ADJUSTMENT CONTRACT.**
+
+Không tự thêm:
+
+```text id="ecu0qt"
+quantityBefore
+quantityAfter
+```
+
+vào input.
+
+Hai giá trị này phải backend derive.
+
+---
+
+# 20. STOCK IMPORT — BACKEND AUTHORITY
+
+Excel chỉ gửi:
+
+```text id="5o774l"
+SKU
+quantity
+reason/reference nếu business contract hỗ trợ
+```
+
+Backend phải tự xác định:
+
+```text id="kigj4t"
+current stock
+quantityBefore
+quantityAfter
+```
+
+Không tin Excel:
+
+```text id="3jv6c2"
+quantityBefore
+quantityAfter
+```
+
+vì đây là authoritative server state.
+
+---
+
+# 21. STOCK IMPORT MUST CREATE STOCK MOVEMENT
+
+TUYỆT ĐỐI KHÔNG:
+
+```text id="s16ifa"
+$product->setStockQuantity(...)
+```
+
+trực tiếp trong importer nếu architecture hiện tại yêu cầu StockMovement.
+
+Phải đi qua stock application/domain operation hiện tại.
+
+Expected:
+
+```text id="xa9wl0"
+Import row
+ ↓
+AdjustStock command
+ ↓
+lock Product
+ ↓
+load current stock
+ ↓
+validate resulting stock
+ ↓
+apply adjustment
+ ↓
+create StockMovement
+ ↓
+AuditLog
+ ↓
+COMMIT
+```
+
+Stock Movement phải giữ lịch sử.
+
+Không dùng AuditLog thay StockMovement.
+
+---
+
+# 22. STOCK CONCURRENCY
+
+Đây là P0.
+
+Import worker có thể chạy đồng thời với:
+
+```text id="q7kkx3"
+Checkout
+Stock Adjustment UI
+Cancel Order
+Refund
+another Stock Import
+```
+
+Phải reuse locking strategy hiện tại.
+
+Ví dụ:
+
+```text id="f37zsj"
+BEGIN
+ ↓
+SELECT Product FOR UPDATE
+ ↓
+read current stock
+ ↓
+calculate resulting stock
+ ↓
+validate invariant
+ ↓
+apply
+ ↓
+StockMovement
+ ↓
+COMMIT
+```
+
+Không:
+
+```text id="xbqfa4"
+read stock
+outside transaction
+ ↓
+queue update
+```
+
+rồi mutate sau.
+
+---
+
+# 23. NEGATIVE STOCK
+
+Nếu business rule hiện tại:
+
+```text id="e7f7qg"
+resultingStock < 0
+```
+
+→ reject row.
+
+Không:
+
+```text id="86p0tx"
+stock = max(stock, 0)
+```
+
+Không âm thầm clamp.
+
+Error phải chỉ rõ:
+
+```text id="4tmx8i"
+SKU
+row
+current stock
+requested quantity
+resulting stock
+```
+
+nếu security/business policy cho phép.
+
+---
+
+# 24. IMPORT VALIDATION — TWO LEVELS
+
+Có hai loại validation:
+
+## File-level
+
+```text id="9slh18"
+invalid extension
+invalid MIME
+empty workbook
+missing sheet
+missing headers
+duplicate headers
+unsupported format
+too many rows
+```
+
+## Row-level
+
+```text id="y1hrf0"
+missing SKU
+invalid SKU
+missing name
+invalid price
+invalid category
+duplicate SKU
+unknown category
+invalid status
+invalid quantity
+unknown product
+negative resulting stock
+```
+
+---
+
+# 25. PREVIEW
+
+Sau upload:
+
+```text id="ks1t2p"
+Upload
+ ↓
+Parse
+ ↓
+Validate
+ ↓
+Preview
+```
+
+UI phải hiển thị:
+
+```text id="hslrym"
+File
+Total rows
+Valid rows
+Invalid rows
+Warnings
+```
+
+Ví dụ:
+
+```text id="9kelxw"
+Products Import
+
+Total rows: 1,250
+Valid: 1,230
+Invalid: 20
+
+[View errors]
+
+[Import valid rows]
+```
+
+Nhưng nếu business contract yêu cầu all-or-nothing:
+
+→ không cho import partial.
+
+Phải reuse finalized import policy nếu đã tồn tại.
+
+---
+
+# 26. ERROR REPORT
+
+User phải có thể tải:
+
+```text id="nxtg3v"
+Import Error Report
+```
+
+Ví dụ:
+
+```text id="pzq2ft"
+Row
+SKU
+Field
+Error Code
+Message
+```
+
+Ví dụ:
+
+```text id="o0zjau"
+15
+SP-0015
+Selling Price
+INVALID_MONEY
+Invalid selling price format
+```
+
+Không expose:
+
+```text id="05zwia"
+SQL exception
+stack trace
+Doctrine exception
+filesystem path
+```
+
+---
+
+# 27. ERROR CODES
+
+Import errors phải có stable codes.
+
+Ví dụ:
+
+```text id="svdsoc"
+IMPORT_INVALID_FILE
+IMPORT_INVALID_WORKBOOK
+IMPORT_MISSING_HEADER
+IMPORT_DUPLICATE_HEADER
+IMPORT_EMPTY_ROW
+IMPORT_INVALID_SKU
+IMPORT_DUPLICATE_SKU
+IMPORT_PRODUCT_NOT_FOUND
+IMPORT_CATEGORY_NOT_FOUND
+IMPORT_INVALID_PRICE
+IMPORT_INVALID_STATUS
+IMPORT_INVALID_QUANTITY
+IMPORT_NEGATIVE_STOCK
+IMPORT_ROW_CONFLICT
+IMPORT_PROCESSING_FAILED
+```
+
+Reuse existing error-code conventions nếu project đã có.
+
+Không tạo hai error-code systems.
+
+---
+
+# 28. MESSENGER QUEUE
+
+Import execution phải chạy async nếu file có thể lớn.
+
+Flow:
+
+```text id="lc8vso"
+HTTP Upload
+ ↓
+Store File
+ ↓
+Create ImportBatch
+ ↓
+Validate basic metadata
+ ↓
+COMMIT
+ ↓
+Dispatch Import Message
+ ↓
+HTTP Response
+```
+
+Worker:
+
+```text id="mxnm7n"
+ImportMessage
+ ↓
+ImportMessageHandler
+ ↓
+Read ImportBatch
+ ↓
+Parse file
+ ↓
+Process chunks
+ ↓
+Persist results
+```
+
+Không xử lý toàn bộ file trong HTTP request.
+
+---
+
+# 29. POST-COMMIT DISPATCH
+
+Import message chỉ được dispatch sau khi:
+
+```text id="ppcpcc"
+ImportBatch
++
+uploaded file metadata
+```
+
+đã persist thành công.
+
+Không:
+
+```text id="7sbtb8"
+BEGIN
+ ↓
+create ImportBatch
+ ↓
+dispatch Messenger
+ ↓
+worker immediately starts
+ ↓
+COMMIT
+```
+
+Phải bảo đảm worker không chạy trước persistence.
+
+Reuse post-commit strategy hiện có.
+
+---
+
+# 30. MESSAGE DESIGN
+
+Message không serialize toàn bộ Excel content.
+
+Không:
+
+```text id="au3fvz"
+ImportMessage(
+    $rows
+)
+```
+
+Không đưa workbook object vào Messenger.
+
+Chỉ truyền identity ổn định:
+
+```text id="xb9uek"
+ImportBatchId
+```
+
+Ví dụ:
+
+```text id="l4xc4g"
+ProcessImportMessage
+{
+    importBatchId
+}
+```
+
+Worker load file từ storage.
+
+---
+
+# 31. CHUNK PROCESSING
+
+Không load toàn bộ workbook thành memory nếu file lớn.
+
+Dùng chunk/bounded processing.
+
+Ví dụ:
+
+```text id="dpxigz"
+100 rows
+250 rows
+500 rows
+```
+
+Nhưng phải chọn dựa trên memory/profile thực tế.
+
+Không hard-code arbitrary giant batch.
+
+---
+
+# 32. TRANSACTION PER CHUNK / ROW
+
+Phải inspect business semantics.
+
+Không giữ một transaction khổng lồ cho:
+
+```text id="ztuxz2"
+100,000 rows
+```
+
+nếu không cần.
+
+Ưu tiên transaction boundary phù hợp:
+
+```text id="lom8zp"
+chunk
+    ↓
+BEGIN
+    ↓
+process bounded rows
+    ↓
+COMMIT
+```
+
+hoặc row-level transaction cho Stock nếu concurrency architecture yêu cầu.
+
+Critical invariant luôn cao hơn throughput.
+
+---
+
+# 33. PRODUCT IMPORT TRANSACTION
+
+Mỗi product mutation phải giữ:
+
+```text id="zh3zd2"
+validation
++
+domain/application mutation
++
+persistence
+```
+
+trong transaction phù hợp.
+
+Không để một row có:
+
+```text id="bp2h7w"
+Product updated
+```
+
+nhưng audit/persistence liên quan bị mất.
+
+---
+
+# 34. STOCK IMPORT TRANSACTION
+
+Stock row phải atomic:
+
+```text id="jehldk"
+BEGIN
+ ↓
+lock Product
+ ↓
+validate current state
+ ↓
+calculate resulting stock
+ ↓
+apply adjustment
+ ↓
+StockMovement
+ ↓
+AuditLog
+ ↓
+flush
+ ↓
+COMMIT
+```
+
+Nếu fail:
+
+```text id="qqo3bz"
+ROLLBACK
+```
+
+Không partial stock mutation.
+
+---
+
+# 35. IDEMPOTENCY
+
+Messenger retry không được tạo duplicate side effects.
+
+Ví dụ:
+
+```text id="13q0ix"
+Worker processes row
+ ↓
+DB COMMIT
+ ↓
+Worker crashes before acknowledgement
+ ↓
+Messenger retries
+```
+
+Retry phải không tạo:
+
+```text id="2y5oam"
+duplicate Product
+duplicate StockMovement
+duplicate AuditLog
+```
+
+Phải reuse existing idempotency/infrastructure nếu phù hợp.
+
+Đặc biệt Stock Import:
+
+```text id="os52y4"
+same importBatchId
++
+same row identity
+```
+
+phải được nhận diện ổn định.
+
+---
+
+# 36. IMPORT ROW IDENTITY
+
+Mỗi row cần một identity ổn định.
+
+Có thể dùng:
+
+```text id="5zhd8h"
+importBatchId + rowNumber
+```
+
+nhưng nếu source architecture cần stable business identity:
+
+```text id="meffx2"
+importBatchId + rowKey
+```
+
+Phải đảm bảo retry cùng row không mutate twice.
+
+---
+
+# 37. MESSENGER RETRY
+
+Retry policy phải phân biệt:
+
+```text id="cq9ngy"
+Validation Error
+→ NO RETRY
+
+Business Rule Error
+→ NO RETRY
+
+Unknown Product
+→ NO RETRY
+
+Invalid Category
+→ NO RETRY
+
+Negative Stock
+→ NO RETRY
+
+Transient DB Error
+→ RETRY
+
+Transient Storage Error
+→ RETRY
+
+Temporary Infrastructure Error
+→ RETRY
+```
+
+Không retry vô hạn.
+
+Reuse:
+
+```text id="8yb4ne"
+retry_strategy
+failure_transport
+```
+
+đã có.
+
+---
+
+# 38. FAILED TRANSPORT
+
+Nếu import message retry exhausted:
+
+```text id="r5tfog"
+FAILED
+```
+
+và Messenger failure transport phải giữ message.
+
+ImportBatch phải phản ánh trạng thái phù hợp.
+
+User có thể xem:
+
+```text id="2emfjz"
+Import failed
+Reason
+Rows processed
+Rows failed
+```
+
+Không swallow exception.
+
+---
+
+# 39. IMPORT PROGRESS
+
+ImportBatch nên expose:
+
+```text id="5l5b0b"
+totalRows
+processedRows
+successRows
+failedRows
+```
+
+UI có thể hiển thị:
+
+```text id="kxz6gn"
+1,250 / 5,000
+25%
+```
+
+Nếu frontend polling:
+
+```text id="4o5urj"
+GET /imports/{id}
+```
+
+hoặc architecture tương đương.
+
+Không cần WebSocket cho MVP nếu polling đã đủ.
+
+---
+
+# 40. UI — PRODUCT IMPORT
+
+Product page cần action:
+
+```text id="s4ky0y"
+Import Products
+```
+
+Flow:
+
+```text id="rfh51y"
+Products
+ ↓
+Import
+ ↓
+Download Template
+ ↓
+Choose Excel
+ ↓
+Upload
+ ↓
+Validate
+ ↓
+Preview
+ ↓
+Confirm Import
+ ↓
+Processing
+ ↓
+Result
+```
+
+---
+
+# 41. UI — STOCK IMPORT
+
+Stock page cần action:
+
+```text id="07y87p"
+Import Stock
+```
+
+Flow tương tự:
+
+```text id="7p22g9"
+Stock
+ ↓
+Import
+ ↓
+Download Template
+ ↓
+Upload
+ ↓
+Validate
+ ↓
+Preview
+ ↓
+Confirm
+ ↓
+Processing
+ ↓
+Result
+```
+
+---
+
+# 42. MOBILE-FIRST UI
+
+Giữ design system hiện tại.
+
+Không tạo UI desktop-only.
+
+Mobile:
+
+```text id="p4tycq"
+360px+
+```
+
+Phải:
+
+- touch friendly;
+- button ≥ 48px;
+- error dễ đọc;
+- row error không bị cắt;
+- filename wrap;
+- progress rõ;
+- không dùng horizontal table bắt user zoom.
+
+---
+
+# 43. IMPORT HISTORY
+
+Implement màn hình:
+
+```text id="hrbbu7"
+Import History
+```
+
+Hiển thị:
+
+```text id="3s8ric"
+Type
+Filename
+Status
+Rows
+Success
+Failed
+Created By
+Created At
+Finished At
+```
+
+Filter:
+
+```text id="pp7fka"
+Product
+Stock
+Status
+Date
+```
+
+Nếu query lớn:
+
+→ pagination.
+
+Không load toàn bộ history.
+
+---
+
+# 44. IMPORT DETAIL
+
+Detail page:
+
+```text id="vtj4vl"
+Import #123
+```
+
+Hiển thị:
+
+```text id="yhopxm"
+Status
+Progress
+Summary
+Errors
+```
+
+Actions tùy state:
+
+```text id="jd6hpu"
+Download Error Report
+Download Original
+Retry
+```
+
+Nhưng:
+
+**Retry không được tự ý chạy lại một import đã partially mutated nếu semantics không an toàn.**
+
+Retry phải reuse import policy/idempotency đã thiết kế.
+
+---
+
+# 45. RETRY IMPORT
+
+Không cho:
+
+```text id="4arlp1"
+FAILED
+→ simply run same file again
+```
+
+nếu có nguy cơ duplicate.
+
+Phải phân biệt:
+
+```text id="y23nl9"
+validation failed
+```
+
+với:
+
+```text id="sluk8f"
+processing failed after partial success
+```
+
+Nếu retry supported:
+
+→ retry only failed/unprocessed rows hoặc một cơ chế idempotent tương đương.
+
+Không duplicate StockMovement.
+
+---
+
+# 46. TEMPLATE VERSIONING
+
+Template phải có version.
+
+Ví dụ:
+
+```text id="82d7nt"
+Product Import Template v1
+Stock Import Template v1
+```
+
+Workbook có thể chứa:
+
+```text id="6kwrtx"
+Template Version
+```
+
+Nếu version không supported:
+
+```text id="0yq137"
+IMPORT_UNSUPPORTED_TEMPLATE_VERSION
+```
+
+Không silently import file cũ sai schema.
+
+---
+
+# 47. TEMPLATE REFERENCE DATA
+
+Nếu cần:
+
+```text id="vvzx5c"
+Reference Data
+```
+
+sheet có thể chứa:
+
+```text id="flt0lm"
+Category
+Status
+Unit
+```
+
+Nhưng chỉ đưa dữ liệu phù hợp với source hiện tại.
+
+Không để user phải tự gõ category name nếu có cách an toàn hơn để chọn/reference.
+
+---
+
+# 48. EMPTY ROWS
+
+Phải xác định:
+
+```text id="hyqe6m"
+empty row
+```
+
+là:
+
+```text id="gxuier"
+ignore
+```
+
+hay:
+
+```text id="ybaumu"
+validation error
+```
+
+Ưu tiên ignore completely empty trailing rows.
+
+Nhưng:
+
+```text id="yyvks4"
+row có SKU nhưng thiếu Name
+```
+
+→ invalid row.
+
+---
+
+# 49. HEADER NORMALIZATION
+
+Có thể normalize:
+
+```text id="nynari"
+SKU
+sku
+Sku
+```
+
+nếu architecture muốn UX tolerant.
+
+Nhưng không normalize thành những header mơ hồ.
+
+Header phải deterministic.
+
+---
+
+# 50. CSV
+
+Phase này tập trung:
+
+```text id="pfhwni"
+.xlsx
+```
+
+Không tự mở rộng CSV/Google Sheets nếu chưa yêu cầu.
+
+---
+
+# 51. SECURITY / PERMISSION
+
+Import phải enforce permission backend.
+
+Ví dụ:
+
+```text id="47mzp4"
+PRODUCT_IMPORT
+STOCK_IMPORT
+```
+
+nếu Permission Matrix hiện tại hỗ trợ permission riêng.
+
+Nếu chưa:
+
+→ map vào permission hiện có phù hợp.
+
+Không dựa vào UI để hide button là security.
+
+Backend phải reject unauthorized request.
+
+---
+
+# 52. CSRF
+
+Browser upload route phải giữ CSRF protection theo architecture hiện tại.
+
+Không disable CSRF chỉ vì upload multipart.
+
+---
+
+# 53. FILE SIZE LIMIT
+
+Có limit rõ ràng:
+
+```text id="mt5in7"
+max upload size
+max rows
+max workbook size
+```
+
+Không để user upload file vô hạn.
+
+Giá trị phải lấy từ config:
+
+```text id="nuyvbt"
+IMPORT_MAX_FILE_SIZE
+IMPORT_MAX_ROWS
+IMPORT_CHUNK_SIZE
+```
+
+Không hard-code trong service.
+
+---
+
+# 54. OBSERVABILITY
+
+Mỗi import cần correlation:
+
+```text id="1mjrx1"
+requestId
+importBatchId
+operationId
+```
+
+Log:
+
+```text id="jovbrf"
+import started
+validation completed
+processing started
+chunk completed
+row failure summary
+import completed
+import failed
+```
+
+Không log:
+
+```text id="8giegz"
+password
+token
+secret
+authorization header
+raw sensitive notification
+```
+
+---
+
+# 55. AUDIT
+
+Product mutation và Stock mutation phải dùng AuditLog theo architecture hiện tại.
+
+Ví dụ:
+
+```text id="5r05aq"
+PRODUCT_IMPORT
+STOCK_IMPORT
+```
+
+hoặc action names tương ứng đã tồn tại.
+
+Audit phải ghi actor.
+
+Không tạo một AuditLog cho mọi technical Messenger retry nếu không phải meaningful business event.
+
+---
+
+# 56. DATABASE CONSTRAINTS
+
+Phải inspect và giữ:
+
+```text id="ysgecm"
+unique SKU
+unique barcode nếu applicable
+foreign keys
+indexes
+```
+
+Không dùng application validation để thay database constraint.
+
+Application validation:
+
+```text id="2yhkkk"
+UX
+```
+
+Database constraint:
+
+```text id="egi7ge"
+integrity
+```
+
+Cả hai phải tồn tại.
+
+---
+
+# 57. PRODUCT IMPORT INDEXES
+
+Nếu import/search cần:
+
+```text id="k1s84n"
+SKU lookup
+barcode lookup
+category lookup
+```
+
+→ verify indexes.
+
+Không tạo index vô lý.
+
+---
+
+# 58. STOCK IMPORT PERFORMANCE
+
+Không query Product bằng:
+
+```text id="3v955k"
+SELECT ... per row
+```
+
+nếu có thể batch resolve an toàn.
+
+Ví dụ:
+
+```text id="5wchza"
+1,000 rows
+```
+
+không nên biến thành hàng nghìn query redundant nếu architecture cho phép optimize.
+
+Nhưng:
+
+**không sacrifice locking correctness chỉ để giảm query count.**
+
+---
+
+# 59. BULK PRODUCT RESOLUTION
+
+Có thể:
+
+```text id="juafmh"
+collect SKUs
+ ↓
+batch lookup
+ ↓
+map SKU → Product
+```
+
+trước processing.
+
+Nhưng authoritative mutation vẫn phải verify current state tại transaction time.
+
+---
+
+# 60. STOCK CONCURRENCY + BULK RESOLUTION
+
+Đặc biệt:
+
+```text id="dzr9ra"
+preload stock
+```
+
+không được dùng làm authoritative stock snapshot.
+
+Chỉ dùng preload để:
+
+```text id="qoau5v"
+lookup Product identity
+```
+
+Actual stock:
+
+```text id="zbnt2l"
+load/lock inside transaction
+```
+
+---
+
+# 61. TESTING — REQUIRED
+
+Phải implement test đầy đủ.
+
+## Unit
+
+```text id="n9zg0y"
+ExcelHeaderValidator
+MoneyParser
+QuantityParser
+ProductRowValidator
+StockRowValidator
+TemplateGenerator
+ImportStateMachine
+```
+
+---
+
+# 62. PRODUCT IMPORT TESTS
+
+Phải có:
+
+```text id="qrocyu"
+valid product
+missing SKU
+duplicate SKU
+unknown category
+invalid price
+invalid status
+duplicate row
+existing product
+new product
+```
+
+theo semantics thực tế của source.
+
+---
+
+# 63. STOCK IMPORT TESTS
+
+Phải có:
+
+```text id="q0fr9f"
+valid stock increase
+valid stock decrease
+unknown SKU
+invalid quantity
+negative resulting stock
+concurrent stock adjustment
+duplicate worker retry
+duplicate import row
+```
+
+---
+
+# 64. TRANSACTION TESTS
+
+Phải chứng minh:
+
+```text id="8u7t9p"
+failure before mutation
+failure during mutation
+failure during StockMovement
+failure during AuditLog
+```
+
+đều rollback đúng theo transaction boundary.
+
+---
+
+# 65. MESSENGER TESTS
+
+Phải test:
+
+```text id="f3husv"
+message dispatched
+handler consumes message
+successful import
+validation failure
+transient failure retry
+permanent failure
+failure transport
+worker retry
+```
+
+---
+
+# 66. IDEMPOTENCY TESTS
+
+Phải test:
+
+```text id="l4okl3"
+same import message processed twice
+```
+
+Expected:
+
+```text id="ffulqu"
+no duplicate Product
+no duplicate StockMovement
+no duplicate business side effect
+```
+
+---
+
+# 67. CONCURRENCY TEST
+
+Đặc biệt cần test:
+
+```text id="bdxvcg"
+Stock Import
+      +
+Checkout
+```
+
+cùng mutate một Product.
+
+Ví dụ:
+
+```text id="busx6x"
+initial stock = 10
+
+Import +5
+Checkout -3
+```
+
+Final:
+
+```text id="qfiwvr"
+12
+```
+
+Không được:
+
+```text id="3ats6m"
+7
+15
+```
+
+do lost update.
+
+---
+
+# 68. LARGE FILE TEST
+
+Tạo fixture:
+
+```text id="jsqo90"
+1,000 rows
+5,000 rows
+```
+
+nếu test environment chịu được.
+
+Verify:
+
+```text id="38vk56"
+memory bounded
+worker completes
+progress correct
+no duplicate
+```
+
+Không cần test hàng triệu rows trong MVP.
+
+---
+
+# 69. HTTP ACCEPTANCE
+
+Test:
+
+```text id="3erblw"
+GET template
+POST upload
+GET preview
+POST confirm
+GET status
+GET detail
+GET error report
+```
+
+Security:
+
+```text id="bqbdx8"
+unauthenticated
+unauthorized
+CSRF failure
+invalid file
+```
+
+---
+
+# 70. TEMPLATE TEST
+
+Test generated `.xlsx` thực sự:
+
+```text id="gc3dst"
+file exists
+valid workbook
+expected sheets
+expected headers
+template version
+instructions sheet
+```
+
+Không chỉ test HTTP 200.
+
+---
+
+# 71. DATABASE VERIFICATION
+
+Sau import phải verify DB thật.
+
+Product:
+
+```text id="jpycf9"
+Product persisted
+Category relation correct
+Money correct
+SKU unique
+```
+
+Stock:
+
+```text id="w260kw"
+Product stock correct
+StockMovement exists
+quantityBefore correct
+quantityAfter correct
+AuditLog exists
+```
+
+Không chỉ verify Handler result.
+
+---
+
+# 72. FAILURE REPORT
+
+Import result phải phân biệt:
+
+```text id="j6qkzq"
+COMPLETED
+PARTIAL
+FAILED
+VALIDATION_FAILED
+```
+
+Không trả:
+
+```text id="s35eme"
+success = true
+```
+
+nếu worker mới xử lý một phần.
+
+---
+
+# 73. NO FAKE PROGRESS
+
+Progress phải dựa trên:
+
+```text id="eiv7uh"
+processedRows / totalRows
+```
+
+Không:
+
+```text id="w8e4dr"
+setInterval(() => progress += 10)
+```
+
+UI không được fake trạng thái.
+
+---
+
+# 74. NO BUSINESS LOGIC IN STIMULUS
+
+Stimulus chỉ:
+
+```text id="31yfif"
+upload
+preview interaction
+poll status
+render progress
+download report
+```
+
+Không:
+
+```text id="2uldti"
+calculate stock
+calculate authoritative price
+decide duplicate
+decide product validity
+```
+
+Backend là authority.
+
+---
+
+# 75. IMPORT TEMPLATE UX
+
+Trong Product:
+
+```text id="uklpks"
+Import Products
+
+[Download Template]
+
+Upload your completed Excel file.
+
+[Choose File]
+
+[Validate File]
+```
+
+Sau validation:
+
+```text id="yu6q8r"
+1,250 rows
+1,230 valid
+20 invalid
+
+[View Errors]
+
+[Start Import]
+```
+
+Stock tương tự.
+
+---
+
+# 76. RESULT UX
+
+Success:
+
+```text id="m6bfo0"
+Import completed
+
+1,250 rows processed
+1,250 successful
+
+[View Products]
+```
+
+Partial:
+
+```text id="dbmthd"
+Import completed with errors
+
+1,250 rows
+1,220 successful
+30 failed
+
+[Download Error Report]
+```
+
+Failed:
+
+```text id="i0iz60"
+Import failed
+
+No rows were committed
+```
+
+chỉ hiển thị nếu transaction/import policy thực sự đảm bảo điều đó.
+
+---
+
+# 77. OPERATIONAL COMMANDS
+
+Nếu cần, implement commands:
+
+```text id="3mjhym"
+app:imports:cleanup
+app:imports:retry
+app:imports:status
+```
+
+Chỉ tạo command thực sự cần.
+
+Không tạo CLI thừa.
+
+---
+
+# 78. CLEANUP
+
+Import files cũ phải có retention policy.
+
+Ví dụ config:
+
+```text id="cdcxsb"
+IMPORT_RETENTION_DAYS
+```
+
+Cleanup async/cron theo architecture hiện tại.
+
+Không xóa file đang:
+
+```text id="6nzcq1"
+PROCESSING
+```
+
+---
+
+# 79. WORKER SAFETY
+
+Worker phải bounded.
+
+Reuse Messenger worker strategy hiện tại.
+
+Không để worker:
+
+```text id="w5p94d"
+memory leak
+infinite retry
+```
+
+Có thể dùng:
+
+```text id="4brbkf"
+--time-limit
+--memory-limit
+--limit
+```
+
+theo deployment architecture.
+
+---
+
+# 80. IMPORT OBSERVABILITY
+
+Metrics/logging nên có:
+
+```text id="rcf211"
+imports_started
+imports_completed
+imports_failed
+import_rows_success
+import_rows_failed
+import_processing_duration
+```
+
+Nếu metrics infrastructure hiện tại chưa có:
+
+→ structured logs trước.
+
+Không tự thêm monitoring platform lớn.
+
+---
+
+# 81. TEMPLATE FILE NAMES
+
+Tên file nên rõ:
+
+```text id="btweph"
+product-import-template-v1.xlsx
+stock-import-template-v1.xlsx
+```
+
+Không dùng:
+
+```text id="hm8ukl"
+template-final-final-2.xlsx
+```
+
+---
+
+# 82. DOWNLOAD SECURITY
+
+Template public/static có thể download.
+
+Error report/original import:
+
+→ phải permission-check.
+
+Không cho user thay đổi:
+
+```text id="8yiapt"
+/imports/{id}
+```
+
+để đọc import của user khác nếu permission không cho phép.
+
+---
+
+# 83. IMPORT ACCESS CONTROL
+
+Phải kiểm tra:
+
+```text id="vzn1qj"
+view import
+create import
+execute import
+download report
+retry import
+```
+
+theo Permission Matrix hiện tại.
+
+Không chỉ check role ở Twig.
+
+---
+
+# 84. ACCEPTANCE CRITERIA
+
+Phase chỉ PASS khi toàn bộ flow sau chạy thật:
+
+```text id="5yw4z8"
+PRODUCT
+
+Download template
+ ↓
+Fill Excel
+ ↓
+Upload
+ ↓
+Validate
+ ↓
+Preview
+ ↓
+Confirm
+ ↓
+Messenger
+ ↓
+Worker
+ ↓
+Product persistence
+ ↓
+Result
+```
+
+và:
+
+```text id="nguyxp"
+STOCK
+
+Download template
+ ↓
+Fill Excel
+ ↓
+Upload
+ ↓
+Validate
+ ↓
+Preview
+ ↓
+Confirm
+ ↓
+Messenger
+ ↓
+Worker
+ ↓
+Lock Product
+ ↓
+Adjust Stock
+ ↓
+StockMovement
+ ↓
+AuditLog
+ ↓
+COMMIT
+ ↓
+Result
+```
+
+---
+
+# 85. FINAL INTEGRATION SCENARIO
+
+Phải có test thật:
+
+```text id="wkw358"
+Create Product
+ ↓
+Import additional Products
+ ↓
+Import initial Stock
+ ↓
+Product Catalog
+ ↓
+POS
+ ↓
+Checkout
+ ↓
+Stock decreases
+ ↓
+Stock Import Adjustment
+ ↓
+Stock increases
+ ↓
+Stock History
+```
+
+Database phải phản ánh đúng toàn bộ lịch sử.
+
+---
+
+# 86. FINAL COMMANDS
+
+Sau implementation phải chạy tối thiểu:
+
+```bash id="jn5500"
+composer validate
+php bin/console lint:container
+php bin/console doctrine:schema:validate
+php bin/phpunit
+```
+
+Nếu có Messenger:
+
+```bash id="h2xn1r"
+php bin/console messenger:debug
+```
+
+Nếu có migration:
+
+```bash id="qtkrgi"
+php bin/console doctrine:migrations:migrate --no-interaction
+```
+
+và test trên database test thật.
+
+---
+
+# 87. REQUIRED DELIVERABLES
+
+Coding agent phải trả về:
+
+```text id="9gtjw2"
+1. Files changed
+2. New entities
+3. New migrations
+4. New services
+5. New handlers
+6. New Messenger messages
+7. New templates
+8. New import validators
+9. New error codes
+10. New permissions
+11. New tests
+12. Template generation implementation
+13. Worker configuration
+14. Retry configuration
+15. Failure transport behavior
+16. Commands added
+17. Test result
+18. Database verification result
+```
+
+---
+
+# 88. FINAL RULE
+
+Không được kết thúc bằng:
+
+```text id="h0pwn8"
+"Import system đã implement"
+```
+
+mà không chứng minh:
+
+```text id="g9aa5a"
+Excel
+ ↓
+Upload
+ ↓
+Validation
+ ↓
+Messenger
+ ↓
+Worker
+ ↓
+Transaction
+ ↓
+Database
+ ↓
+StockMovement
+ ↓
+AuditLog
+```
+
+đã hoạt động thật.
+
+Đặc biệt:
+
+**Product Import và Stock Import phải dùng chung import infrastructure nhưng KHÔNG được dùng chung business mutation logic một cách mù quáng.**
+
+Product mutation phải đi qua Product/Application semantics.
+
+Stock mutation phải đi qua Stock/Application semantics.
+
+Messenger chỉ orchestration/background execution.
+
+Database vẫn là persistence authority.
+
+Critical business invariants vẫn là authority cao nhất.
+:::
+
+**Mình khuyên chốt phase này thành `2.31`**. Nó khá quan trọng vì sau khi có nó, việc tạo dữ liệu demo sẽ nhanh hơn rất nhiều: chỉ cần điền Excel template là có thể dựng catalog + stock hàng loạt, thay vì nhập tay từng sản phẩm.
+
+Một điểm mình cố tình khóa rất chặt là **Stock Import không phải “bulk update `stockQuantity`”**. Nó phải tạo `StockMovement`, lock product và derive `quantityBefore/quantityAfter` trong transaction — đúng với stock adjustment architecture hiện tại. fileciteturn0file43L1-L5
+
+Ngoài ra, Messenger chỉ chạy **sau khi `ImportBatch` và file metadata đã persistence thành công**; không để worker chạy trước commit. Đây là cùng nguyên tắc post-commit async đã dùng cho image processing/notification. fileciteturn1file6L1-L22

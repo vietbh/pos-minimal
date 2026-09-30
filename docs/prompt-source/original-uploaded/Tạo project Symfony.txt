@@ -1,0 +1,194 @@
+Đúng. Ý này nên được **đưa thành nguyên tắc architecture chính thức**, không chỉ là ghi chú.
+
+Mình sẽ freeze như sau:
+
+### Root Account — Final Decision
+
+```text id="xziuts"
+User
+├── id
+├── username
+├── passwordHash       nullable
+├── roles
+├── isActive
+├── createdAt
+└── updatedAt
+```
+
+Root account chỉ là **một User có `ROLE_ROOT`**:
+
+```text id="b62roj"
+roles = [
+    "ROLE_USER",
+    "ROLE_ADMIN",
+    "ROLE_ROOT"
+]
+```
+
+Không có:
+
+```php id="odg5gt"
+if ($user->getEmail() === 'root@gmail.com')
+```
+
+Không có:
+
+```php id="jpsm5f"
+const ROOT_EMAIL = '...';
+```
+
+Không có `root_user_id` hard-code trong source.
+
+### Quyền
+
+```text id="klwa4d"
+ROLE_USER
+    ↓
+quyền người dùng thông thường
+
+ROLE_ADMIN
+    ↓
+quyền quản trị
+
+ROLE_ROOT
+    ↓
+toàn quyền hệ thống
+```
+
+`ROLE_ROOT` là **authorization capability**, không phải authentication provider.
+
+Vì vậy:
+
+```text id="rhpght"
+Password Login ─────┐
+                    ├──→ User ──→ ROLE_ROOT
+Google OAuth ───────┤
+                    │
+Future SSO ─────────┘
+```
+
+Sau này Google Login chỉ cần map Google identity vào User tương ứng. Architecture hiện tại không quan tâm User đăng nhập bằng cách nào.
+
+---
+
+### Google OAuth — để sau
+
+MVP:
+
+```text id="5xbz3y"
+users
+user_sessions
+```
+
+Future:
+
+```text id="vkxco7"
+user_identities
+├── id
+├── user_id
+├── provider
+├── provider_user_id
+├── email
+├── created_at
+└── last_login_at
+```
+
+Ví dụ:
+
+```text id="4es98s"
+user_id = 1
+provider = google
+provider_user_id = <Google subject>
+```
+
+và:
+
+```text id="zj3jcs"
+UNIQUE(provider, provider_user_id)
+```
+
+Như vậy nếu sau này bạn đổi Google account, thêm password, hoặc thêm provider khác thì **User/Order/Payment/Debt/Stock không phải sửa**.
+
+---
+
+## Một điểm rất quan trọng về Root
+
+Root **không nên bypass tất cả security ở tầng Controller**.
+
+Nên đi:
+
+```text id="u6udco"
+Request
+ ↓
+Authentication
+ ↓
+User active?
+ ↓
+Voter / Authorization
+ ↓
+ROLE_ROOT?
+ ↓
+Allow
+```
+
+Và các business operation critical vẫn đi qua:
+
+```text id="4zv33w"
+Application Service
+ ↓
+Domain rules
+ ↓
+Transaction
+ ↓
+Audit
+```
+
+Root có thể **được phép làm mọi operation**, nhưng không có nghĩa là business invariant bị bỏ qua.
+
+Ví dụ Root vẫn không được:
+
+```text id="q8bwzw"
+stock = -10
+payment = -100
+```
+
+hoặc phá transaction.
+
+---
+
+# 🔒 Architecture Freeze Update
+
+Mình cập nhật `PHASE 1.2`:
+
+```text id="m2t9ao"
+User
+├── passwordHash: nullable
+├── roles: ROLE_USER / ROLE_ADMIN / ROLE_ROOT
+└── isActive
+
+Root Account
+└── normal User + ROLE_ROOT
+
+Authentication
+├── Password          ← MVP
+└── Google OAuth      ← Future
+
+Identity Provider
+└── KHÔNG nằm trực tiếp trong User
+
+user_identities
+└── DEFERRED / Future
+
+Root email
+└── KHÔNG hard-code
+
+Root business authority
+└── ROLE_ROOT
+
+Business invariants
+└── vẫn áp dụng cho Root
+```
+
+Vậy **không cần quay lại sửa database schema lớn**. Chỉ cần sửa `password_hash` thành nullable và chuẩn hóa `roles`.
+
+Giờ architecture này đã đủ tốt để sau này thêm **Google Login + nhiều authentication provider + Root account** mà không phá core POS.

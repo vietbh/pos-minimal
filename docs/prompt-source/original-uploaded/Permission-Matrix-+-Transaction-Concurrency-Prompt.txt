@@ -1,0 +1,817 @@
+# CRITICAL PROMPT — PERMISSION MATRIX MOBILE POS
+
+Bạn là **Senior Security Architect + Symfony 7.4 Authorization Designer**.
+
+Dựa trên:
+
+1. Critical Prompt của Mobile POS.
+2. Use Case Specification.
+3. Entity & Domain Model.
+4. Business Rules & State Machine.
+
+Hãy thiết kế **Authorization Model + Permission Matrix** cho hệ thống POS.
+
+**Chưa viết code.**
+
+Mục tiêu là tạo một permission model đủ rõ để triển khai sau bằng:
+
+* Symfony Security
+* Roles
+* Voter
+* Authorization checker
+* Controller security
+* Application Service authorization
+
+---
+
+# 1. SECURITY PRINCIPLE
+
+Không được coi frontend là lớp bảo mật.
+
+Các cơ chế sau chỉ phục vụ UX:
+
+```text
+hide button
+disable button
+hide menu
+```
+
+Không phải security boundary.
+
+Backend phải enforce permission.
+
+Nếu user gọi trực tiếp:
+
+```text
+POST /admin/stock/adjust
+```
+
+thì backend vẫn phải kiểm tra quyền.
+
+---
+
+# 2. MVP ROLES
+
+MVP bắt đầu với:
+
+```text
+ROLE_USER
+ROLE_ADMIN
+```
+
+Không tự tạo:
+
+* Manager
+* Accountant
+* Warehouse
+* Cashier
+* Supervisor
+
+trừ khi Use Case thực sự yêu cầu.
+
+Nếu có nhu cầu permission chi tiết hơn nhưng chưa cần role mới:
+
+→ sử dụng permission/action + Voter.
+
+---
+
+# 3. PERMISSION MODEL
+
+Phân biệt:
+
+### Role
+
+Ví dụ:
+
+```text
+ROLE_USER
+ROLE_ADMIN
+```
+
+### Permission / Capability
+
+Ví dụ:
+
+```text
+POS_CHECKOUT
+ORDER_VIEW
+ORDER_CANCEL
+ORDER_REFUND
+PRODUCT_MANAGE
+PRODUCT_PRICE_CHANGE
+STOCK_ADJUST
+DEBT_PAYMENT
+AUDIT_VIEW
+SESSION_VIEW
+SESSION_REVOKE
+USER_MANAGE
+```
+
+Không nhất thiết lưu permission thành database nếu MVP có static permission matrix.
+
+Phải đánh giá:
+
+* static role hierarchy có đủ không?
+* cần Voter không?
+* cần database permission không?
+
+Ưu tiên giải pháp đơn giản nhất đáp ứng requirement.
+
+---
+
+# 4. ACTION-LEVEL AUTHORIZATION
+
+Permission phải được thiết kế theo business action.
+
+Không chỉ:
+
+```text
+Can access /products
+```
+
+mà phải phân biệt:
+
+```text
+Can view product
+Can create product
+Can edit product
+Can change price
+Can deactivate product
+```
+
+Tương tự Order:
+
+```text
+Can view order
+Can cancel order
+Can refund order
+```
+
+---
+
+# 5. ACTOR MATRIX
+
+Tạo matrix:
+
+| Capability       | Guest | User | Admin |
+| ---------------- | ----: | ---: | ----: |
+| Login            |     ✓ |    — |     — |
+| POS              |     — |    ✓ |     ✓ |
+| Checkout         |     — |    ✓ |     ✓ |
+| View Orders      |     — |    ✓ |     ✓ |
+| Cancel Order     |     — |    ? |     ✓ |
+| Refund           |     — |    — |     ✓ |
+| View Customer    |     — |    ✓ |     ✓ |
+| Create Customer  |     — |    ✓ |     ✓ |
+| Pay Debt         |     — |    ? |     ✓ |
+| Product View     |     — |    ✓ |     ✓ |
+| Product Create   |     — |    — |     ✓ |
+| Product Edit     |     — |    — |     ✓ |
+| Change Price     |     — |    — |     ✓ |
+| Stock View       |     — |    ✓ |     ✓ |
+| Stock Adjustment |     — |    — |     ✓ |
+| Audit View       |     — |    — |     ✓ |
+| Session View     |     — |    — |     ✓ |
+| Session Revoke   |     — |    — |     ✓ |
+| User Management  |     — |    — |     ✓ |
+
+Không dùng dấu `?` trong final decision.
+
+Nếu requirement chưa đủ → đưa vào Open Questions và đánh dấu proposed default.
+
+---
+
+# 6. AUTHORIZATION CATEGORIES
+
+Phân loại permission:
+
+## Sales
+
+```text
+POS_ACCESS
+POS_CHECKOUT
+```
+
+## Orders
+
+```text
+ORDER_VIEW
+ORDER_CANCEL
+ORDER_REFUND
+```
+
+## Customers
+
+```text
+CUSTOMER_VIEW
+CUSTOMER_CREATE
+CUSTOMER_EDIT
+```
+
+## Debt
+
+```text
+DEBT_VIEW
+DEBT_PAYMENT
+```
+
+## Products
+
+```text
+PRODUCT_VIEW
+PRODUCT_CREATE
+PRODUCT_EDIT
+PRODUCT_PRICE_CHANGE
+PRODUCT_ACTIVATE
+```
+
+## Stock
+
+```text
+STOCK_VIEW
+STOCK_ADJUST
+STOCK_HISTORY_VIEW
+```
+
+## Statistics
+
+```text
+STATISTICS_VIEW
+```
+
+## Audit
+
+```text
+AUDIT_VIEW
+```
+
+## Sessions
+
+```text
+SESSION_VIEW
+SESSION_REVOKE
+```
+
+## Users
+
+```text
+USER_VIEW
+USER_CREATE
+USER_EDIT
+USER_DISABLE
+```
+
+Chỉ tạo permission thật sự cần.
+
+---
+
+# 7. SELF VS OTHER RESOURCE
+
+Phải phân biệt action trên chính user và user khác.
+
+Ví dụ:
+
+```text
+User có thể logout session của chính mình.
+Admin có thể revoke session của user khác.
+```
+
+Nếu cần:
+
+```text
+SESSION_REVOKE_SELF
+SESSION_REVOKE_OTHER
+```
+
+thì đề xuất.
+
+Không tạo permission thừa nếu logic resource ownership có thể xử lý bằng Voter.
+
+---
+
+# 8. RESOURCE OWNERSHIP
+
+Phân tích ownership:
+
+### Order
+
+User có được xem mọi Order hay chỉ Order của mình?
+
+### Customer
+
+User có được sửa mọi Customer?
+
+### Debt
+
+User có được thu mọi Debt?
+
+### Session
+
+User có được xem/revoke session của chính mình?
+
+### Audit
+
+User có được xem audit của chính mình hay chỉ Admin?
+
+Không tự động assume tất cả đều global.
+
+Nếu business requirement chưa nói rõ:
+
+→ đưa vào Open Questions.
+
+---
+
+# 9. SENSITIVE ACTIONS
+
+Đánh dấu các action nguy hiểm:
+
+```text
+STOCK_ADJUST
+PRODUCT_PRICE_CHANGE
+ORDER_CANCEL
+ORDER_REFUND
+DEBT_PAYMENT
+USER_DISABLE
+SESSION_REVOKE
+```
+
+Với mỗi action xác định:
+
+* role
+* permission
+* resource ownership
+* audit required
+* transaction required
+
+---
+
+# 10. FINANCIAL ACTION AUTHORIZATION
+
+Các action ảnh hưởng tiền phải có authorization rõ:
+
+```text
+Checkout
+Payment
+Debt Payment
+Refund
+Order Cancellation
+```
+
+Không được chỉ dựa trên route prefix.
+
+Ví dụ:
+
+```text
+/admin/*
+```
+
+không phải business authorization.
+
+Authorization phải gắn với action.
+
+---
+
+# 11. STOCK AUTHORIZATION
+
+Phân biệt:
+
+```text
+STOCK_VIEW
+```
+
+và:
+
+```text
+STOCK_ADJUST
+```
+
+User có thể xem stock nhưng không được thay đổi stock nếu không có permission.
+
+Sale deduction không phải manual stock adjustment.
+
+User bán hàng được bán sản phẩm nhưng không đồng nghĩa được phép chỉnh tồn kho.
+
+---
+
+# 12. PRODUCT PRICE AUTHORIZATION
+
+Phải phân biệt:
+
+```text
+PRODUCT_EDIT
+```
+
+và:
+
+```text
+PRODUCT_PRICE_CHANGE
+```
+
+Nếu business requirement coi đổi giá là sensitive action:
+
+→ Admin only.
+
+Nếu User được phép sửa product information nhưng không được đổi giá:
+
+→ permission riêng.
+
+---
+
+# 13. ORDER CANCEL / REFUND
+
+Phải xác định:
+
+```text
+ORDER_CANCEL
+ORDER_REFUND
+```
+
+là hai permission khác nhau.
+
+Không gộp nếu business impact khác nhau.
+
+Cancel:
+
+* order state
+* stock reversal
+* debt/payment impact
+
+Refund:
+
+* financial reversal
+* stock impact
+* audit
+
+---
+
+# 14. DEBT PAYMENT
+
+Xác định:
+
+```text
+DEBT_VIEW
+DEBT_PAYMENT
+```
+
+là hai capability khác nhau.
+
+Một User có thể xem công nợ nhưng không được thu tiền nếu requirement yêu cầu kiểm soát.
+
+Nếu User được thu tiền:
+
+→ vẫn phải audit.
+
+---
+
+# 15. AUDIT
+
+Audit log:
+
+```text
+AUDIT_VIEW
+```
+
+chỉ dành cho actor phù hợp.
+
+Không cho User:
+
+* sửa
+* xóa
+* truncate
+* alter audit history
+
+AuditLog immutable.
+
+---
+
+# 16. USER MANAGEMENT
+
+Admin-only:
+
+```text
+USER_VIEW
+USER_CREATE
+USER_EDIT
+USER_DISABLE
+```
+
+Phải chống:
+
+```text
+Admin tự disable chính mình
+```
+
+nếu điều đó làm mất admin access ngoài ý muốn.
+
+Nếu không cần user management trong MVP:
+
+→ không thêm.
+
+---
+
+# 17. SESSION MANAGEMENT
+
+User:
+
+```text
+logout own session
+```
+
+Admin:
+
+```text
+view sessions
+revoke sessions
+```
+
+Nếu Admin revoke session hiện tại:
+
+→ xác định behavior.
+
+Không để session revoked tiếp tục thực hiện request authenticated.
+
+---
+
+# 18. VOTER STRATEGY
+
+Phân tích khi nào cần Symfony Voter.
+
+Ví dụ:
+
+```text
+OrderVoter
+ProductVoter
+DebtVoter
+SessionVoter
+```
+
+Không tạo Voter cho mọi Entity.
+
+Chỉ dùng Voter khi permission phụ thuộc:
+
+* resource
+* ownership
+* state
+* actor
+* business context
+
+Ví dụ:
+
+```text
+Can cancel this Order?
+```
+
+không chỉ phụ thuộc role.
+
+Có thể phụ thuộc:
+
+```text
+Order.status
+User.role
+Order.owner
+```
+
+---
+
+# 19. STATE-AWARE AUTHORIZATION
+
+Permission phải kết hợp State Machine.
+
+Ví dụ User có:
+
+```text
+ORDER_CANCEL
+```
+
+nhưng:
+
+```text
+Order.status = CANCELLED
+```
+
+→ vẫn không được cancel.
+
+Hoặc:
+
+```text
+Debt.status = PAID
+```
+
+→ không được tạo DebtPayment.
+
+Authorization ≠ Business Rule.
+
+Cả hai đều phải được kiểm tra.
+
+---
+
+# 20. DEFENSE IN DEPTH
+
+Với action critical:
+
+```text
+HTTP request
+ ↓
+Authentication
+ ↓
+Authorization
+ ↓
+Business validation
+ ↓
+State validation
+ ↓
+Transaction
+```
+
+Không rely vào một lớp duy nhất.
+
+---
+
+# 21. API / ROUTE SECURITY
+
+Với mỗi route conceptual, map:
+
+```text
+Route
+→ Authentication
+→ Permission
+→ Voter nếu cần
+→ Business operation
+```
+
+Ví dụ:
+
+```text
+POST /pos/checkout
+→ authenticated
+→ POS_CHECKOUT
+→ CheckoutService
+```
+
+```text
+POST /stock/adjust
+→ authenticated
+→ STOCK_ADJUST
+→ StockService
+```
+
+---
+
+# 22. AUDIT + PERMISSION
+
+Mỗi sensitive authorized action phải xác định:
+
+```text
+Permission
++
+Audit
++
+Transaction
+```
+
+Ví dụ:
+
+```text
+STOCK_ADJUST
+→ transaction
+→ StockMovement
+→ AuditLog
+```
+
+---
+
+# 23. PERMISSION → USE CASE MATRIX
+
+Tạo matrix đầy đủ:
+
+| Use Case             | Required Permission  | Actor            | Resource Check | Audit |
+| -------------------- | -------------------- | ---------------- | -------------- | ----- |
+| Checkout             | POS_CHECKOUT         | User/Admin       | Product/Stock  | ✓     |
+| Pay Debt             | DEBT_PAYMENT         | User/Admin       | Debt state     | ✓     |
+| Stock Adjustment     | STOCK_ADJUST         | Admin            | Product        | ✓     |
+| Cancel Order         | ORDER_CANCEL         | Admin/permission | Order state    | ✓     |
+| Refund               | ORDER_REFUND         | Admin            | Order/payment  | ✓     |
+| Product Price Change | PRODUCT_PRICE_CHANGE | Admin            | Product        | ✓     |
+| View Audit           | AUDIT_VIEW           | Admin            | —              | —     |
+
+---
+
+# 24. PERMISSION → ENTITY MATRIX
+
+Xác định permission ảnh hưởng Entity nào:
+
+```text
+POS_CHECKOUT
+→ Order
+→ OrderItem
+→ Payment
+→ Product
+→ StockMovement
+→ Debt
+→ AuditLog
+```
+
+v.v.
+
+---
+
+# 25. UI AUTHORIZATION
+
+Frontend được phép:
+
+* hide menu
+* disable button
+* hide action
+* show read-only state
+
+Nhưng backend vẫn phải enforce.
+
+Ví dụ:
+
+```text
+User không có STOCK_ADJUST
+```
+
+UI:
+
+```text
+[Điều chỉnh kho]
+```
+
+không hiển thị.
+
+Nhưng nếu user gọi endpoint thủ công:
+
+→ 403.
+
+---
+
+# 26. ERROR SEMANTICS
+
+Phân biệt:
+
+### 401
+
+Chưa authenticated.
+
+### 403
+
+Authenticated nhưng không có permission.
+
+### 404
+
+Resource không tồn tại hoặc có thể cố ý hide existence tùy security requirement.
+
+### 409
+
+Business/resource conflict.
+
+### 422
+
+Validation/business input error nếu architecture chọn semantics này.
+
+Không expose sensitive internal details.
+
+---
+
+# 27. FINAL OUTPUT
+
+Xuất:
+
+## 1. Role Catalog
+
+## 2. Permission Catalog
+
+## 3. Full Permission Matrix
+
+## 4. Sensitive Action Matrix
+
+## 5. Resource Ownership Rules
+
+## 6. State-aware Authorization Rules
+
+## 7. Voter Candidates
+
+## 8. Route → Permission Matrix
+
+## 9. Use Case → Permission Matrix
+
+## 10. Permission → Entity Matrix
+
+## 11. Permission → Audit Matrix
+
+## 12. Error Semantics
+
+## 13. Open Questions
+
+## 14. Security Review
+
+Kiểm tra:
+
+* Có endpoint nào thiếu permission?
+* Có action critical nào chỉ bảo vệ bằng UI?
+* Có permission nào thừa?
+* Có role nào thừa?
+* Có state transition nào bypass được authorization?
+
+**Không viết code.**
