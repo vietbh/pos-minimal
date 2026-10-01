@@ -1,0 +1,2575 @@
+Đây là prompt nên dùng tiếp theo. Nó tập trung đúng vào **Repository + Query / Read Model**, kế thừa các quyết định trước về Use Case, Entity, Business Rules, Permission, Transaction và Application Service. Các tài liệu trước cũng xác định rõ mục tiêu tránh N+1, tách query khỏi mutation và giữ POS nhẹ trên mobile. fileciteturn4file1 fileciteturn4file2 fileciteturn4file3 fileciteturn4file5 fileciteturn4file6
+
+# CRITICAL PROMPT — REPOSITORY + QUERY / READ MODEL MOBILE POS
+
+```text id="tf3fbf"
+# CRITICAL PROMPT — REPOSITORY + QUERY / READ MODEL MOBILE POS
+
+Bạn là:
+
+Senior Symfony 7.4 Architect
++ Doctrine ORM Architect
++ MySQL Query/Index Architect
++ DDD Repository Designer
++ Mobile Performance Engineer.
+
+Dựa trên toàn bộ architecture specification đã được thiết kế trước đó:
+
+1. Critical Prompt của Mobile-first POS.
+2. Use Case Specification.
+3. Entity & Domain Model.
+4. Business Rules & State Machines.
+5. Permission Matrix.
+6. Transaction / Concurrency / Idempotency Design.
+7. Application Service & Domain Service Design.
+8. Product Image / Note requirements.
+
+Hãy thiết kế:
+
+- Repository
+- Query Service
+- Read Model
+- Read DTO
+- Query specification
+- Pagination
+- Search
+- Filtering
+- Sorting
+- Index strategy
+- Entity loading strategy
+- N+1 prevention
+- Query performance
+
+cho Mobile POS.
+
+CHƯA VIẾT CODE.
+
+Không viết PHP.
+Không viết Doctrine Attribute.
+Không viết SQL migration.
+Không viết Controller.
+Không viết Twig.
+Không viết Stimulus.
+
+Chỉ thiết kế architecture và data-access responsibility.
+
+Mục tiêu:
+
+Controller
+→ Query/Application Service
+→ Query / Repository
+→ Read Model / Entity
+→ Doctrine
+→ MySQL
+
+và:
+
+Application Service
+→ Domain
+→ Repository
+→ Doctrine
+
+phải có responsibility rõ ràng.
+
+==================================================
+# 1. CORE PRINCIPLE
+==================================================
+
+Repository không phải nơi chứa toàn bộ database query của hệ thống một cách tùy tiện.
+
+Phải phân biệt:
+
+## Command / Mutation
+
+```text
+Checkout
+PayDebt
+AdjustStock
+CancelOrder
+ChangePrice
+```
+
+→ Application Service
+→ Domain
+→ Repository persistence
+
+## Query / Read
+
+```text id="kjvtit"
+SearchProduct
+ListOrders
+ViewOrderDetail
+SearchCustomer
+ViewDebt
+ViewStock
+ViewAudit
+ViewStatistics
+```
+
+→ Query Service / Read Repository
+→ Read Model / DTO khi phù hợp.
+
+Read path không được mutate domain.
+
+==================================================
+# 2. REPOSITORY DEFINITION
+==================================================
+
+Repository đại diện cho persistence boundary của một Aggregate/Entity phù hợp.
+
+Repository có thể:
+
+```text id="ayiuaf"
+find
+get
+save
+add
+remove nếu business cho phép
+```
+
+hoặc query domain-specific cần thiết.
+
+Repository KHÔNG được:
+
+```text id="eehxp0"
+checkout()
+payDebt()
+cancelOrder()
+adjustStock()
+refund()
+```
+
+Business workflow thuộc Application/Domain.
+
+==================================================
+# 3. DOMAIN REPOSITORY VS QUERY REPOSITORY
+==================================================
+
+Phân biệt:
+
+## Domain Repository
+
+Dùng khi Application/Domain cần Entity để thực hiện business operation.
+
+Ví dụ:
+
+```text id="4xyqd1"
+ProductRepository
+OrderRepository
+DebtRepository
+CustomerRepository
+```
+
+Ví dụ:
+
+```text id="gnz368"
+CheckoutService
+→ ProductRepository
+→ load Product
+→ business operation
+```
+
+## Query Repository / Read Repository
+
+Dùng cho màn hình đọc.
+
+Ví dụ:
+
+```text id="v8cif6"
+ProductQuery
+OrderQuery
+CustomerQuery
+DebtQuery
+StockQuery
+AuditQuery
+StatisticsQuery
+```
+
+Không nhất thiết mọi Query phải có Domain Entity.
+
+==================================================
+# 4. ENTITY LOADING PRINCIPLE
+==================================================
+
+Không load Entity graph lớn chỉ vì Doctrine relationship tồn tại.
+
+Ví dụ không mặc định:
+
+```text id="uet3vf"
+Order
+ ├── Customer
+ ├── User
+ ├── OrderItems
+ │    └── Product
+ ├── Payments
+ └── Debt
+      └── DebtPayments
+```
+
+cho màn hình:
+
+```text id="kg1ouh"
+Order List
+```
+
+Nếu list chỉ cần:
+
+```text id="qyc5bi"
+orderNumber
+customerName
+total
+status
+createdAt
+```
+
+→ query trực tiếp projection/read DTO.
+
+==================================================
+# 5. READ MODEL PRINCIPLE
+==================================================
+
+Read Model không nhất thiết là Entity.
+
+Có thể là:
+
+```text id="wx7o9w"
+ProductListItem
+OrderListItem
+OrderDetailView
+CustomerListItem
+CustomerDetailView
+DebtListItem
+DebtSummary
+StockListItem
+StockMovementItem
+AuditLogItem
+DailySalesSummary
+```
+
+Read Model phải phục vụ UI/use case cụ thể.
+
+Không tạo một:
+
+```text id="die0n2"
+GenericReadModel
+```
+
+cho tất cả màn hình.
+
+==================================================
+# 6. DTO VS ENTITY
+==================================================
+
+Đánh giá từng Query:
+
+Nếu cần:
+
+```text id="tgmize"
+business behavior
+state mutation
+```
+
+→ Entity.
+
+Nếu chỉ:
+
+```text id="uo8ipo"
+display data
+search
+filter
+sorting
+aggregation
+```
+
+→ Read DTO/projection.
+
+Không trả Entity trực tiếp cho API/UI nếu không có lý do.
+
+==================================================
+# 7. PRODUCT QUERY
+==================================================
+
+Thiết kế Query cho POS Product.
+
+Tối thiểu:
+
+```text id="a7c2rf"
+Search Product
+List Product
+View Product
+```
+
+POS search cần:
+
+```text id="31mz6g"
+keyword
+sku
+name
+isActive
+```
+
+Có thể tìm theo:
+
+```text id="kq7ov2"
+SKU
+Tên sản phẩm
+```
+
+Phải ưu tiên tốc độ trên mobile.
+
+==================================================
+# 8. POS PRODUCT SEARCH
+==================================================
+
+Đây là query quan trọng nhất về UX.
+
+Scenario:
+
+```text id="fj28gv"
+User mở POS
+↓
+Search "coca"
+↓
+Results
+↓
+Tap product
+↓
+Add local cart
+```
+
+Search không được load:
+
+```text id="45rczt"
+Order history
+Stock movements
+Audit logs
+```
+
+chỉ để hiển thị product.
+
+Product result chỉ trả field cần thiết.
+
+Ví dụ:
+
+```text id="qhjmx5"
+id
+name
+sku
+sellingPrice
+stockQuantity
+isActive
+primaryImage
+```
+
+Nhưng phải cân nhắc field nào thật sự cần.
+
+==================================================
+# 9. PRODUCT IMAGE QUERY
+==================================================
+
+Nếu Product có ProductImage:
+
+Không load toàn bộ:
+
+```text id="1jm0z4"
+ProductImage[]
+```
+
+cho product list nếu chỉ cần primary image.
+
+Read model nên có:
+
+```text id="j0ale8"
+primaryImageUrl
+```
+
+hoặc reference tương đương.
+
+Phải thiết kế query tránh:
+
+```text id="aodfhm"
+N Product
+→ N ProductImage queries
+```
+
+==================================================
+# 10. PRODUCT SEARCH + STOCK
+==================================================
+
+POS có thể cần hiển thị:
+
+```text id="6eu462"
+Tồn: 12
+```
+
+Nhưng phải quyết định:
+
+Stock có nên trả trong ProductSearchResult không?
+
+Nếu có:
+
+```text id="sf7txt"
+Product.stockQuantity
+```
+
+là current stock source of truth.
+
+Query chỉ đọc.
+
+Không lock stock trong product search.
+
+Không mở transaction write cho search.
+
+==================================================
+# 11. PRODUCT QUERY FILTERS
+==================================================
+
+Xác định filter:
+
+```text id="qnubju"
+keyword
+active
+lowStock
+outOfStock
+```
+
+Nếu có:
+
+```text id="qtgkn7"
+category
+brand
+unit
+```
+
+chỉ thêm nếu Entity/requirements thực sự có.
+
+Không tự tạo category system.
+
+==================================================
+# 12. CUSTOMER QUERY
+==================================================
+
+Thiết kế:
+
+```text id="s5l9ic"
+SearchCustomer
+ListCustomer
+ViewCustomer
+```
+
+Search ưu tiên:
+
+```text id="kfxulm"
+phone
+name
+```
+
+POS customer lookup phải nhanh.
+
+Không load toàn bộ:
+
+```text id="4854g4"
+Orders
+Debts
+Payments
+```
+
+khi chỉ search customer.
+
+==================================================
+# 13. CUSTOMER DETAIL READ MODEL
+==================================================
+
+Customer detail có thể cần:
+
+```text id="4u097s"
+id
+name
+phone
+note
+outstandingDebt
+orderCount
+lastOrderAt
+```
+
+Phải xác định field nào:
+
+```text id="zi9nyk"
+stored
+calculated
+aggregated
+```
+
+Đặc biệt:
+
+```text id="yi7dis"
+outstandingDebt
+```
+
+không được lấy từ:
+
+```text id="39spj9"
+Customer.totalDebt
+```
+
+nếu Customer.totalDebt không phải source of truth.
+
+Có thể aggregate từ Debt.
+
+==================================================
+# 14. CUSTOMER PURCHASE HISTORY
+==================================================
+
+Thiết kế query:
+
+```text id="8xk36m"
+CustomerOrderHistory
+```
+
+Chỉ lấy:
+
+```text id="vfdm11"
+orderId
+orderNumber
+total
+status
+createdAt
+```
+
+Không load full Order aggregate.
+
+Có pagination.
+
+Default:
+
+```text id="mqoa45"
+20
+```
+
+hoặc một page size hợp lý.
+
+Phải giải thích.
+
+==================================================
+# 15. ORDER QUERY
+==================================================
+
+Thiết kế:
+
+```text id="hs74ry"
+ListOrders
+SearchOrders
+ViewOrderDetail
+```
+
+Filter:
+
+```text id="ww4vt4"
+orderNumber
+customer
+status
+dateFrom
+dateTo
+```
+
+Nếu cần:
+
+```text id="wu1y71"
+paymentMethod
+user
+```
+
+chỉ thêm nếu Use Case yêu cầu.
+
+==================================================
+# 16. ORDER LIST READ MODEL
+==================================================
+
+Order list nên trả:
+
+```text id="h4cobu"
+id
+orderNumber
+customerName
+total
+paidAmount
+debtAmount
+status
+createdAt
+```
+
+Không trả:
+
+```text id="ihu9fg"
+items[]
+payments[]
+debtPayments[]
+stockMovements[]
+```
+
+trong list.
+
+==================================================
+# 17. ORDER DETAIL READ MODEL
+==================================================
+
+Order detail có thể trả:
+
+```text id="8oym0r"
+order
+ ├── basic information
+ ├── customer
+ ├── items
+ ├── payments
+ └── debt summary
+```
+
+Nhưng phải dùng query có chủ đích.
+
+Tránh:
+
+```text id="3oztop"
+Order Entity
+→ lazy load 5 relationships
+→ N+1
+```
+
+Phải xác định:
+
+```text id="cbxpnp"
+1 query
+hoặc
+few controlled queries
+```
+
+tùy trade-off.
+
+==================================================
+# 18. ORDER ITEM READ MODEL
+==================================================
+
+Order item history phải lấy snapshot:
+
+```text id="8gw7l4"
+productName
+sku
+unitPrice
+quantity
+subtotal
+```
+
+Không join Product hiện tại để lấy:
+
+```text id="3tkn70"
+current name
+current price
+```
+
+cho lịch sử.
+
+Product hiện tại có thể đã thay đổi.
+
+==================================================
+# 19. PAYMENT QUERY
+==================================================
+
+Payment history có thể được query theo:
+
+```text id="4v8dda"
+order
+date
+user
+method
+```
+
+Không cho query layer mutate Payment.
+
+Payment là immutable financial history.
+
+==================================================
+# 20. DEBT QUERY
+==================================================
+
+Thiết kế:
+
+```text id="bdpd90"
+DebtList
+DebtDetail
+CustomerDebtSummary
+OverdueDebtList
+```
+
+Debt list cần:
+
+```text id="tjwquo"
+customerName
+orderNumber
+originalAmount
+paidAmount
+remainingAmount
+dueDate
+status
+```
+
+Phải xác định sorting:
+
+```text id="ofsgin"
+dueDate
+remainingAmount
+createdAt
+```
+
+==================================================
+# 21. OVERDUE QUERY
+==================================================
+
+Nếu OVERDUE là derived state:
+
+```text id="3l8tak"
+remainingAmount > 0
+AND dueDate < now
+```
+
+thì Query phải tính điều kiện này.
+
+Không phụ thuộc một persisted:
+
+```text id="bilg11"
+status = OVERDUE
+```
+
+nếu domain decision trước đó không lưu state này.
+
+Timezone phải nhất quán.
+
+==================================================
+# 22. DEBT SUMMARY QUERY
+==================================================
+
+Customer debt summary:
+
+```text id="eks843"
+totalOutstanding
+openDebtCount
+overdueDebtCount
+```
+
+Phải xác định:
+
+```text id="t6il4h"
+SUM(remainingAmount)
+```
+
+là aggregation từ Debt.
+
+Nếu performance chưa cần cache/denormalize:
+
+→ query trực tiếp.
+
+Không tạo materialized summary chỉ vì "sau này có thể cần".
+
+==================================================
+# 23. STOCK QUERY
+==================================================
+
+Thiết kế:
+
+```text id="cjf1si"
+StockList
+LowStockList
+OutOfStockList
+StockMovementHistory
+```
+
+Stock list có thể:
+
+```text id="hyz5cb"
+productId
+productName
+sku
+stockQuantity
+lowStockThreshold
+status
+```
+
+Status như:
+
+```text id="fb1zqf"
+IN_STOCK
+LOW_STOCK
+OUT_OF_STOCK
+```
+
+nếu cần có thể là derived read state.
+
+Không persist chỉ vì UI cần.
+
+==================================================
+# 24. STOCK MOVEMENT QUERY
+==================================================
+
+Stock history:
+
+```text id="9pftzl"
+product
+type
+quantityBefore
+quantityChange
+quantityAfter
+reason
+orderNumber
+userName
+createdAt
+```
+
+Pagination bắt buộc nếu dữ liệu lớn.
+
+Không load toàn bộ StockMovement.
+
+==================================================
+# 25. AUDIT QUERY
+==================================================
+
+Audit log:
+
+```text id="hhpdk9"
+AuditLogList
+AuditLogDetail
+```
+
+Filter:
+
+```text id="volpsq"
+user
+action
+entityType
+entityId
+dateFrom
+dateTo
+```
+
+Pagination bắt buộc.
+
+Sort:
+
+```text id="if9idy"
+createdAt DESC
+```
+
+AuditLog immutable.
+
+==================================================
+# 26. SESSION QUERY
+==================================================
+
+Admin có thể xem:
+
+```text id="shd4r1"
+active sessions
+recent sessions
+```
+
+Read model:
+
+```text id="48v0vh"
+sessionId
+user
+device
+ip
+loginAt
+lastActivityAt
+status
+```
+
+Không load full security/session payload.
+
+==================================================
+# 27. STATISTICS QUERY
+==================================================
+
+Thiết kế read-only query cho:
+
+```text id="ya54mt"
+Daily Sales
+Sales By Period
+Payment Summary
+Debt Summary
+Top Products
+Low Stock
+```
+
+Không dùng Entity graph lớn để tính statistics.
+
+Ưu tiên:
+
+```text id="kzdb43"
+SQL aggregation
+→ lightweight result
+```
+
+khi dataset cần.
+
+==================================================
+# 28. DAILY SALES
+==================================================
+
+Xác định:
+
+```text id="cdtpkn"
+date
+orderCount
+grossSales
+paidAmount
+debtAmount
+```
+
+Phải xác định rõ:
+
+```text id="k9h7pi"
+CANCELLED orders
+REFUNDED orders
+```
+
+có được tính hay không.
+
+Không tự quyết định nếu Business Rules chưa xác định.
+
+Đưa vào Open Questions.
+
+==================================================
+# 29. TOP PRODUCTS
+==================================================
+
+Nếu cần:
+
+```text id="tz5rva"
+product
+quantitySold
+salesAmount
+```
+
+query dựa trên:
+
+```text id="owz1r5"
+OrderItem
+Order
+```
+
+với state hợp lệ.
+
+Không lấy Product.stockQuantity để suy ra sales.
+
+==================================================
+# 30. QUERY SERVICE RESPONSIBILITY
+==================================================
+
+Query Service chịu trách nhiệm:
+
+```text id="omj1ae"
+build read query
+apply filters
+apply pagination
+map result
+```
+
+Không:
+
+```text id="chd6xs"
+change entity
+start business mutation
+create audit
+change stock
+```
+
+==================================================
+# 31. QUERY SERVICE NAMING
+==================================================
+
+Ưu tiên:
+
+```text id="hv77cl"
+ProductQuery
+CustomerQuery
+OrderQuery
+DebtQuery
+StockQuery
+AuditQuery
+SessionQuery
+StatisticsQuery
+```
+
+Hoặc use-case-oriented:
+
+```text id="sdqpu8"
+SearchProducts
+ListOrders
+GetOrderDetail
+```
+
+Phải chọn một naming strategy thống nhất.
+
+Không trộn:
+
+```text id="xwkwna"
+ProductRepository
+OrderQueryService
+DebtReadManager
+CustomerFinder
+```
+
+một cách ngẫu nhiên.
+
+==================================================
+# 32. QUERY DTO NAMING
+==================================================
+
+Thiết kế naming:
+
+```text id="vcmx1g"
+ProductListItem
+ProductSearchResult
+
+OrderListItem
+OrderDetailView
+
+CustomerListItem
+CustomerDetailView
+
+DebtListItem
+DebtDetailView
+
+StockListItem
+StockMovementItem
+
+AuditLogItem
+SessionItem
+```
+
+Không tạo:
+
+```text id="4wo13k"
+GenericDTO
+BaseDTO
+UniversalResponse
+```
+
+==================================================
+# 33. PAGINATION
+==================================================
+
+Mọi list có khả năng tăng dữ liệu phải có pagination.
+
+Ít nhất:
+
+```text id="x4hsxf"
+Orders
+Customers
+Debts
+Stock Movements
+Audit Logs
+Sessions
+```
+
+Product search cũng phải có giới hạn result.
+
+Không trả:
+
+```text id="8lakge"
+SELECT all
+```
+
+cho mobile list.
+
+==================================================
+# 34. PAGINATION STRATEGY
+==================================================
+
+So sánh:
+
+### Offset pagination
+
+```text id="dweavx"
+page=1
+page=2
+```
+
+### Cursor/keyset pagination
+
+```text id="m5vuk9"
+after=createdAt/id
+```
+
+Đánh giá theo:
+
+* MVP size
+* MySQL
+* mobile UX
+* implementation complexity
+
+Chọn strategy phù hợp.
+
+Không dùng cursor chỉ vì "best practice" nếu offset đủ đơn giản.
+
+==================================================
+# 35. STABLE SORTING
+==================================================
+
+Mọi paginated query phải có deterministic ordering.
+
+Ví dụ:
+
+```text id="7wmr3g"
+createdAt DESC
+id DESC
+```
+
+Không chỉ:
+
+```text id="rwufrn"
+ORDER BY createdAt DESC
+```
+
+nếu duplicate timestamp có thể gây record trùng/mất giữa pages.
+
+==================================================
+# 36. SEARCH STRATEGY
+==================================================
+
+Phân tích:
+
+```text id="rpx7no"
+LIKE
+prefix search
+FULLTEXT
+```
+
+cho:
+
+```text id="fo2kqx"
+Product name
+Product SKU
+Customer name
+Customer phone
+Order number
+```
+
+MVP ưu tiên MySQL native.
+
+Không thêm Elasticsearch/Meilisearch/Algolia nếu chưa cần.
+
+==================================================
+# 37. PRODUCT SEARCH PERFORMANCE
+==================================================
+
+Phân tích:
+
+```text id="46i7f1"
+name LIKE :keyword
+sku LIKE :keyword
+```
+
+và khả năng sử dụng index.
+
+Nếu wildcard:
+
+```text id="stsbph"
+%keyword%
+```
+
+làm index kém hiệu quả:
+
+→ phải đề xuất chiến lược phù hợp.
+
+Ví dụ:
+
+```text id="3brcx1"
+prefix search
+```
+
+nếu UX cho phép.
+
+Không hy sinh search UX mà không nêu trade-off.
+
+==================================================
+# 38. CASE / COLLATION
+==================================================
+
+Phải quyết định:
+
+```text id="aay3pj"
+Product.name
+Customer.name
+SKU
+Phone
+```
+
+search có:
+
+```text id="iymx2d"
+case-insensitive
+accent-sensitive
+```
+
+hay không.
+
+MySQL collation phải phù hợp với tiếng Việt.
+
+Không tự tạo custom search engine.
+
+==================================================
+# 39. INDEX STRATEGY
+==================================================
+
+Không tạo index cho mọi field.
+
+Mỗi index phải map tới query thực tế.
+
+Ví dụ:
+
+```text id="6d5jxk"
+Product.sku
+Product.name
+Product.isActive
+Customer.phone
+Customer.name
+Order.createdAt
+Order.status
+Order.customer_id
+Debt.customer_id
+Debt.status
+Debt.dueDate
+StockMovement.product_id
+StockMovement.createdAt
+AuditLog.createdAt
+AuditLog.user_id
+```
+
+Nhưng phải thiết kế composite index dựa trên actual query pattern.
+
+==================================================
+# 40. COMPOSITE INDEX
+==================================================
+
+Đánh giá các query:
+
+```text id="iskh4q"
+Order:
+status + createdAt
+
+Debt:
+status + dueDate
+
+StockMovement:
+product + createdAt
+
+AuditLog:
+user + createdAt
+
+Product:
+isActive + name
+```
+
+Không mặc định tạo tất cả.
+
+Phải giải thích:
+
+```text id="jtxowe"
+query
+→ filter
+→ sort
+→ index
+```
+
+==================================================
+# 41. INDEX VS WRITE COST
+==================================================
+
+POS có write transaction thường xuyên.
+
+Mỗi index:
+
+→ tăng write cost.
+
+Do đó:
+
+```text id="qw9og0"
+Correct index
+>
+Many indexes
+```
+
+Không index các field ít query.
+
+==================================================
+# 42. N+1 ANALYSIS
+==================================================
+
+Bắt buộc phân tích N+1 cho:
+
+```text id="i7d1dg"
+Order List
+Order Detail
+Customer List
+Debt List
+Stock Movement
+Product List
+Audit List
+```
+
+Ví dụ không được:
+
+```text id="f2yacr"
+20 Orders
+→ 20 Customer queries
+→ 20 User queries
+```
+
+Phải dùng:
+
+```text id="vl9fit"
+JOIN
+projection
+batch loading
+controlled eager loading
+```
+
+tùy use case.
+
+==================================================
+# 43. JOIN STRATEGY
+==================================================
+
+Phân tích khi nào:
+
+```text id="ytofw6"
+JOIN
+LEFT JOIN
+separate query
+```
+
+Ví dụ Order List:
+
+```text id="1wiko8"
+Order
+LEFT JOIN Customer
+```
+
+có thể hợp lý.
+
+Order Detail:
+
+Có thể dùng:
+
+```text id="e4ix92"
+Order query
++
+Items query
++
+Payments query
+```
+
+thay vì một query khổng lồ gây duplicate row explosion.
+
+Phải chọn theo data size.
+
+==================================================
+# 44. ROW MULTIPLICATION
+==================================================
+
+Cảnh báo:
+
+```text id="kki8ki"
+Order
+JOIN OrderItems
+JOIN Payments
+JOIN DebtPayments
+```
+
+có thể tạo:
+
+```text id="a629bx"
+items × payments × debtPayments
+```
+
+duplicate rows.
+
+Không join tất cả relationship chỉ để giảm số query.
+
+Few controlled queries đôi khi tốt hơn one giant query.
+
+==================================================
+# 45. ENTITY GRAPH RULE
+==================================================
+
+Không dùng:
+
+```text id="c2wrby"
+EAGER
+```
+
+toàn hệ thống để "fix N+1".
+
+Eager loading phải có chủ đích.
+
+Không để Product load:
+
+```text id="eqkdj3"
+StockMovement[]
+OrderItems[]
+```
+
+mỗi lần Product được query.
+
+==================================================
+# 46. COUNT QUERY
+==================================================
+
+Pagination cần xác định có cần:
+
+```text id="qgbn9b"
+totalCount
+```
+
+hay không.
+
+Mobile UI có thực sự cần:
+
+```text id="19jsie"
+Page 1 of 37
+```
+
+không?
+
+Nếu không:
+
+→ có thể dùng:
+
+```text id="wt8qpm"
+hasNext
+```
+
+để giảm query COUNT.
+
+Đặc biệt với large datasets.
+
+==================================================
+# 47. MOBILE RESPONSE SIZE
+==================================================
+
+Mỗi read endpoint phải xác định:
+
+```text id="tfglvt"
+minimum fields needed
+```
+
+Không trả:
+
+```text id="xb8zty"
+unused fields
+large notes
+large JSON audit values
+full image metadata
+```
+
+trong list nếu không cần.
+
+==================================================
+# 48. IMAGE RESPONSE
+==================================================
+
+Product list chỉ nên trả:
+
+```text id="h2trza"
+thumbnail / primary image URL
+```
+
+Không trả binary image.
+
+Không trả original full-size image trong JSON.
+
+Storage layer chịu trách nhiệm serving image.
+
+==================================================
+# 49. NOTE RESPONSE
+==================================================
+
+List view:
+
+Không nhất thiết trả full:
+
+```text id="pgf96z"
+Order.note
+Debt.note
+Customer.note
+```
+
+nếu UI không hiển thị.
+
+Detail view mới lấy note khi cần.
+
+Mục tiêu:
+
+```text id="etzkot"
+small response
+fast mobile
+```
+
+==================================================
+# 50. READ CONSISTENCY
+==================================================
+
+Query sau mutation phải phản ánh business state phù hợp.
+
+Ví dụ:
+
+```text id="68hjnm"
+Checkout commit
+↓
+Order list refresh
+```
+
+phải thấy Order đã completed.
+
+Không dùng eventual consistency cho các read critical ngay sau mutation nếu gây UX sai.
+
+Statistics có thể eventual nếu requirement cho phép.
+
+==================================================
+# 51. QUERY CACHE
+==================================================
+
+Phân tích caching.
+
+MVP ưu tiên:
+
+```text id="mkddn3"
+DB + indexes
+```
+
+trước.
+
+Chỉ cache nếu có query thực sự expensive.
+
+Không tự thêm Redis.
+
+Nếu cache:
+
+Phải xác định:
+
+```text id="xpidrl"
+TTL
+invalidation
+stale tolerance
+```
+
+==================================================
+# 52. STATISTICS CACHE
+==================================================
+
+Statistics có thể được:
+
+```text id="nwiq6z"
+real-time query
+```
+
+hoặc:
+
+```text id="vghgjq"
+async aggregation
+```
+
+Phải chọn dựa trên dataset.
+
+Nếu dùng Messenger/Cron:
+
+```text id="3l2h7d"
+Statistics
+→ eventual consistency
+```
+
+phải được chấp nhận ở UX.
+
+Không dùng cached statistics cho financial source of truth.
+
+==================================================
+# 53. SOURCE OF TRUTH
+==================================================
+
+Tạo bảng:
+
+| Data | Source of Truth | Read Strategy |
+|---|---|---|
+| Product price | Product | ProductQuery |
+| Current stock | Product.stockQuantity | StockQuery |
+| Stock history | StockMovement | StockMovementQuery |
+| Order total | Order/defined invariant | OrderQuery |
+| Payment history | Payment | PaymentQuery |
+| Debt balance | Debt | DebtQuery |
+| Customer debt summary | SUM(Debt) | Aggregate Query |
+| Audit history | AuditLog | AuditQuery |
+
+Không tạo read cache làm source of truth.
+
+==================================================
+# 54. QUERY → ENTITY MATRIX
+==================================================
+
+Tạo bảng:
+
+| Query | Entity Tables | Returns |
+|---|---|---|
+| Product Search | Product + primary image | ProductSearchResult |
+| Order List | Order + Customer | OrderListItem |
+| Order Detail | Order + Items + Payment + Debt | OrderDetailView |
+| Debt List | Debt + Customer + Order | DebtListItem |
+| Stock List | Product | StockListItem |
+| Stock History | StockMovement + Product + User | StockMovementItem |
+| Audit List | AuditLog + User | AuditLogItem |
+
+Điều chỉnh theo model thực tế.
+
+==================================================
+# 55. QUERY → INDEX MATRIX
+==================================================
+
+Tạo:
+
+| Query | Filter | Sort | Recommended Index |
+|---|---|---|---|
+| Product Search | active/name | name | ... |
+| Order List | status/date | createdAt | ... |
+| Debt List | status/dueDate | dueDate | ... |
+| Stock History | product/date | createdAt | ... |
+| Audit List | user/date | createdAt | ... |
+
+Index recommendation phải có rationale.
+
+==================================================
+# 56. REPOSITORY CATALOG
+==================================================
+
+Cuối cùng tạo danh sách chính thức:
+
+## Domain Repositories
+
+```text id="z73dl6"
+ProductRepository
+CustomerRepository
+OrderRepository
+DebtRepository
+...
+```
+
+Chỉ tạo repository cho Aggregate/Entity thực sự cần persistence abstraction.
+
+Không nhất thiết:
+
+```text id="a7nzu0"
+PaymentRepository
+StockMovementRepository
+AuditLogRepository
+```
+
+nếu chúng chỉ được tạo như part của Application transaction và không có independent domain lifecycle.
+
+Nhưng phải phân tích và quyết định.
+
+==================================================
+# 57. QUERY CATALOG
+==================================================
+
+Danh sách chính thức:
+
+```text id="hy24yu"
+ProductQuery
+CustomerQuery
+OrderQuery
+DebtQuery
+StockQuery
+AuditQuery
+SessionQuery
+StatisticsQuery
+```
+
+Có thể tách theo use case nếu hợp lý.
+
+==================================================
+# 58. QUERY RESULT CATALOG
+==================================================
+
+Danh sách chính thức:
+
+```text id="2b5zah"
+ProductSearchResult
+ProductListItem
+OrderListItem
+OrderDetailView
+CustomerListItem
+CustomerDetailView
+DebtListItem
+DebtDetailView
+StockListItem
+StockMovementItem
+AuditLogItem
+SessionItem
+DailySalesSummary
+TopProductItem
+```
+
+Không tạo DTO nếu query có thể trả primitive/scalar đơn giản mà vẫn rõ ràng.
+
+==================================================
+# 59. QUERY RESPONSIBILITY MATRIX
+==================================================
+
+Tạo:
+
+| Query | Purpose | Entity? | DTO? | Pagination | Cache |
+|---|---|---|---|---|---|
+| ProductSearch | POS search | No | Yes | Limited | Maybe |
+| OrderList | Order list | No | Yes | Yes | No |
+| OrderDetail | Order detail | No | Yes | No | No |
+| DebtList | Debt management | No | Yes | Yes | No |
+| StockList | Current stock | No | Yes | Yes | No |
+| AuditList | Audit | No | Yes | Yes | No |
+| Statistics | Dashboard | No | Yes | Period | Maybe |
+
+==================================================
+# 60. QUERY SECURITY
+==================================================
+
+Read query cũng phải enforce authorization.
+
+Ví dụ:
+
+User không có:
+
+```text id="b143vk"
+AUDIT_VIEW
+```
+
+→ không được query AuditLog.
+
+Nếu Order visibility phụ thuộc ownership:
+
+→ Query phải áp dụng resource scope.
+
+Không:
+
+```text id="myluw8"
+fetch all orders
+→ filter in PHP
+```
+
+nếu có thể query đúng ngay từ DB.
+
+==================================================
+# 61. TENANT / STORE SCOPE
+
+Nếu hệ thống hiện tại chỉ có một cửa hàng:
+
+Không thêm:
+
+```text id="ytlbjz"
+storeId
+tenantId
+companyId
+```
+
+chỉ vì "sau này".
+
+Nếu architecture đã xác định multi-store:
+
+→ mọi query phải include scope.
+
+Nếu chưa:
+
+→ Open Question.
+
+==================================================
+# 62. SOFT DELETE / ACTIVE FILTER
+==================================================
+
+Nếu Product dùng:
+
+```text id="xtlt2o"
+isActive
+```
+
+POS Product Search mặc định:
+
+```text id="lo4vxw"
+isActive = true
+```
+
+Admin Product Management có thể query:
+
+```text id="3joc2k"
+active + inactive
+```
+
+Không để mỗi query tự nhớ filter bằng convention không rõ ràng.
+
+Phải xác định nơi áp dụng.
+
+==================================================
+# 63. TIMEZONE
+==================================================
+
+Statistics và date filter phải xác định timezone.
+
+Ví dụ:
+
+```text id="3oxe1a"
+Daily Sales
+```
+
+"Ngày hôm nay" phải dựa trên business timezone.
+
+Không dùng timezone của browser để query database nếu business timezone là cố định.
+
+==================================================
+# 64. DATE RANGE
+==================================================
+
+Tránh query:
+
+```text id="5srhw4"
+DATE(createdAt) = :date
+```
+
+nếu làm mất khả năng sử dụng index.
+
+Ưu tiên range:
+
+```text id="6tjz7p"
+createdAt >= start
+createdAt < end
+```
+
+Thiết kế conceptual, chưa cần SQL.
+
+==================================================
+# 65. NULL HANDLING
+==================================================
+
+Query phải xác định rõ:
+
+```text id="dwmngg"
+Customer null
+Debt null
+DueDate null
+Primary image null
+```
+
+Không để UI tự đoán.
+
+Ví dụ OrderList:
+
+```text id="lqfk3w"
+customerName = null
+```
+
+→ hiển thị phù hợp.
+
+==================================================
+# 66. SEARCH RESULT LIMIT
+==================================================
+
+POS autocomplete/search:
+
+Không trả hàng nghìn records.
+
+Đề xuất:
+
+```text id="n2ka7j"
+10–30 results
+```
+
+và pagination/load-more nếu cần.
+
+Chọn một default hợp lý và giải thích.
+
+==================================================
+# 67. DEBOUNCE VS SERVER QUERY
+==================================================
+
+Search UI có thể debounce bằng Stimulus.
+
+Ví dụ:
+
+```text id="g8yhwa"
+User types:
+c
+co
+coc
+coca
+```
+
+Không request cho từng character.
+
+Nhưng Query layer không được phụ thuộc debounce.
+
+Backend vẫn phải chịu request burst an toàn.
+
+==================================================
+# 68. LOCAL VS SERVER DATA
+==================================================
+
+Phân biệt:
+
+### Local UI state
+
+```text id="uj38h6"
+Cart
+quantity changes
+remove item
+clear cart
+```
+
+Không Repository.
+
+### Server authoritative data
+
+```text id="rwh7zd"
+price
+stock
+product active
+customer
+order
+debt
+payment
+```
+
+Query/Repository.
+
+==================================================
+# 69. QUERY TRANSACTION
+
+Read query mặc định:
+
+```text id="vtgfkc"
+NO LONG-LIVED TRANSACTION
+```
+
+Không mở transaction chỉ để:
+
+```text id="igxkd8"
+GET /orders
+```
+
+Business write transaction vẫn theo Transaction specification.
+
+==================================================
+# 70. LOCK IN READ QUERY
+
+Không lock:
+
+```text id="oqcixd"
+Product search
+Order list
+Customer search
+```
+
+trừ khi use case thực sự cần consistent snapshot.
+
+Checkout/Payment/Adjustment mới dùng concurrency control.
+
+==================================================
+# 71. QUERY ERROR MODEL
+
+Phân biệt:
+
+```text id="dwissd"
+Not Found
+Invalid Filter
+Unauthorized
+Invalid Pagination
+Database Failure
+```
+
+Không trả raw Doctrine/DB exception.
+
+==================================================
+# 72. PERFORMANCE BUDGET
+
+Đề xuất performance target cho MVP.
+
+Ví dụ:
+
+### Product Search
+
+```text id="rhfnra"
+target < 200ms server-side
+```
+
+### Order List
+
+```text id="7nyxk3"
+target < 300ms
+```
+
+### Customer Search
+
+```text id="qv37wf"
+target < 200ms
+```
+
+### Dashboard statistics
+
+```text id="iecyl8"
+target < 500ms
+```
+
+Các con số chỉ là engineering target, không phải hard guarantee.
+
+Nếu hosting yếu:
+
+→ điều chỉnh thực tế.
+
+==================================================
+# 73. EXPLAIN / QUERY ANALYSIS
+==================================================
+
+Trước production:
+
+Critical queries phải được kiểm tra bằng:
+
+```text id="e2rhlg"
+EXPLAIN
+```
+
+Đặc biệt:
+
+```text id="02cm7w"
+Product search
+Order list
+Debt list
+Stock history
+Audit list
+Statistics
+```
+
+Không tối ưu index chỉ dựa trên intuition.
+
+==================================================
+# 74. DATA GROWTH
+==================================================
+
+Ước lượng query behavior khi:
+
+```text id="f2okcb"
+1,000 orders
+10,000 orders
+100,000 orders
+1,000,000 stock movements
+```
+
+Không cần premature sharding.
+
+Chỉ xác định điểm query nào cần pagination/index/aggregation.
+
+==================================================
+# 75. NO CQRS OVERENGINEERING
+==================================================
+
+Read Model không có nghĩa phải triển khai full CQRS.
+
+MVP có thể:
+
+```text id="p5xv98"
+Doctrine
++
+Query Repository
++
+DTO projection
+```
+
+là đủ.
+
+Không tự thêm:
+
+```text id="z64lov"
+separate database
+event sourcing
+Kafka
+Elasticsearch
+Redis
+materialized view
+```
+
+nếu chưa cần.
+
+==================================================
+# 76. NO GENERIC REPOSITORY
+==================================================
+
+Không tạo:
+
+```text id="2qh88d"
+BaseRepository<T>
+GenericRepository
+CrudRepository
+```
+
+chỉ để giảm vài dòng code.
+
+Repository nên thể hiện domain/query intent.
+
+==================================================
+# 77. NO BUSINESS LOGIC IN QUERY
+==================================================
+
+Query có thể:
+
+```text id="5rvwiz"
+filter
+sort
+aggregate
+project
+```
+
+Nhưng không được:
+
+```text id="c7xtuy"
+change stock
+mark debt paid
+cancel order
+create audit
+```
+
+Query là read-only.
+
+==================================================
+# 78. NO ENTITY MUTATION FROM READ
+==================================================
+
+GET request không được:
+
+```text id="z4t90o"
+update lastViewed
+change status
+write audit
+```
+
+trừ khi đó là explicit business requirement và được thiết kế riêng.
+
+==================================================
+# 79. FINAL ARCHITECTURE
+
+Tạo diagram:
+
+```text id="ddrwr2"
+                 ┌──────────────┐
+                 │  Controller  │
+                 └──────┬───────┘
+                        │
+             ┌──────────┴──────────┐
+             │                     │
+             ▼                     ▼
+      Application Service      Query Service
+             │                     │
+             ▼                     ▼
+       Domain Model          Read DTO / Projection
+             │                     │
+             ▼                     ▼
+       Domain Repository      Query Repository
+             │                     │
+             └──────────┬──────────┘
+                        ▼
+                     Doctrine
+                        │
+                        ▼
+                      MySQL
+```
+
+Chỉ rõ:
+
+```text id="2z1z6j"
+WRITE PATH
+READ PATH
+```
+
+==================================================
+# 80. FINAL WRITE PATH
+
+Phải khớp Application Service specification:
+
+```text id="0iduyr"
+Controller
+ ↓
+Application Service
+ ↓
+Authorization
+ ↓
+Transaction
+ ↓
+Repository
+ ↓
+Domain
+ ↓
+Repository
+ ↓
+Doctrine/MySQL
+```
+
+Repository không quyết định business transaction.
+
+==================================================
+# 81. FINAL READ PATH
+
+```text id="youzf6"
+Controller
+ ↓
+Query Service
+ ↓
+Read Repository / Query
+ ↓
+Projection
+ ↓
+Read DTO
+ ↓
+Response
+```
+
+Không cần load aggregate nếu chỉ đọc.
+
+==================================================
+# 82. COMPLETE QUERY MATRIX
+
+Tạo bảng đầy đủ:
+
+| Screen / Use Case | Query | Filters | Sort | Pagination | Result |
+|---|---|---|---|---|---|
+| POS | ProductSearch | keyword/active | relevance/name | limit | ProductSearchResult |
+| Orders | OrderList | date/status/customer | createdAt | yes | OrderListItem |
+| Order detail | OrderDetail | id | — | — | OrderDetailView |
+| Customers | CustomerSearch | name/phone | name | yes | CustomerListItem |
+| Customer detail | CustomerDetail | id | — | — | CustomerDetailView |
+| Debts | DebtList | status/dueDate/customer | dueDate | yes | DebtListItem |
+| Stock | StockList | low/out | name | yes | StockListItem |
+| Stock history | MovementList | product/type/date | createdAt | yes | StockMovementItem |
+| Audit | AuditList | user/action/date | createdAt | yes | AuditLogItem |
+| Statistics | Dashboard | period | — | — | Summary DTO |
+
+==================================================
+# 83. COMPLETE REPOSITORY MATRIX
+
+Tạo:
+
+| Repository | Purpose | Used By | Returns |
+|---|---|---|---|
+| ProductRepository | Product aggregate persistence | Product/Checkout/Stock | Product |
+| OrderRepository | Order persistence | Checkout/Cancel | Order |
+| DebtRepository | Debt persistence | Checkout/PayDebt | Debt |
+| CustomerRepository | Customer persistence | Customer/Checkout | Customer |
+| ... | ... | ... | ... |
+
+Chỉ giữ repository thực sự cần.
+
+==================================================
+# 84. COMPLETE INDEX MATRIX
+
+Tạo:
+
+| Table | Query Pattern | Index | Reason |
+|---|---|---|---|
+| product | active + name | ... | POS search |
+| order | status + createdAt | ... | order list |
+| debt | status + dueDate | ... | debt list |
+| stock_movement | product + createdAt | ... | history |
+| audit_log | createdAt | ... | audit list |
+
+Không tạo index mà không map tới query.
+
+==================================================
+# 85. OPEN QUESTIONS
+
+Chỉ đưa ra các vấn đề chưa đủ requirement để quyết định.
+
+Ưu tiên:
+
+1. Product search accent/collation.
+2. Product SKU search semantics.
+3. Order list visibility.
+4. Customer/order ownership.
+5. Statistics treatment of cancelled/refunded orders.
+6. Pagination UX.
+7. Image URL/storage strategy.
+8. Expected dataset size nếu ảnh hưởng architecture.
+
+Không biến Open Questions thành danh sách feature mới.
+
+==================================================
+# 86. FINAL REVIEW
+
+Sau khi thiết kế xong, phải tự kiểm tra:
+
+### Repository
+
+- Có chứa business logic không?
+- Có generic repository thừa không?
+- Aggregate boundary có rõ không?
+
+### Query
+
+- Có query nào load quá nhiều data không?
+- Có query nào gây N+1 không?
+- Có query nào cần DTO projection không?
+
+### Pagination
+
+- List lớn có pagination không?
+- Sort có deterministic không?
+
+### Search
+
+- Product search đủ nhanh trên mobile không?
+- Index có thực sự hỗ trợ query không?
+
+### Stock
+
+- Read stock không lock?
+- Current stock lấy đúng source of truth?
+
+### Debt
+
+- Outstanding debt tính đúng?
+- Không dùng Customer.totalDebt làm source of truth?
+
+### Order
+
+- History dùng snapshot?
+- Order list không load toàn bộ items?
+
+### Audit
+
+- Pagination?
+- Filter?
+- Không expose dữ liệu nhạy cảm?
+
+### Image
+
+- Chỉ trả thumbnail/URL cần thiết?
+- Không trả binary?
+
+### Mobile
+
+- Response nhỏ?
+- Search result giới hạn?
+- Không request thừa?
+
+### Performance
+
+- Có query nào cần EXPLAIN?
+- Có index thừa gây write overhead?
+- Có cache nào thực sự cần?
+
+==================================================
+# 87. OUTPUT BẮT BUỘC
+
+Kết quả phải có đúng các phần:
+
+## 1. Repository Architecture
+
+## 2. Domain Repository Catalog
+
+## 3. Query / Read Repository Catalog
+
+## 4. Query Service Catalog
+
+## 5. Read Model / DTO Catalog
+
+## 6. Product Query Design
+
+## 7. Customer Query Design
+
+## 8. Order Query Design
+
+## 9. Payment Query Design
+
+## 10. Debt Query Design
+
+## 11. Stock Query Design
+
+## 12. Audit Query Design
+
+## 13. Session Query Design
+
+## 14. Statistics Query Design
+
+## 15. Search Strategy
+
+## 16. Pagination Strategy
+
+## 17. Sorting Strategy
+
+## 18. N+1 Prevention Strategy
+
+## 19. Entity Loading Strategy
+
+## 20. Projection Strategy
+
+## 21. Image Read Strategy
+
+## 22. Note Read Strategy
+
+## 23. Source of Truth Matrix
+
+## 24. Query → Entity Matrix
+
+## 25. Query → Index Matrix
+
+## 26. Repository Matrix
+
+## 27. Query Matrix
+
+## 28. Complete Index Strategy
+
+## 29. Query Security / Permission Scope
+
+## 30. Timezone / Date Range Strategy
+
+## 31. Performance Budget
+
+## 32. Data Growth Strategy
+
+## 33. Caching Decision
+
+## 34. EXPLAIN / Performance Validation Strategy
+
+## 35. Final Read Architecture
+
+## 36. Final Write Architecture
+
+## 37. Open Questions
+
+## 38. Final Architecture Decision
+
+==================================================
+# 88. STRICT PROHIBITIONS
+
+Không viết:
+
+- PHP
+- Doctrine Entity code
+- Doctrine Repository implementation
+- SQL migration
+- Controller
+- Twig
+- Stimulus
+- JavaScript
+- Messenger Handler
+
+Không triển khai full CQRS.
+
+Không thêm:
+
+- Redis
+- Elasticsearch
+- Meilisearch
+- separate read database
+- event sourcing
+- microservice
+- sharding
+
+trừ khi specification hiện tại chứng minh bắt buộc.
+
+==================================================
+# FINAL PRINCIPLE
+==================================================
+
+Thiết kế theo nguyên tắc:
+
+> WRITE PATH bảo vệ business correctness.
+>
+> READ PATH tối ưu cho tốc độ và UI.
+>
+> Repository bảo vệ persistence boundary.
+>
+> Query/Read Model phục vụ màn hình cụ thể.
+>
+> Entity chỉ được load khi thực sự cần business behavior.
+
+Và đặc biệt:
+
+> **Không tối ưu bằng cách làm architecture phức tạp.**
+>
+> **Ưu tiên MySQL + Doctrine + index đúng + projection + pagination + tránh N+1.**
+
+Mobile POS phải có cảm giác:
+
+```text id="03y70x"
+Tap
+→ Fast response
+→ Small payload
+→ Minimal query
+→ No unnecessary round-trip
+```
+
+Trong khi backend vẫn giữ:
+
+```text id="tw6skf"
+Correctness
++
+Consistency
++
+Authorization
++
+Transaction Safety
++
+Traceability
+```
+
+Cuối cùng, đưa ra **một architecture recommendation duy nhất cho MVP**, bao gồm:
+
+```text id="ienygw"
+Domain Repository
++
+Query Repository
++
+Query Service
++
+Read DTO
++
+Doctrine
++
+MySQL
+```
+
+và chỉ rõ những gì **không cần xây** ở giai đoạn MVP.
+``` id="thbzje"
+
+### Chuỗi architecture lúc này
+
+```text
+01 Critical Architecture
+        ↓
+02 Use Case
+        ↓
+03 Entity / Domain Model
+        ↓
+04 Business Rules / State Machine
+        ↓
+05 Permission
+        ↓
+06 Transaction / Concurrency
+        ↓
+07 Application Service / Domain Service
+        ↓
+08 Repository / Query / Read Model   ← BƯỚC NÀY
+        ↓
+09 Controller / Route
+        ↓
+10 Input DTO / Validation
+        ↓
+11 Twig / Stimulus
+        ↓
+12 Messenger / Cron
+        ↓
+13 DB Migration / Index / Constraint
+        ↓
+14 Test
+```
+
+**Một điểm mình cố tình khóa trong prompt này:** đừng biến “Repository” thành cái túi đựng mọi query Doctrine. Với POS nhỏ, cách khá đẹp là **Domain Repository cho write/business path**, còn **Query Repository + Read DTO cho read path**. Như vậy `Order` không cần kéo cả đống `OrderItem → Product → Payment → Debt → ...` chỉ để render một dòng trong lịch sử đơn hàng.

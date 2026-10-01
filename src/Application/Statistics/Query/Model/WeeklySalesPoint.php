@@ -10,7 +10,7 @@ final readonly class WeeklySalesPoint
         public \DateTimeImmutable $date,
         public string $label,
         public string $netSales,
-        public string $displayMillions,
+        public string $displayLabel,
         public int $barPercent,
     ) {
         if ($barPercent < 0 || $barPercent > 100) {

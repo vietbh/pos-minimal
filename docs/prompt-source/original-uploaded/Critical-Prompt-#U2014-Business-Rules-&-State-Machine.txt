@@ -1,0 +1,1864 @@
+# CRITICAL PROMPT — BUSINESS RULES & STATE MACHINE MOBILE POS
+
+Bạn là **Senior Domain Architect + Symfony 7.4 Business Analyst + Database Transaction Designer**.
+
+Hãy thiết kế **Business Rules, Business Invariants và State Machines** cho một **Mobile-first POS nhỏ** sử dụng:
+
+* Symfony 7.4
+* MySQL
+* Doctrine ORM
+* Twig
+* Stimulus
+* Symfony Messenger
+* Cronjob
+
+Nguồn thiết kế phải dựa trên:
+
+1. Critical Prompt của dự án.
+2. Use Case Specification.
+3. Entity & Domain Model Specification.
+4. Product Image / Note bổ sung nếu có.
+
+**Chưa viết code.**
+
+Mục tiêu của bước này là khóa toàn bộ nghiệp vụ trước khi triển khai Application Service, Controller, Doctrine Entity và Database Migration.
+
+---
+
+# 1. OBJECTIVE
+
+Phải trả lời rõ:
+
+* Hệ thống được phép làm gì?
+* Không được phép làm gì?
+* Điều kiện nào phải đúng trước transaction?
+* Điều kiện nào phải đúng sau transaction?
+* State nào tồn tại?
+* State nào được chuyển sang state nào?
+* Ai được thực hiện transition?
+* Transition nào synchronous?
+* Transaction nào phải atomic?
+* Khi lỗi thì rollback gì?
+* Khi retry thì chuyện gì xảy ra?
+* Dữ liệu nào immutable?
+* Dữ liệu nào có thể thay đổi?
+
+Không để business rule quan trọng nằm trong:
+
+* Twig
+* Stimulus
+* Controller
+* JavaScript
+* UI validation
+
+Frontend chỉ hỗ trợ UX.
+
+Backend/domain là source of truth.
+
+---
+
+# 2. RULE CLASSIFICATION
+
+Phân loại mọi rule thành:
+
+## Validation Rule
+
+Kiểm tra input.
+
+Ví dụ:
+
+```text
+quantity > 0
+amount > 0
+name không rỗng
+```
+
+## Business Rule
+
+Quy định nghiệp vụ.
+
+Ví dụ:
+
+```text
+Không được bán quá tồn kho.
+```
+
+## Invariant
+
+Điều kiện **luôn phải đúng** sau mỗi transaction hợp lệ.
+
+Ví dụ:
+
+```text
+stockQuantity >= 0
+```
+
+## Authorization Rule
+
+Ai được phép làm.
+
+Ví dụ:
+
+```text
+Chỉ Admin được điều chỉnh stock.
+```
+
+## Transaction Rule
+
+Những thay đổi nào phải commit/rollback cùng nhau.
+
+Ví dụ:
+
+```text
+Order + Payment + StockMovement
+```
+
+## Async Rule
+
+Việc nào được xử lý sau bằng Messenger.
+
+Phải phân loại rõ.
+
+---
+
+# 3. BUSINESS RULE PRIORITY
+
+Nếu các rule xung đột:
+
+```text
+Data Integrity
+>
+Security
+>
+Financial Correctness
+>
+Stock Correctness
+>
+Business Rules
+>
+Mobile UX
+>
+Performance
+>
+Convenience
+```
+
+Không được hy sinh correctness để UX nhanh hơn.
+
+---
+
+# 4. MONEY RULES
+
+Thiết kế luật cho toàn bộ tiền.
+
+## 4.1 Price
+
+Product có:
+
+```text
+sellingPrice
+costPrice optional
+```
+
+Không dùng FLOAT/DOUBLE.
+
+MVP:
+
+```text
+DECIMAL(15,2)
+```
+
+---
+
+## 4.2 Order Total
+
+Xác định chính xác:
+
+```text
+subtotal
+discount
+total
+paidAmount
+debtAmount
+```
+
+Ví dụ:
+
+```text
+subtotal = sum(OrderItem.subtotal)
+
+total = subtotal - discount
+
+debtAmount = total - paidAmount
+```
+
+Nhưng phải xác định:
+
+* discount có thuộc MVP không?
+* discount âm có được không?
+* paidAmount có thể lớn hơn total không?
+* rounding rule là gì?
+
+Không tự ý thêm promotion/discount engine.
+
+Nếu chưa có requirement → đưa vào Open Questions.
+
+---
+
+# 5. PAYMENT RULES
+
+Xác định:
+
+### Payment amount
+
+```text
+amount > 0
+```
+
+### Payment total
+
+Nếu một Order có nhiều Payment:
+
+```text
+SUM(payment.amount) <= order.total
+```
+
+trừ khi business rule explicitly cho phép overpayment.
+
+### Payment immutable
+
+Sau khi tạo:
+
+```text
+Payment.amount
+Payment.method
+Payment.createdAt
+```
+
+không được sửa trực tiếp.
+
+Nếu có correction:
+
+phải tạo transaction nghiệp vụ mới như reversal/refund nếu MVP hỗ trợ.
+
+Không âm thầm UPDATE payment history.
+
+---
+
+# 6. PAYMENT METHOD
+
+Xác định enum:
+
+```text
+CASH
+BANK_TRANSFER
+OTHER
+```
+
+Với mỗi method xác định:
+
+* requirement
+* validation
+* reference có bắt buộc không
+* có cần proof/reference không
+
+Không thêm card/e-wallet nếu chưa có requirement.
+
+---
+
+# 7. DEBT RULES
+
+Debt chỉ tồn tại khi:
+
+```text
+order.total > totalPaid
+```
+
+và:
+
+```text
+customer != null
+```
+
+Không được tạo anonymous debt.
+
+---
+
+## 7.1 Debt invariant
+
+Luôn phải đúng:
+
+```text
+originalAmount >= 0
+paidAmount >= 0
+remainingAmount >= 0
+```
+
+và:
+
+```text
+originalAmount
+=
+paidAmount + remainingAmount
+```
+
+nếu không có overpayment.
+
+---
+
+# 8. DEBT PAYMENT RULES
+
+Khi thanh toán:
+
+```text
+amount > 0
+amount <= debt.remainingAmount
+```
+
+Sau transaction:
+
+```text
+newPaidAmount
+=
+oldPaidAmount + payment.amount
+```
+
+và:
+
+```text
+newRemainingAmount
+=
+originalAmount - newPaidAmount
+```
+
+Nếu:
+
+```text
+remainingAmount = 0
+```
+
+→ Debt chuyển:
+
+```text
+PAID
+```
+
+Nếu:
+
+```text
+0 < remainingAmount < originalAmount
+```
+
+→:
+
+```text
+PARTIALLY_PAID
+```
+
+Nếu chưa có payment:
+
+```text
+OPEN
+```
+
+---
+
+# 9. OVERDUE RULE
+
+Không nhất thiết persist `OVERDUE`.
+
+Ưu tiên derived condition:
+
+```text
+remainingAmount > 0
+AND dueDate IS NOT NULL
+AND dueDate < current time
+```
+
+→ khoản nợ đang quá hạn.
+
+Phải phân tích:
+
+* dueDate null
+* dueDate hôm nay
+* timezone
+* payment đúng ngày due
+* payment sau due date
+
+Không dùng cron để "đổi trạng thái overdue" nếu trạng thái có thể tính được.
+
+---
+
+# 10. CUSTOMER DEBT BALANCE
+
+Không dùng:
+
+```text
+Customer.totalDebt
+```
+
+làm source of truth.
+
+Dư nợ:
+
+```text
+SUM(Debt.remainingAmount)
+```
+
+của các khoản chưa PAID.
+
+Nếu sau này cần denormalize để performance:
+
+phải nêu rõ:
+
+* source of truth
+* update transaction
+* consistency mechanism
+* recovery strategy
+
+---
+
+# 11. PRODUCT RULES
+
+Product tối thiểu:
+
+```text
+name
+sku
+sellingPrice
+costPrice
+unit
+stockQuantity
+lowStockThreshold
+isActive
+```
+
+---
+
+## 11.1 Product activation
+
+Nếu:
+
+```text
+isActive = false
+```
+
+không được thêm product mới vào checkout.
+
+Nếu product đã nằm trong local cart rồi mới bị inactive:
+
+→ checkout phải reject item đó.
+
+Frontend không được tự quyết định.
+
+---
+
+# 12. PRICE CHANGE RULE
+
+Product price có thể thay đổi sau khi user đã thêm sản phẩm vào cart.
+
+Ví dụ:
+
+```text
+Cart:
+Coca = 12,000
+
+Admin đổi:
+Coca = 15,000
+
+User checkout
+```
+
+Backend phải xác định lại authoritative price.
+
+Mặc định:
+
+```text
+Checkout dùng Product.sellingPrice hiện tại
+```
+
+trừ khi business requirement quy định price được lock từ lúc add cart.
+
+OrderItem phải snapshot:
+
+```text
+productName
+sku
+unitPrice
+```
+
+tại thời điểm checkout.
+
+---
+
+# 13. STOCK RULES
+
+Invariant:
+
+```text
+Product.stockQuantity >= 0
+```
+
+trừ khi có business rule explicitly cho phép âm.
+
+MVP mặc định:
+
+**Không cho stock âm.**
+
+---
+
+# 14. SALE STOCK RULE
+
+Khi bán:
+
+```text
+requestedQuantity > 0
+```
+
+và:
+
+```text
+availableStock >= requestedQuantity
+```
+
+Transaction phải atomically:
+
+```text
+stockBefore
+→ stockChange
+→ stockAfter
+```
+
+Ví dụ:
+
+```text
+10
+-3
+7
+```
+
+---
+
+# 15. STOCK CONCURRENCY
+
+Bắt buộc xử lý:
+
+```text
+Stock = 1
+
+User A checkout qty 1
+User B checkout qty 1
+```
+
+Chỉ một transaction được thành công.
+
+Không được:
+
+```text
+A reads 1
+B reads 1
+A writes 0
+B writes 0
+```
+
+và cả hai order đều COMPLETED.
+
+Phải sử dụng:
+
+* row locking
+* atomic update
+* hoặc strategy tương đương
+
+Phải mô tả strategy được chọn.
+
+---
+
+# 16. STOCK MOVEMENT RULE
+
+Mọi mutation của stock phải tạo StockMovement.
+
+Không cho:
+
+```text
+Product.stockQuantity = newValue
+```
+
+mà không có history.
+
+StockMovement phải ghi:
+
+```text
+quantityBefore
+quantityChange
+quantityAfter
+type
+reason
+product
+user
+session
+```
+
+và reference tới Order nếu mutation đến từ sale/cancellation.
+
+---
+
+# 17. STOCK MOVEMENT IMMUTABILITY
+
+Sau khi tạo:
+
+```text
+quantityBefore
+quantityChange
+quantityAfter
+type
+createdAt
+```
+
+không được sửa.
+
+Nếu cần correction:
+
+→ tạo movement mới.
+
+Không sửa lịch sử stock.
+
+---
+
+# 18. MANUAL STOCK ADJUSTMENT
+
+Chỉ actor có permission phù hợp được điều chỉnh stock.
+
+Ví dụ:
+
+```text
+Admin
+```
+
+Adjustment:
+
+```text
++10
+```
+
+hoặc:
+
+```text
+-3
+```
+
+nhưng phải đảm bảo:
+
+```text
+resultingStock >= 0
+```
+
+nếu MVP không cho stock âm.
+
+Mỗi adjustment phải tạo:
+
+```text
+StockMovement
++
+AuditLog
+```
+
+---
+
+# 19. INITIAL STOCK
+
+Xác định cách tạo initial stock.
+
+Nếu:
+
+```text
+Product.stockQuantity = 100
+```
+
+phải có history tương ứng:
+
+```text
+StockMovement
+type = INITIAL
+quantityChange = +100
+```
+
+Không để database có stock ban đầu mà không trace được nguồn gốc nếu business yêu cầu audit đầy đủ.
+
+---
+
+# 20. ORDER RULES
+
+Order phải có:
+
+```text
+orderNumber
+user
+customer optional
+status
+items
+payments
+```
+
+Order đã completed không được hard delete.
+
+---
+
+# 21. ORDER TOTAL INVARIANTS
+
+Sau checkout:
+
+```text
+Order.total >= 0
+```
+
+và:
+
+```text
+Order.total
+=
+sum(OrderItem.subtotal) - discount
+```
+
+nếu discount thuộc MVP.
+
+Payment:
+
+```text
+sum(Order.payments)
+=
+Order.paidAmount
+```
+
+Debt:
+
+```text
+Order.debtAmount
+=
+Order.total - Order.paidAmount
+```
+
+nếu đang lưu các denormalized field này.
+
+Nếu các field này không cần lưu đồng thời, phải đề xuất source of truth tốt hơn.
+
+---
+
+# 22. ORDER ITEM RULES
+
+OrderItem:
+
+```text
+quantity > 0
+unitPrice >= 0
+subtotal >= 0
+```
+
+Invariant:
+
+```text
+subtotal = quantity × unitPrice
+```
+
+OrderItem snapshot phải immutable sau khi Order completed.
+
+Không lấy lại giá từ Product để hiển thị lịch sử.
+
+---
+
+# 23. CHECKOUT BUSINESS RULE
+
+Checkout chỉ thành công khi:
+
+1. User authenticated.
+2. Cart không rỗng.
+3. Product tồn tại.
+4. Product active.
+5. Quantity hợp lệ.
+6. Stock đủ.
+7. Price hợp lệ.
+8. Customer hợp lệ nếu có debt.
+9. Payment hợp lệ.
+10. Debt hợp lệ nếu phát sinh.
+11. Transaction commit thành công.
+
+Nếu một điều kiện fail:
+
+```text
+NO PARTIAL COMMIT
+```
+
+---
+
+# 24. CHECKOUT ATOMICITY
+
+Xác định transaction:
+
+```text
+Order
++
+OrderItem
++
+Payment
++
+Debt
++
+StockMovement
++
+Product.stockQuantity
++
+AuditLog
+```
+
+phải có transaction boundary phù hợp.
+
+Nếu commit thất bại:
+
+```text
+ROLLBACK
+```
+
+Không trả success cho frontend trước khi transaction hoàn tất.
+
+---
+
+# 25. IDEMPOTENCY
+
+Mobile có thể gặp:
+
+```text
+User tap checkout
+↓
+Network timeout
+↓
+User tap again
+```
+
+Không được tạo hai Order.
+
+Mỗi checkout request phải có:
+
+```text
+idempotencyKey
+```
+
+hoặc cơ chế tương đương.
+
+Phải xác định:
+
+* key được tạo ở đâu?
+* lưu ở đâu?
+* unique constraint?
+* response cũ có được trả lại không?
+* key hết hạn khi nào?
+* request retry khác payload thì xử lý thế nào?
+
+**Idempotency phải được enforce backend.**
+
+---
+
+# 26. NETWORK FAILURE
+
+Phân tích trường hợp:
+
+```text
+Backend commit thành công
+↓
+Response bị mất
+↓
+Frontend không biết kết quả
+```
+
+Frontend không được blind retry.
+
+Flow an toàn phải là:
+
+```text
+Retry/check status
+→ tìm transaction theo idempotencyKey
+→ nếu đã completed
+   trả lại kết quả cũ
+→ nếu chưa tồn tại
+   xử lý request
+```
+
+---
+
+# 27. ORDER CANCELLATION
+
+Không cho hard delete.
+
+Transition phải được định nghĩa rõ.
+
+Ví dụ:
+
+```text
+COMPLETED
+   ↓
+CANCELLED
+```
+
+Khi cancel một order đã trừ stock:
+
+```text
+Product.stockQuantity += soldQuantity
+```
+
+và:
+
+```text
+StockMovement.type = SALE_REVERSAL
+```
+
+Phải nằm trong transaction.
+
+---
+
+# 28. CANCELLATION + PAYMENT
+
+Phải xác định business rule cho:
+
+### Unpaid order
+
+Có thể cancel.
+
+### Partially paid
+
+Phải xác định:
+
+* refund payment?
+* chuyển số tiền thành credit?
+* giữ payment?
+* yêu cầu admin?
+
+### Fully paid
+
+Phải xác định refund flow.
+
+Không tự ý chọn nếu requirement chưa có.
+
+Đưa vào Open Questions nếu chưa quyết định.
+
+---
+
+# 29. REFUND
+
+Nếu MVP có refund:
+
+Phải định nghĩa:
+
+```text
+Refund
+```
+
+là:
+
+* Entity riêng
+* hay Payment reversal/transaction
+
+Không đơn giản:
+
+```text
+Order.status = REFUNDED
+```
+
+Phải xử lý:
+
+```text
+Payment
+Stock
+Audit
+Order state
+```
+
+atomic.
+
+---
+
+# 30. CUSTOMER RULES
+
+Customer:
+
+```text
+name required
+phone optional/required theo requirement
+```
+
+Không tạo customer duplicate ngoài business rule.
+
+Phải xác định:
+
+* phone uniqueness
+* name uniqueness
+* inactive customer
+* merge customer có cần không
+
+Không thêm customer merge nếu MVP chưa cần.
+
+---
+
+# 31. CUSTOMER NOTE
+
+`Customer.note` chỉ là contextual information.
+
+Không lưu:
+
+```text
+"nợ 500k"
+```
+
+thay cho Debt.
+
+Không lưu:
+
+```text
+"đã trả 100k"
+```
+
+thay cho DebtPayment.
+
+---
+
+# 32. ORDER NOTE
+
+`Order.note`:
+
+* optional
+* plain text
+* không thay thế business data
+* không thay thế AuditLog
+
+Nếu sửa note sau khi order completed:
+
+phải xác định có cho phép không và có audit không.
+
+---
+
+# 33. DEBT NOTE
+
+`Debt.note` không thay thế:
+
+```text
+dueDate
+remainingAmount
+status
+```
+
+Nếu sửa Debt.note:
+
+phải xác định audit requirement.
+
+---
+
+# 34. PRODUCT IMAGE RULES
+
+Nếu dùng:
+
+```text
+ProductImage
+```
+
+phải xác định:
+
+* ProductImage có bắt buộc Product không?
+* Có thể có nhiều ảnh không?
+* Primary image?
+* Replace?
+* Delete?
+* Product inactive thì image thế nào?
+* Product đã có Order thì image có được thay không?
+
+Image không ảnh hưởng financial transaction.
+
+Image processing có thể async nếu thực sự cần.
+
+---
+
+# 35. AUDIT RULES
+
+Audit các mutation quan trọng:
+
+```text
+LOGIN
+LOGOUT
+PRODUCT_CREATED
+PRODUCT_UPDATED
+PRODUCT_PRICE_CHANGED
+STOCK_ADJUSTED
+ORDER_COMPLETED
+ORDER_CANCELLED
+PAYMENT_CREATED
+DEBT_CREATED
+DEBT_PAYMENT_CREATED
+CUSTOMER_UPDATED
+SESSION_REVOKED
+REFUND_CREATED
+```
+
+Nếu action chưa chắc cần audit:
+
+→ phân loại:
+
+```text
+REQUIRED
+OPTIONAL
+NOT_REQUIRED
+```
+
+AuditLog immutable.
+
+---
+
+# 36. AUDIT VS BUSINESS HISTORY
+
+Không dùng AuditLog thay cho:
+
+```text
+Payment
+DebtPayment
+StockMovement
+```
+
+Business history phải tồn tại độc lập.
+
+Audit chỉ trả lời:
+
+```text
+Who?
+What?
+When?
+From what?
+To what?
+```
+
+---
+
+# 37. USER / PERMISSION RULES
+
+MVP:
+
+```text
+ROLE_USER
+ROLE_ADMIN
+```
+
+Xác định quyền:
+
+| Action               |                User | Admin |
+| -------------------- | ------------------: | ----: |
+| POS checkout         |                   ✓ |     ✓ |
+| View orders          |                   ✓ |     ✓ |
+| View customers       |                   ✓ |     ✓ |
+| Debt payment         |                  ✓* |     ✓ |
+| Product create       | — / theo permission |     ✓ |
+| Product price change | — / theo permission |     ✓ |
+| Stock adjustment     |                   — |     ✓ |
+| Cancel order         | — / theo permission |     ✓ |
+| Refund               |                   — |     ✓ |
+| Audit logs           |                   — |     ✓ |
+| Sessions             |                   — |     ✓ |
+| User management      |                   — |     ✓ |
+
+`*` Phải xác định nếu User được phép thu nợ.
+
+Không chỉ enforce permission ở UI.
+
+Backend phải enforce.
+
+---
+
+# 38. SESSION RULES
+
+Session:
+
+```text
+ACTIVE
+LOGGED_OUT
+REVOKED
+EXPIRED
+```
+
+Transition:
+
+```text
+ACTIVE → LOGGED_OUT
+ACTIVE → REVOKED
+ACTIVE → EXPIRED
+```
+
+Session bị revoke:
+
+→ không được tiếp tục thực hiện authenticated action.
+
+Session activity phải cập nhật theo chiến lược phù hợp.
+
+Không polling quá thường xuyên.
+
+---
+
+# 39. STATE MACHINE — ORDER
+
+Thiết kế state machine đầy đủ.
+
+Mặc định có thể:
+
+```text
+DRAFT
+  │
+  │ checkout success
+  ↓
+COMPLETED
+  │
+  ├──────────────→ CANCELLED
+  │
+  └──────────────→ REFUNDED
+```
+
+Nhưng phải xác định rõ:
+
+* DRAFT có persistence không?
+* Có được edit Order sau COMPLETED không?
+* CANCELLED có thể trở lại COMPLETED không?
+* REFUNDED có thể CANCELLED không?
+* Partial refund có cần state khác không?
+
+Không cho transition không hợp lệ.
+
+Ví dụ:
+
+```text
+CANCELLED → COMPLETED
+```
+
+mặc định bị cấm.
+
+---
+
+# 40. STATE MACHINE — DEBT
+
+```text
+OPEN
+ │
+ ├── partial payment
+ ↓
+PARTIALLY_PAID
+ │
+ └── full payment
+ ↓
+PAID
+```
+
+Không cho:
+
+```text
+PAID → OPEN
+```
+
+trừ khi có reversal/refund business flow riêng.
+
+Overdue không nhất thiết là persisted state.
+
+---
+
+# 41. STATE MACHINE — PRODUCT
+
+Nếu dùng `isActive`:
+
+```text
+ACTIVE ↔ INACTIVE
+```
+
+Nhưng:
+
+```text
+INACTIVE
+```
+
+không đồng nghĩa:
+
+```text
+DELETED
+```
+
+Product đã từng được bán không được xóa làm mất lịch sử Order.
+
+---
+
+# 42. STATE MACHINE — SESSION
+
+```text
+ACTIVE
+ ├──→ LOGGED_OUT
+ ├──→ REVOKED
+ └──→ EXPIRED
+```
+
+Terminal state:
+
+```text
+LOGGED_OUT
+REVOKED
+EXPIRED
+```
+
+Không quay lại ACTIVE.
+
+Login mới tạo Session mới.
+
+---
+
+# 43. STATE TRANSITION AUTHORIZATION
+
+Mỗi transition phải có actor.
+
+Ví dụ:
+
+| Transition                | Actor                  |
+| ------------------------- | ---------------------- |
+| Order → COMPLETED         | User/Admin             |
+| Order → CANCELLED         | Permission-based/Admin |
+| Order → REFUNDED          | Admin                  |
+| Debt → PAID               | System via DebtPayment |
+| Product ACTIVE → INACTIVE | Admin                  |
+| Stock adjustment          | Admin                  |
+| Session → REVOKED         | Admin / owner tùy rule |
+
+Không cho client tự gửi:
+
+```text
+status = PAID
+status = COMPLETED
+status = REFUNDED
+```
+
+và backend chấp nhận trực tiếp.
+
+Backend phải thực hiện transition thông qua business operation.
+
+---
+
+# 44. ASYNC STATE RULES
+
+Messenger không được làm transaction chính ở trạng thái "chờ".
+
+Ví dụ không làm:
+
+```text
+Order = PROCESSING
+↓
+queue
+↓
+worker tạo Order
+```
+
+Checkout phải synchronous.
+
+Async chỉ làm hậu kỳ:
+
+```text
+COMPLETED
+↓
+dispatch DebtReminder / Statistics / Notification
+```
+
+---
+
+# 45. ERROR / FAILURE RULES
+
+Phân loại lỗi:
+
+### Validation Error
+
+User sửa input.
+
+### Business Error
+
+Ví dụ:
+
+```text
+InsufficientStock
+InactiveProduct
+DebtAlreadyPaid
+InvalidStateTransition
+```
+
+### Authorization Error
+
+User không có quyền.
+
+### Conflict Error
+
+Ví dụ:
+
+```text
+Concurrent stock modification
+Duplicate idempotency key
+```
+
+### Infrastructure Error
+
+Ví dụ:
+
+```text
+Database unavailable
+Queue unavailable
+Storage unavailable
+```
+
+Phải xác định:
+
+* transaction rollback
+* frontend message
+* retry được hay không
+* log level
+
+---
+
+# 46. EXCEPTION MUST NOT LEAK INTERNAL DETAILS
+
+Không trả cho frontend:
+
+* SQL error
+* stack trace
+* database structure
+* filesystem path
+* internal exception message
+
+Production response phải có business-safe error.
+
+Chi tiết nằm trong server log.
+
+---
+
+# 47. ASYNC RULES
+
+Các task có thể async:
+
+```text
+Debt reminder
+Statistics aggregation
+Report export
+Notification
+Image processing nếu cần
+Cleanup
+```
+
+Mỗi async job phải:
+
+* idempotent
+* retry-safe
+* có failure handling
+* có logging
+
+Không queue:
+
+```text
+Checkout
+Payment
+Debt creation
+Debt payment
+Stock deduction
+```
+
+---
+
+# 48. CRON RULES
+
+Cron chạy Messenger worker theo khả năng hosting.
+
+Worker phải có:
+
+```text
+time-limit
+memory-limit
+retry
+failure transport
+```
+
+Không phụ thuộc worker chạy vô hạn.
+
+---
+
+# 49. BUSINESS INVARIANT MASTER LIST
+
+Cuối tài liệu phải tạo một danh sách tập trung:
+
+```text
+INV-001 Stock cannot be negative
+INV-002 OrderItem quantity > 0
+INV-003 OrderItem subtotal = quantity × unitPrice
+INV-004 Order total matches order items/discount
+INV-005 Payment amount > 0
+INV-006 Payment total cannot exceed Order total unless explicitly allowed
+INV-007 Debt original = paid + remaining
+INV-008 Debt remaining cannot be negative
+INV-009 DebtPayment cannot exceed remaining debt
+INV-010 Completed Order cannot be hard deleted
+INV-011 Financial history is immutable
+INV-012 Stock mutation creates StockMovement
+INV-013 Completed checkout atomically affects order/payment/stock/debt
+INV-014 Duplicate checkout cannot create duplicate Order
+INV-015 Inactive Product cannot be sold
+```
+
+Bổ sung các invariant phát hiện được.
+
+---
+
+# 50. STATE TRANSITION MATRIX
+
+Tạo bảng:
+
+| Entity  | Current State  | Action      | Next State     | Actor            | Transaction | Allowed |
+| ------- | -------------- | ----------- | -------------- | ---------------- | ----------- | ------- |
+| Order   | DRAFT          | Checkout    | COMPLETED      | User             | Yes         | ✓       |
+| Order   | COMPLETED      | Cancel      | CANCELLED      | Admin/permission | Yes         | ✓       |
+| Order   | CANCELLED      | Checkout    | COMPLETED      | User             | —           | ✗       |
+| Debt    | OPEN           | Partial Pay | PARTIALLY_PAID | User             | Yes         | ✓       |
+| Debt    | PARTIALLY_PAID | Full Pay    | PAID           | User             | Yes         | ✓       |
+| Debt    | PAID           | Pay         | PAID           | User             | Yes         | ✗       |
+| Session | ACTIVE         | Revoke      | REVOKED        | Admin            | Yes         | ✓       |
+
+Không dùng bảng mẫu một cách máy móc; phải phản ánh design thực tế.
+
+---
+
+# 51. TRANSACTION MATRIX
+
+Tạo bảng:
+
+| Operation        | Entities Changed                          | Atomic | Sync/Async     |
+| ---------------- | ----------------------------------------- | -----: | -------------- |
+| Checkout         | Order, Items, Payment, Stock, Debt, Audit |      ✓ | Sync           |
+| Debt Payment     | Debt, DebtPayment, Audit                  |      ✓ | Sync           |
+| Stock Adjustment | Product, StockMovement, Audit             |      ✓ | Sync           |
+| Cancel Order     | Order, Stock, Payment/Debt, Audit         |      ✓ | Sync           |
+| Debt Reminder    | Notification-related                      |      — | Async          |
+| Statistics       | Read/aggregate data                       |      — | Async/optional |
+
+---
+
+# 52. RULE → ENTITY MAPPING
+
+Tạo bảng:
+
+| Rule                   | Entity           | Field            | Enforcement           |
+| ---------------------- | ---------------- | ---------------- | --------------------- |
+| Stock >= 0             | Product          | stockQuantity    | DB + Service          |
+| Debt cannot overpay    | DebtPayment/Debt | amount/remaining | Service + transaction |
+| OrderItem quantity > 0 | OrderItem        | quantity         | Validation + Service  |
+| SKU unique             | Product          | sku              | DB UNIQUE             |
+| Duplicate checkout     | Checkout         | idempotencyKey   | DB UNIQUE + Service   |
+
+---
+
+# 53. RULE → TEST MAPPING
+
+Mỗi Critical Rule phải có test scenario.
+
+Ví dụ:
+
+```text
+INV-001
+Given stock = 2
+When checkout quantity = 3
+Then checkout fails
+And stock remains 2
+And no completed order exists
+```
+
+```text
+INV-014
+Given idempotencyKey = X
+When checkout is submitted twice
+Then only one Order exists
+And retry returns same result
+```
+
+```text
+INV-009
+Given debt remaining = 50,000
+When payment = 60,000
+Then payment fails
+And debt remains unchanged
+```
+
+---
+
+# 54. MOBILE-SPECIFIC BUSINESS RULES
+
+Không để mobile UX phá business rules.
+
+Ví dụ:
+
+### Double tap
+
+Frontend disable button.
+
+Backend vẫn enforce idempotency.
+
+### Network timeout
+
+Không blind retry.
+
+### Cart stale
+
+Backend revalidate product/price/stock.
+
+### Session expired
+
+Checkout fail an toàn.
+
+### Back navigation
+
+Không được làm mất transaction đã commit.
+
+---
+
+# 55. PRODUCT IMAGE BUSINESS RULES
+
+Image không phải financial data.
+
+Do đó:
+
+* upload failure không được rollback Product nếu upload được thiết kế hậu kỳ.
+* hoặc nếu image là một phần bắt buộc của product creation thì phải nói rõ transaction boundary.
+
+MVP ưu tiên:
+
+```text
+Product có thể tồn tại mà không có image.
+```
+
+Image là optional.
+
+Không để lỗi thumbnail làm Product không thể bán.
+
+---
+
+# 56. NOTE BUSINESS RULES
+
+Note:
+
+* optional
+* plain text
+* không phải financial source of truth
+* không thay thế AuditLog
+* không thay thế transaction history
+
+Không được dùng Note để encode business state.
+
+Ví dụ cấm:
+
+```text
+note = "PAID"
+```
+
+thay cho:
+
+```text
+Debt.status = PAID
+```
+
+---
+
+# 57. OPEN QUESTIONS
+
+Cuối tài liệu phải liệt kê các business decision chưa được xác định.
+
+Ưu tiên những câu hỏi ảnh hưởng trực tiếp tới:
+
+* tiền
+* stock
+* debt
+* cancellation
+* refund
+* permissions
+* state transition
+
+Không tự ý quyết định các vấn đề chưa có requirement.
+
+---
+
+# 58. OUTPUT BẮT BUỘC
+
+Kết quả phải có đúng các phần:
+
+## 1. Business Rule Catalog
+
+ID + rule + category + rationale.
+
+## 2. Financial Rules
+
+Payment / money / total.
+
+## 3. Debt Rules
+
+Debt + payment + overdue.
+
+## 4. Stock Rules
+
+Stock + movement + concurrency.
+
+## 5. Order Rules
+
+Order + item + snapshot.
+
+## 6. Cancellation / Refund Rules
+
+State + financial + stock impact.
+
+## 7. Customer Rules
+
+Customer + note + debt.
+
+## 8. Product Rules
+
+Price + stock + active + image.
+
+## 9. Audit Rules
+
+Audit requirements.
+
+## 10. Permission Rules
+
+Actor + action.
+
+## 11. State Machines
+
+Order / Debt / Product / Session.
+
+## 12. State Transition Matrix
+
+Đầy đủ transition.
+
+## 13. Business Invariant Master List
+
+INV-001...
+
+## 14. Transaction Matrix
+
+Operation → entities → atomicity → sync/async.
+
+## 15. Rule → Entity Mapping
+
+Rule enforcement.
+
+## 16. Rule → Test Mapping
+
+Acceptance/test scenarios.
+
+## 17. Error & Failure Rules
+
+Validation/business/conflict/infrastructure.
+
+## 18. Mobile/Network Rules
+
+Double tap, timeout, retry, stale cart.
+
+## 19. Image & Note Rules
+
+Upload + note.
+
+## 20. Open Questions
+
+Các quyết định còn thiếu.
+
+---
+
+# 59. STRICT PROHIBITIONS
+
+Không viết:
+
+* PHP code
+* Doctrine Entity code
+* Controller
+* Service
+* Repository
+* Twig
+* Stimulus
+* JavaScript
+* SQL migration
+
+Không tự thêm:
+
+* accounting
+* loyalty
+* supplier
+* purchase order
+* multi-warehouse
+* multi-company
+* complex promotion
+* full offline mode
+* WebSocket
+
+Không tự phát minh business rule nếu source không hỗ trợ.
+
+Nếu không đủ thông tin:
+
+**ghi rõ Open Question.**
+
+---
+
+# 60. FINAL QUALITY CHECK
+
+Trước khi kết thúc, phải tự kiểm tra:
+
+### Money
+
+Không thể tạo tiền sai hoặc payment vượt rule.
+
+### Debt
+
+Không thể overpay ngoài business rule.
+
+### Stock
+
+Không thể âm do concurrency.
+
+### Order
+
+Không mất snapshot lịch sử.
+
+### Cancellation
+
+Không làm mất financial/stock history.
+
+### Audit
+
+Action quan trọng luôn trace được.
+
+### Security
+
+Không thể bypass permission bằng HTTP request thủ công.
+
+### Idempotency
+
+Retry không tạo duplicate transaction.
+
+### Async
+
+Không có business transaction critical nào bị đẩy sang queue.
+
+### Mobile
+
+Network timeout/double tap không làm sai dữ liệu.
+
+Nếu phát hiện inconsistency giữa Use Case và Entity:
+
+**phải nêu ra thay vì tự âm thầm sửa.**
+
+---
+
+# FINAL PRINCIPLE
+
+Thiết kế Business Rules sao cho:
+
+> **Mọi transaction tài chính và tồn kho đều deterministic, atomic, traceable và retry-safe.**
+
+Và thiết kế State Machine sao cho:
+
+> **Không có state transition "lách luật" chỉ vì frontend gửi một status khác.**
+
+Mục tiêu không phải tạo nhiều rule.
+
+Mục tiêu là tạo **ít rule nhưng đúng, rõ và đủ mạnh để bảo vệ POS trong thực tế.**

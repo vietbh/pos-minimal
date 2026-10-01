@@ -891,3 +891,95 @@ html[data-appearance="dark"] .import-history-select-all small,
 html[data-appearance="system"] .import-history-select-all small,
 html[data-appearance="dark"] .import-history-locked-note,
 html[data-appearance="system"] .import-history-locked-note{color:#9AAEA9}
+
+/* Statistics UX follow-up: full-width payment mix + aligned KPI goal form. */
+.statistics-chart-card--full {
+    grid-column: 1 / -1;
+}
+
+.statistics-goal-form {
+    padding: 16px;
+}
+
+.statistics-goal-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+}
+
+.statistics-goal-form-grid > div {
+    min-width: 0;
+}
+
+.statistics-goal-form-grid label {
+    display: grid;
+    gap: 6px;
+    font-weight: 700;
+}
+
+.statistics-goal-form-grid input,
+.statistics-goal-form-grid select {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    box-sizing: border-box;
+}
+
+.statistics-goal-form-grid .statistics-filter-actions {
+    min-height: 48px;
+}
+
+.statistics-goal-form-grid .statistics-filter-actions button {
+    min-height: 48px;
+}
+
+@media (min-width: 960px) {
+    .statistics-goal-form-grid {
+        grid-template-columns: minmax(140px, 1.1fr) minmax(160px, 1.35fr) minmax(120px, .9fr) minmax(135px, 1fr) minmax(135px, 1fr) auto;
+    }
+}
+
+@media (max-width: 639px) {
+    .statistics-goal-form {
+        padding: 13px;
+    }
+
+    .statistics-goal-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .statistics-goal-form-grid .statistics-filter-actions {
+        align-items: stretch;
+    }
+
+    .statistics-goal-form-grid .statistics-filter-actions button {
+        width: 100%;
+    }
+}
+
+
+/* KPI target full-width row */
+.statistics-goal-form-grid .statistics-goal-target-field {
+    grid-column: 1 / -1;
+    order: 10;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    align-items: start;
+}
+
+.statistics-goal-form-grid .statistics-goal-target-field label {
+    display: block;
+    margin: 0;
+}
+
+.statistics-goal-form-grid .statistics-goal-target-field input {
+    width: 100%;
+}
+
+.statistics-goal-form-grid .statistics-goal-target-field .statistics-goal-target-help {
+    display: block;
+    margin: 0;
+    line-height: 1.5;
+}

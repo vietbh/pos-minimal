@@ -104,7 +104,7 @@
                         <div class="dashboard-bar-chart" role="img" aria-label="{{ 'app.dashboard_chart_aria'|trans }}">
                             {% for point in dashboard.weeklySales.points %}
                                 <div class="dashboard-bar-column">
-                                    <div class="dashboard-bar-value">{{ point.displayMillions }} {{ 'app.dashboard_million_unit'|trans }}</div>
+                                    <div class="dashboard-bar-value">{{ point.displayLabel }}</div>
                                     <div class="dashboard-bar-track" aria-hidden="true">
                                         <span class="dashboard-bar" style="height: {{ point.barPercent }}%"></span>
                                     </div>
@@ -120,6 +120,8 @@
                     {% endif %}
                 </div>
             </section>
+
+            {% include 'application/_dashboard_kpi_goals.html.twig' with {active_kpi_goals: active_kpi_goals} only %}
         {% else %}
             <section class="home-empty home-section" role="status">
                 <strong>{{ 'app.dashboard_no_statistics'|trans }}</strong>
@@ -198,7 +200,7 @@
                         <div class="dashboard-bar-chart" role="img" aria-label="{{ 'app.dashboard_chart_aria'|trans }}">
                             {% for point in dashboard.weeklySales.points %}
                                 <div class="dashboard-bar-column">
-                                    <div class="dashboard-bar-value">{{ point.displayMillions }} {{ 'app.dashboard_million_unit'|trans }}</div>
+                                    <div class="dashboard-bar-value">{{ point.displayLabel }}</div>
                                     <div class="dashboard-bar-track" aria-hidden="true"><span class="dashboard-bar" style="height: {{ point.barPercent }}%"></span></div>
                                     <span class="dashboard-bar-label">{{ point.label }}</span>
                                 </div>
@@ -209,6 +211,8 @@
                     {% endif %}
                 </div>
             </section>
+
+            {% include 'application/_dashboard_kpi_goals.html.twig' with {active_kpi_goals: active_kpi_goals} only %}
         {% endif %}
     {% elseif dashboard_navigation.activeTab == 'administration' %}
         <section class="home-section" aria-labelledby="administration-title">

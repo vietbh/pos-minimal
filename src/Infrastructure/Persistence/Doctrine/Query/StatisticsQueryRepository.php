@@ -142,6 +142,53 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
         return array_map(fn(array $r)=>new TopProduct((int)$r['product_id'],(string)$r['name'],(int)$r['quantity'],(string)$r['sales_amount']),$rows);
     }
 
+    public function getUnitsSold(StatisticsQueryInput $input): int
+    {
+        $filter = $this->salesPointFilter($input, 'o');
+        return (int) $this->connection->fetchOne(
+            "SELECT COALESCE(SUM(oi.quantity),0)
+             FROM order_items oi
+             INNER JOIN orders o ON o.id=oi.order_id
+             WHERE o.created_at >= :from AND o.created_at < :to
+               AND o.status='COMPLETED' {$filter['sql']}",
+            $this->params($input, $filter['params']),
+            $this->dateRangeTypes($filter['params']),
+        );
+    }
+
+    public function getUniqueCustomers(StatisticsQueryInput $input): int
+    {
+        $filter = $this->salesPointFilter($input, 'o');
+        return (int) $this->connection->fetchOne(
+            "SELECT COUNT(DISTINCT o.customer_id)
+             FROM orders o
+             WHERE o.customer_id IS NOT NULL
+               AND o.created_at >= :from AND o.created_at < :to
+               AND o.status='COMPLETED' {$filter['sql']}",
+            $this->params($input, $filter['params']),
+            $this->dateRangeTypes($filter['params']),
+        );
+    }
+
+    public function getCurrentOutstandingDebt(?int $salesPointId = null): string
+    {
+        $filter = '';
+        $params = [];
+        if ($salesPointId !== null) {
+            $filter = ' AND o.sales_point_id = :salesPointId';
+            $params['salesPointId'] = $salesPointId;
+        }
+        $row = $this->connection->fetchOne(
+            "SELECT COALESCE(SUM(CASE WHEN d.status='REVERSED' THEN 0 ELSE GREATEST(d.original_amount - COALESCE(dp.paid_amount,0),0) END),0)
+             FROM debts d
+             INNER JOIN orders o ON o.id=d.order_id
+             LEFT JOIN (SELECT debt_id, SUM(amount) paid_amount FROM debt_payments GROUP BY debt_id) dp ON dp.debt_id=d.id
+             WHERE 1=1 {$filter}",
+            $params,
+        );
+        return (string) $row;
+    }
+
     public function getTopCustomers(StatisticsQueryInput $input): array
     {
         $filter = $this->salesPointFilter($input, 'o');
@@ -244,7 +291,7 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
                 date: $date,
                 label: $this->weekdayLabel($date),
                 netSales: $value,
-                displayMillions: $this->toMillionsLabel($value),
+                displayLabel: $this->toCompactVndLabel($value),
                 barPercent: $percent,
             );
         }
@@ -270,15 +317,43 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
         return new StockSnapshot((int)$row['total_products'],(int)$row['active_products'],(int)$row['low_stock_products'],(int)$row['out_of_stock_products'],(int)$row['total_stock_quantity']);
     }
 
-    private function toMillionsLabel(string $value): string
+    private function toCompactVndLabel(string $value): string
     {
+        // decimalParts() returns the amount in minor units (1 VND = 100 minor units).
+        // Keep the chart label compact and choose the unit from the real VND amount.
         $minor = $this->decimalParts($value);
-        $tenthsTotal = intdiv(abs($minor) + 5_000_000, 10_000_000);
-        $wholeMillions = intdiv($tenthsTotal, 10);
-        $tenths = $tenthsTotal % 10;
-        $prefix = $minor < 0 ? '-' : '';
+        $negative = $minor < 0;
+        $absoluteMinor = abs($minor);
+        $prefix = $negative ? '-' : '';
 
-        return $prefix.$wholeMillions.'.'.$tenths;
+        $thousand = 100_000;      // 1,000 VND
+        $million = 100_000_000;   // 1,000,000 VND
+        $billion = 100_000_000_000; // 1,000,000,000 VND
+
+        if ($absoluteMinor >= $billion) {
+            return $prefix.$this->formatCompactUnit($absoluteMinor, $billion, 'tỷ');
+        }
+
+        if ($absoluteMinor >= $million) {
+            return $prefix.$this->formatCompactUnit($absoluteMinor, $million, 'tr');
+        }
+
+        if ($absoluteMinor >= $thousand) {
+            return $prefix.$this->formatCompactUnit($absoluteMinor, $thousand, 'k');
+        }
+
+        return $prefix.number_format(intdiv($absoluteMinor, 100), 0, ',', '.').' ₫';
+    }
+
+    private function formatCompactUnit(int $minor, int $unitMinor, string $unit): string
+    {
+        $scaled = $minor / $unitMinor;
+        $rounded = round($scaled, 1);
+        $formatted = fmod($rounded, 1.0) === 0.0
+            ? number_format($rounded, 0, ',', '.')
+            : number_format($rounded, 1, ',', '.');
+
+        return $formatted.' '.$unit;
     }
 
     private function minorToDecimal(int $minor): string

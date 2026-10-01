@@ -61,11 +61,6 @@ app:
   dashboard_tab_operations: Vận hành
   dashboard_tab_insights: Phân tích
   dashboard_tab_administration: Quản trị
-  dashboard_default_tab: Tab mặc định khi mở Trang chủ
-  dashboard_default_tab_help: Chọn tab được mở đầu tiên. Theo vai trò sẽ tự chọn theo quyền và vai trò hiện tại.
-  dashboard_default_tab_auto: Theo vai trò
-  dashboard_default_tab_auto_help: Dùng tab mặc định phù hợp với vai trò; nếu không khả dụng sẽ dùng Tổng quan.
-  dashboard_default_tab_option_help: Mở tab này khi vào Trang chủ nếu bạn còn quyền truy cập.
   dashboard_today_summary: Tóm tắt hôm nay
   dashboard_completed_orders: Đơn hoàn tất / hoàn tiền trong dữ liệu hôm nay
   dashboard_last_7_days: 7 ngày gần đây
@@ -1049,6 +1044,24 @@ stat:
   debt_summary: Tổng quan công nợ
   stock_summary: Tổng quan tồn kho
   stock_summary_help: Phân bố tồn kho hiện tại theo trạng thái.
+  kpi: KPI
+  kpi_goals: Mục tiêu KPI
+  kpi_help: Đặt mục tiêu và theo dõi tiến độ thực tế. Dự kiến thời điểm đạt chỉ xuất hiện khi đủ dữ liệu.
+  kpi_metric: Chỉ số
+  kpi_direction: Điều kiện
+  kpi_target: Mục tiêu
+  kpi_revenue: Doanh thu
+  kpi_units: Số sản phẩm bán
+  kpi_customers: Khách hàng mua
+  kpi_debt: Dư nợ
+  kpi_at_least: Đạt ít nhất
+  kpi_at_most: Không vượt quá
+  kpi_create: Tạo mục tiêu
+  kpi_delete: Xóa mục tiêu
+  kpi_reached: Đã đạt
+  kpi_expired: Đã hết hạn
+  kpi_estimate: Dự kiến còn %days% ngày · %date%
+  kpi_not_enough_data: Chưa đủ dữ liệu để ước tính
 upload:
   product_image: Hình ảnh sản phẩm
   choose_image: Chọn hình ảnh

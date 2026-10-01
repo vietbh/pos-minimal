@@ -165,7 +165,7 @@
             ></div>
         </article>
 
-        <article class="statistics-card statistics-chart-card">
+        <article class="statistics-card statistics-chart-card statistics-chart-card--full">
             <div class="statistics-card-heading">
                 <div>
                     <h2>{{ 'stat.payment_mix'|trans }}</h2>
@@ -274,6 +274,115 @@
                 <p class="statistics-muted statistics-empty">{{ 'stat.no_customer_sales'|trans }}</p>
             {% endif %}
         </article>
+    </section>
+
+    <section class="statistics-goals" aria-labelledby="statistics-goals-title">
+        <div class="statistics-section-heading">
+            <div>
+                <p class="eyebrow">{{ 'stat.kpi'|trans }}</p>
+                <h2 id="statistics-goals-title">{{ 'stat.kpi_goals'|trans }}</h2>
+                <p>{{ 'stat.kpi_help'|trans }}</p>
+            </div>
+        </div>
+
+        <form method="post" action="{{ path('statistics_goal_create') }}" class="statistics-card statistics-goal-form" data-controller="money-input" data-action="submit->money-input#submit" data-turbo="false">
+            <input type="hidden" name="_token" value="{{ csrf_token('statistics_goal') }}">
+            <div class="statistics-goal-sales-point-field">
+                <label for="goal_sales_point">Sales point áp dụng</label>
+                <select id="goal_sales_point" name="salesPointId">
+                    <option value="">Toàn bộ sales point</option>
+                    {% for point in sales_points %}
+                        <option value="{{ point.id }}"{% if sales_point_id == point.id %} selected{% endif %}>{{ point.name }} ({{ point.code }})</option>
+                    {% endfor %}
+                </select>
+                <small class="statistics-goal-target-help">Không chọn = KPI áp dụng cho toàn bộ sales point.</small>
+            </div>
+            <div class="statistics-goal-form-grid">
+                <div>
+                    <label for="goal_metric">{{ 'stat.kpi_metric'|trans }}</label>
+                    <select id="goal_metric" name="metric" required>
+                        <option value="revenue">{{ 'stat.kpi_revenue'|trans }}</option>
+                        <option value="units_sold">{{ 'stat.kpi_units'|trans }}</option>
+                        <option value="customers">{{ 'stat.kpi_customers'|trans }}</option>
+                        <option value="outstanding_debt">{{ 'stat.kpi_debt'|trans }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="goal_direction">{{ 'stat.kpi_direction'|trans }}</label>
+                    <select id="goal_direction" name="direction" required>
+                        <option value="at_least">{{ 'stat.kpi_at_least'|trans }}</option>
+                        <option value="at_most">{{ 'stat.kpi_at_most'|trans }}</option>
+                    </select>
+                </div>
+                <div class="statistics-goal-start-field">
+                    <label for="goal_start">{{ 'stat.from'|trans }}</label>
+                    <input id="goal_start" name="start_date" type="date" value="{{ from }}" required>
+                </div>
+                <div class="statistics-goal-end-field">
+                    <label for="goal_end">{{ 'stat.to'|trans }}</label>
+                    <input id="goal_end" name="end_date" type="date" value="{{ to }}" required>
+                </div>
+                <div class="statistics-goal-target-field">
+                    <label for="goal_target">{{ 'stat.kpi_target'|trans }}</label>
+                    <input id="goal_target" name="target" type="text" inputmode="numeric" autocomplete="off" placeholder="100,000" data-money-input required aria-describedby="goal-target-help">
+                    <small id="goal-target-help" class="statistics-goal-target-help">Nhập số tiền, hệ thống sẽ tự định dạng hàng nghìn.</small>
+                </div>
+                <div class="statistics-filter-actions statistics-goal-submit">
+                    <button class="primary" type="submit">{{ 'stat.kpi_create'|trans }}</button>
+                </div>
+            </div>
+        </form>
+
+        {% if kpi_goals %}
+            <div class="statistics-goals-grid">
+                {% for goal in kpi_goals %}
+                    <article class="statistics-card statistics-goal-card{% if goal.reached %} statistics-goal-card--success{% elseif goal.expired %} statistics-goal-card--expired{% endif %}">
+                        <div class="statistics-card-heading">
+                            <div>
+                                <h3>{{ ('stat.kpi_' ~ goal.metric)|trans }}</h3>
+                                <p class="statistics-goal-scope">
+                                    {% if goal.salesPointId is not null %}
+                                        Sales point: {{ goal.salesPointName }}
+                                    {% else %}
+                                        Toàn bộ sales point
+                                    {% endif %}
+                                </p>
+                                <p>{{ goal.startDate|date('d/m/Y') }} → {{ goal.endDate|date('d/m/Y') }}</p>
+                            </div>
+                            <form method="post" action="{{ path('statistics_goal_delete', {id: goal.id, salesPointId: sales_point_id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('statistics_goal_delete_' ~ goal.id) }}">
+                                <button class="ghost" type="submit" aria-label="{{ 'stat.kpi_delete'|trans }}">×</button>
+                            </form>
+                        </div>
+                        {% set goalIsMoney = goal.metric in ['revenue', 'outstanding_debt'] %}
+                        <div class="statistics-goal-values">
+                            {% if goalIsMoney %}
+                                <strong>{{ goal.actualValue|money_vnd }}</strong>
+                                <span>/ {{ goal.targetValue|money_vnd }}</span>
+                            {% else %}
+                                <strong>{{ goal.actualValue|number_format(0, ',', '.') }}</strong>
+                                <span>/ {{ goal.targetValue|number_format(0, ',', '.') }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="statistics-goal-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ goal.progressPercent }}">
+                            <span style="width: {{ goal.progressPercent > 100 ? 100 : goal.progressPercent }}%"></span>
+                        </div>
+                        <div class="statistics-goal-meta">
+                            <span>{{ goal.progressPercent }}%</span>
+                            {% if goal.reached %}
+                                <span>{{ 'stat.kpi_reached'|trans }}</span>
+                            {% elseif goal.expired %}
+                                <span>{{ 'stat.kpi_expired'|trans }}</span>
+                            {% elseif goal.estimatedDate %}
+                                <span>{{ 'stat.kpi_estimate'|trans({'%days%': goal.estimatedDaysRemaining, '%date%': goal.estimatedDate|date('d/m/Y')}) }}</span>
+                            {% else %}
+                                <span>{{ 'stat.kpi_not_enough_data'|trans }}</span>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% endif %}
     </section>
 
     <div class="statistics-accessible-data">

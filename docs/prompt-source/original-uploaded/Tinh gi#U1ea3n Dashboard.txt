@@ -1,0 +1,1110 @@
+Đây là prompt triển khai trọn **PHASE 2.18.1 — Dashboard Simplification / Minimal Home UX**, đã chốt thêm rule **Active Guild: có thì hiện, không có thì ẩn hoàn toàn**.
+
+:::writing{variant="document" id="58321" title="PHASE 2.18.1 — Dashboard Simplification / Minimal Home UX"}
+# PHASE 2.18.1 — Dashboard Simplification / Minimal Home UX
+
+## 0. Mục tiêu
+
+Refactor Dashboard/Home hiện tại của Mobile POS thành một **Minimal Home Dashboard**:
+
+- ít thông tin hơn;
+- dễ quét trên mobile;
+- tập trung vào những thông tin người dùng cần ngay khi mở app;
+- không biến Home thành trang Reports/Analytics;
+- giữ nguyên business logic, authorization, Domain/Application architecture và các flow hiện tại;
+- không tạo architecture song song;
+- không fake hoặc hard-code business data.
+
+Dashboard phải đóng vai trò:
+
+> **Quick Control Panel**
+
+không phải:
+
+> Full Analytics / Reporting Dashboard.
+
+---
+
+# 1. Bắt buộc inspect source trước khi sửa
+
+Trước khi code:
+
+1. Inspect repository hiện tại.
+2. Xác định chính xác:
+   - Home/Dashboard route;
+   - Controller;
+   - Application service/query/handler đang cung cấp dữ liệu;
+   - DTO/ViewModel/ReadModel nếu có;
+   - Twig template;
+   - Stimulus controller nếu có;
+   - Base layout;
+   - Navigation;
+   - Permission/Voter;
+   - test hiện tại.
+3. Tìm và reuse implementation hiện có.
+4. Không tạo service/query/controller mới nếu source hiện tại đã có abstraction phù hợp.
+5. Không copy business logic từ Application/Domain vào Twig hoặc Stimulus.
+6. Không thay đổi các business flow không liên quan đến Dashboard.
+
+Nếu source hiện tại có nhiều Dashboard widget/query riêng lẻ, đánh giá khả năng gom thành một **Dashboard Read Model / Query** duy nhất nhằm tránh N+1.
+
+---
+
+# 2. Dashboard Information Architecture
+
+Home chỉ được giữ tối đa **4 nhóm nội dung chính**:
+
+## A. TODAY
+
+Hiển thị thông tin tổng quan hôm nay.
+
+Tối thiểu:
+
+- Today's Revenue
+- Today's Orders
+
+Ví dụ:
+
+```text id="nxsxmu"
+TODAY
+
+12,580,000 ₫
+32 orders
+```
+
+Không đưa vào Home:
+
+- revenue chart;
+- hourly chart;
+- payment breakdown;
+- average order value;
+- top products;
+- top customers;
+- sales comparison;
+- historical analytics.
+
+Những thông tin đó thuộc Reports/Statistics nếu hệ thống đã có nơi phù hợp.
+
+---
+
+# 3. OUTSTANDING
+
+Chỉ hiển thị nếu hệ thống thực sự có dữ liệu outstanding phù hợp.
+
+Ví dụ:
+
+```text id="fqaeba"
+OUTSTANDING
+
+2,450,000 ₫
+5 customers
+```
+
+Không tạo metric mới chỉ để làm Dashboard đẹp hơn.
+
+Nếu hệ thống hiện tại không có outstanding/debt data đáng tin cậy:
+
+- không fake;
+- không hard-code;
+- có thể bỏ hoàn toàn section này.
+
+---
+
+# 4. QUICK ACTIONS
+
+Dashboard phải cung cấp các thao tác thường xuyên nhất.
+
+Ví dụ:
+
+```text id="rm6qw1"
+QUICK ACTIONS
+
+[ + New Sale ]
+
+[ Products ]   [ Orders ]
+
+[ Customers ]
+```
+
+Danh sách action phải dựa trên capability/permission thực tế.
+
+Ví dụ:
+
+- User có quyền tạo sale → hiển thị `New Sale`.
+- User không có quyền → không render action đó.
+- User có quyền xem Products → hiển thị Products.
+- User có quyền xem Orders → hiển thị Orders.
+- User có quyền xem Customers → hiển thị Customers.
+
+Không bypass:
+
+- Security;
+- Voter;
+- Permission Matrix;
+- authorization rules hiện tại.
+
+Không chỉ ẩn bằng CSS nếu action không được phép.
+
+Backend authorization vẫn là authority.
+
+---
+
+# 5. ATTENTION
+
+Chỉ hiển thị khi thực sự có vấn đề/công việc cần attention.
+
+Ví dụ:
+
+```text id="attdpi"
+ATTENTION
+
+⚠ 3 products are low in stock
+
+View stock →
+```
+
+Các loại attention có thể reuse từ source hiện tại nếu đã tồn tại:
+
+- low stock;
+- pending payment;
+- failed processing;
+- import failure;
+- operational exception.
+
+Không tạo warning giả.
+
+Nếu không có attention:
+
+> Không render section ATTENTION.
+
+Không render:
+
+```text id="bgdwai"
+ATTENTION
+Nothing to worry about
+```
+
+nếu không cần thiết.
+
+Mục tiêu là giảm noise.
+
+---
+
+# 6. ACTIVE GUILD VISIBILITY RULE
+
+Đây là business/UI rule bắt buộc.
+
+## Có Active Guild
+
+Nếu authenticated user có Active Guild:
+
+```text id="lynh6x"
+activeGuild != null
+```
+
+thì các Guild-related UI có thể được render.
+
+Chỉ hiển thị những Guild information thực sự cần thiết cho Home.
+
+---
+
+## Không có Active Guild
+
+Nếu:
+
+```text id="lqwmjb"
+activeGuild == null
+```
+
+thì:
+
+### MUST:
+
+- Ẩn toàn bộ Guild section.
+- Ẩn Guild-dependent widgets.
+- Ẩn Guild-dependent actions.
+- Không render empty Guild card.
+- Không render placeholder.
+- Không render `"No active guild"`.
+- Không fake/default Guild.
+- Không tự động chọn Guild khác.
+- Không tự động activate Guild khác.
+
+Dashboard vẫn phải hoạt động bình thường.
+
+---
+
+# 7. Guild-dependent data
+
+Nếu một metric/action phụ thuộc Active Guild:
+
+```text id="00lpyu"
+Active Guild
+      ↓
+Guild-dependent data
+```
+
+thì chỉ render khi Active Guild tồn tại.
+
+Không được:
+
+```text id="vaiqj9"
+activeGuild == null
+        ↓
+query arbitrary guild
+        ↓
+show data
+```
+
+Không được lấy Guild đầu tiên trong database làm fallback.
+
+Không được dùng hard-coded Guild.
+
+---
+
+# 8. Dashboard layout
+
+Mobile-first.
+
+Target tối thiểu:
+
+```text id="1960we"
+360px+
+```
+
+Ưu tiên:
+
+```text id="1us7je"
+┌─────────────────────────────┐
+│ Good morning                │
+│ Tuesday, Sep 29             │
+├─────────────────────────────┤
+│ TODAY                       │
+│                             │
+│ 12,580,000 ₫                │
+│ 32 orders                   │
+├─────────────────────────────┤
+│ OUTSTANDING                 │
+│                             │
+│ 2,450,000 ₫                 │
+│ 5 customers                 │
+├─────────────────────────────┤
+│ QUICK ACTIONS               │
+│                             │
+│ [ + New Sale ]              │
+│ [ Products ] [ Orders ]     │
+│ [ Customers ]               │
+├─────────────────────────────┤
+│ ATTENTION                   │
+│                             │
+│ ⚠ 3 products low in stock  │
+│ View stock →                │
+└─────────────────────────────┘
+```
+
+Không cần giữ đúng visual trên nếu existing design system có component tương đương.
+
+Ưu tiên reuse existing:
+
+- Card;
+- Button;
+- Icon;
+- Badge;
+- Typography;
+- Spacing;
+- Layout components.
+
+Không tạo một design system mới.
+
+---
+
+# 9. Header
+
+Header phải đơn giản.
+
+Có thể giữ:
+
+```text id="o0o5b7"
+Good morning
+Tuesday, Sep 29
+```
+
+hoặc equivalent phù hợp với existing localization.
+
+Không đưa quá nhiều metadata vào header.
+
+Không biến Header thành một dashboard widget.
+
+---
+
+# 10. Remove Dashboard clutter
+
+Loại khỏi Home nếu đang tồn tại:
+
+- charts;
+- large analytics panels;
+- top customers;
+- top products;
+- payment method breakdown;
+- sales trend;
+- stock analytics;
+- historical comparison;
+- duplicated KPIs;
+- redundant cards;
+- debug output;
+- technical metadata;
+- unnecessary timestamps;
+- duplicated navigation actions.
+
+Nếu các thông tin này đã có Reports/Statistics:
+
+> giữ ở Reports/Statistics, không duplicate trên Home.
+
+Nếu chưa có destination phù hợp:
+
+> không bắt buộc phải tạo Reports trong phase này.
+
+Không mở rộng scope ngoài Dashboard simplification.
+
+---
+
+# 11. Remove debug output
+
+Tuyệt đối không để debug output trong production UI.
+
+Đặc biệt tìm và remove:
+
+```twig id="46r88t"
+{{ dump(...) }}
+```
+
+hoặc các debug helpers tương đương.
+
+Không expose:
+
+- entity dump;
+- internal IDs;
+- raw DTO;
+- internal state;
+- stack trace;
+- database information.
+
+---
+
+# 12. Backend architecture
+
+Dashboard phải lấy dữ liệu từ backend source of truth.
+
+Không đặt business calculation vào Twig:
+
+```twig id="27a7jm"
+{% set revenue = ... %}
+```
+
+Không đặt business calculation vào Stimulus.
+
+Không fetch database/API trực tiếp từ client để tính KPI.
+
+Preferred flow:
+
+```text id="rl03hv"
+Controller
+    ↓
+Application Dashboard Query
+    ↓
+Dashboard Read Model / DTO
+    ↓
+Twig
+```
+
+Nếu project đã có query/read model tương đương:
+
+> reuse nó.
+
+---
+
+# 13. Query efficiency
+
+Dashboard là page được mở thường xuyên.
+
+Không tạo:
+
+```text id="elqhs6"
+1 query Today Revenue
+1 query Orders
+1 query Customers
+1 query Low Stock
+1 query Payments
+1 query Guild
+...
+```
+
+một cách thiếu kiểm soát.
+
+Inspect query count.
+
+Tránh:
+
+- N+1;
+- loading toàn bộ Entity collection;
+- unnecessary joins;
+- unnecessary hydration;
+- loading dữ liệu chỉ để render một con số.
+
+Chỉ query dữ liệu thực sự cần render.
+
+Nếu phù hợp với architecture hiện tại:
+
+```text id="4kdhxh"
+DashboardQuery
+      ↓
+DashboardViewModel
+```
+
+có thể trả về:
+
+```text id="6xcagh"
+todayRevenue
+todayOrderCount
+outstandingAmount
+outstandingCustomerCount
+attentionItems
+activeGuild
+quickActions
+```
+
+Nhưng chỉ thêm abstraction nếu source hiện tại chưa có abstraction phù hợp.
+
+---
+
+# 14. No fake data
+
+Không hard-code:
+
+```text id="1vf0f1"
+12,580,000
+32
+2,450,000
+5
+```
+
+Các số trên chỉ là visual example.
+
+Production phải lấy từ database/application read model.
+
+Nếu metric không tồn tại:
+
+- không fake;
+- không random;
+- không fallback bằng số 0 nếu `0` mang ý nghĩa khác với `no data`.
+
+Phân biệt:
+
+```text id="mwgefc"
+0
+```
+
+với:
+
+```text id="3mdt6i"
+no data / unavailable
+```
+
+khi business semantics yêu cầu.
+
+---
+
+# 15. Empty states
+
+Dashboard phải xử lý:
+
+### Không có order hôm nay
+
+Hiển thị nhẹ nhàng:
+
+```text id="qeyydp"
+TODAY
+
+No sales yet
+```
+
+hoặc representation tương đương theo design system.
+
+### Không có Attention
+
+Không render Attention section.
+
+### Không có Active Guild
+
+Không render Guild section.
+
+### Không có Outstanding
+
+Không render Outstanding nếu business semantics xác định không có outstanding.
+
+---
+
+# 16. Typography
+
+Tuân thủ typography hierarchy hiện tại.
+
+Guideline:
+
+### Primary information
+
+```text id="42fsoy"
+18–20px
+semibold / bold
+```
+
+### Amounts
+
+```text id="irp785"
+22–30px
+bold
+```
+
+### Product / Customer / Order names
+
+```text id="4xk1yw"
+16–19px
+semibold
+```
+
+### Status
+
+```text id="osg32o"
+14–15px
+semibold
+```
+
+### Secondary information
+
+```text id="o9i6lz"
+14–15px
+```
+
+### Technical metadata
+
+```text id="zwz161"
+12–13px
+```
+
+Không biến toàn bộ Dashboard thành bold text.
+
+Visual hierarchy phải rõ:
+
+```text id="pw3s9w"
+Section
+  ↓
+Primary value
+  ↓
+Supporting information
+```
+
+---
+
+# 17. Responsive behavior
+
+Dashboard phải hoạt động tốt trên mobile.
+
+Đặc biệt:
+
+```text id="aecv1v"
+360px
+375px
+390px
+414px
+```
+
+Không:
+
+```css id="44wbgr"
+overflow: hidden;
+text-overflow: ellipsis;
+```
+
+đối với business information quan trọng.
+
+Rule:
+
+> Resize → Wrap → Reflow → Never Hide Business Information.
+
+Long:
+
+- customer name;
+- order name;
+- amount;
+- status;
+
+phải wrap/reflow thay vì bị cắt.
+
+---
+
+# 18. Small-screen reflow
+
+Nếu card/action row không đủ chiều rộng:
+
+```text id="37nr5q"
+Desktop:
+
+[ Products ] [ Orders ] [ Customers ]
+```
+
+có thể reflow thành:
+
+```text id="90hjdg"
+Mobile:
+
+[ Products ]
+[ Orders ]
+[ Customers ]
+```
+
+hoặc grid 2 columns nếu phù hợp.
+
+Không ép horizontal overflow.
+
+---
+
+# 19. Accessibility
+
+Dashboard phải:
+
+- sử dụng semantic headings;
+- có accessible labels cho icon-only controls;
+- keyboard accessible;
+- visible focus state;
+- sufficient contrast;
+- touch target tối thiểu khoảng 48px;
+- không truyền business meaning chỉ bằng màu;
+- status/warning phải có text/icon semantic.
+
+Không dùng icon-only action nếu người dùng không thể hiểu action.
+
+---
+
+# 20. Permission-aware Quick Actions
+
+Quick Actions phải reflect authorization.
+
+Không render:
+
+```text id="zyheiv"
+New Sale
+```
+
+nếu user không có quyền tạo sale.
+
+Không render:
+
+```text id="r589jd"
+Products
+```
+
+nếu user không có quyền xem Products.
+
+Không render:
+
+```text id="awj1ep"
+Orders
+```
+
+nếu user không có quyền xem Orders.
+
+Không render unauthorized links rồi chỉ rely vào controller để reject.
+
+UI visibility và backend authorization phải nhất quán.
+
+Backend authorization vẫn bắt buộc ngay cả khi UI đã ẩn action.
+
+---
+
+# 21. Do not change navigation architecture
+
+Không thay đổi:
+
+- Login flow;
+- Logout flow;
+- Application Shell;
+- POS workspace;
+- route architecture;
+- permission architecture;
+
+trừ khi cần thiết trực tiếp cho Dashboard.
+
+Login vẫn đi vào Application/Home/Base Shell theo architecture hiện tại.
+
+POS vẫn là workspace riêng.
+
+Dashboard simplification không được biến Home thành POS page.
+
+---
+
+# 22. Do not create a second Dashboard architecture
+
+Không tạo:
+
+```text id="5g3qey"
+DashboardServiceV2
+DashboardControllerV2
+DashboardRepositoryV2
+DashboardQueryV2
+```
+
+chỉ vì muốn UI mới.
+
+Inspect existing source và refactor existing implementation.
+
+Nếu cần abstraction mới:
+
+- giải thích tại sao;
+- đặt đúng Application/Domain/Infrastructure boundary;
+- reuse các existing service/query/repository;
+- không duplicate business rules.
+
+---
+
+# 23. Twig responsibilities
+
+Twig chỉ responsible cho presentation.
+
+Twig có thể:
+
+- render values;
+- render condition;
+- render components;
+- render links/actions.
+
+Twig không được:
+
+- query database;
+- tính revenue;
+- tính outstanding;
+- quyết định authorization;
+- activate Guild;
+- chọn fallback Guild;
+- thực hiện business operation.
+
+---
+
+# 24. Stimulus responsibilities
+
+Nếu Dashboard dùng Stimulus:
+
+Stimulus chỉ xử lý:
+
+- UI interaction;
+- visual state;
+- progressive enhancement.
+
+Không chuyển business calculation sang JavaScript.
+
+Không duplicate backend Dashboard query logic trong Stimulus.
+
+---
+
+# 25. Error handling
+
+Nếu Dashboard query gặp lỗi:
+
+- không show stack trace;
+- không show internal exception;
+- không break toàn bộ Application Shell nếu architecture cho phép graceful degradation.
+
+Use existing error handling / observability mechanism.
+
+Không swallow exception silently nếu existing architecture yêu cầu logging.
+
+---
+
+# 26. Testing
+
+Implement/update tests phù hợp với source architecture.
+
+## Application tests
+
+Test:
+
+### Today
+
+- revenue calculation;
+- order count;
+- no orders;
+- correct date boundary.
+
+### Outstanding
+
+- correct outstanding amount;
+- correct customer count;
+- empty outstanding.
+
+### Active Guild
+
+Test:
+
+```text id="3ofo6j"
+activeGuild exists
+    → guild UI/data available
+```
+
+và:
+
+```text id="grtfz3"
+activeGuild does not exist
+    → guild section/data absent
+```
+
+Đặc biệt:
+
+> Không được fallback sang một Guild khác.
+
+### Attention
+
+- attention exists → rendered;
+- no attention → section omitted.
+
+---
+
+# 27. Permission tests
+
+Test Quick Actions theo permission.
+
+Ví dụ:
+
+```text id="ltjgv8"
+ROLE_USER
+    → only permitted actions
+
+ROLE_ADMIN
+    → admin-permitted actions
+```
+
+Không assert dựa trên role name nếu project đã có Permission/Voter abstraction.
+
+Test theo permission thật của application.
+
+---
+
+# 28. HTTP / Controller tests
+
+Test:
+
+- authenticated user can access Home;
+- unauthenticated user follows existing security flow;
+- Dashboard renders;
+- no debug output;
+- no unauthorized actions;
+- no Active Guild → Guild UI absent;
+- Active Guild → Guild-related UI available.
+
+Không hard-code HTML structure quá mức nếu project testing convention không yêu cầu.
+
+---
+
+# 29. Twig/UI tests
+
+Nếu project hiện có Twig rendering tests, verify:
+
+```text id="ope894"
+TODAY
+OUTSTANDING
+QUICK ACTIONS
+ATTENTION
+```
+
+theo dữ liệu thực tế.
+
+Verify:
+
+```text id="sn4yyv"
+activeGuild == null
+```
+
+không render Guild section.
+
+Verify:
+
+```text id="3f2eoo"
+attentionItems = []
+```
+
+không render Attention section.
+
+Verify không còn:
+
+```text id="6fb0wv"
+dump(
+```
+
+trong Dashboard template.
+
+---
+
+# 30. Regression
+
+Không làm hỏng:
+
+- Orders;
+- Checkout;
+- Payments;
+- Bank Transfer;
+- PaymentReference;
+- Stock;
+- Customers;
+- Products;
+- Guild;
+- Security;
+- Permissions;
+- Application Shell.
+
+Dashboard chỉ consume read-side information.
+
+Không mutate business state khi load Dashboard.
+
+---
+
+# 31. Acceptance Criteria
+
+Phase chỉ được coi là hoàn thành khi:
+
+### Dashboard
+
+- [ ] Home được đơn giản hóa rõ ràng.
+- [ ] Không còn cảm giác analytics dashboard quá tải.
+- [ ] Maximum 4 nhóm nội dung chính.
+- [ ] Today Summary là trọng tâm.
+- [ ] Quick Actions dễ tìm.
+- [ ] Attention chỉ xuất hiện khi có dữ liệu.
+- [ ] Outstanding chỉ xuất hiện khi có dữ liệu phù hợp.
+- [ ] Không có chart/analytics dư thừa trên Home.
+
+### Active Guild
+
+- [ ] Có Active Guild → Guild-related UI được render.
+- [ ] Không có Active Guild → Guild section bị ẩn hoàn toàn.
+- [ ] Không có empty Guild card.
+- [ ] Không có fake/default Guild.
+- [ ] Không tự động activate Guild khác.
+- [ ] Guild-dependent widgets/actions cũng bị ẩn khi không có Active Guild.
+
+### Data
+
+- [ ] Không fake data.
+- [ ] Không hard-code KPI.
+- [ ] Backend là source of truth.
+- [ ] Không business logic trong Twig/Stimulus.
+- [ ] Không N+1 query không cần thiết.
+
+### Security
+
+- [ ] Quick Actions respect permissions.
+- [ ] Unauthorized actions không được render.
+- [ ] Backend authorization vẫn được giữ nguyên.
+
+### UI
+
+- [ ] Mobile-first.
+- [ ] Hoạt động tốt từ 360px.
+- [ ] Không cắt business information.
+- [ ] Long text/amount wrap hoặc reflow.
+- [ ] Typography hierarchy rõ.
+- [ ] Touch target phù hợp.
+- [ ] Accessible focus/labels.
+
+### Code quality
+
+- [ ] Không tạo architecture song song.
+- [ ] Không duplicate existing services.
+- [ ] Không còn `dump()`/debug output.
+- [ ] Existing architecture được giữ nguyên.
+- [ ] Tests được cập nhật.
+- [ ] Không regression business flow.
+
+---
+
+# 32. Required verification
+
+Sau implementation chạy:
+
+```bash id="lf4ene"
+php bin/phpunit
+```
+
+và các command hiện có của project cho:
+
+- lint;
+- static analysis;
+- Twig validation;
+- code style;
+
+nếu repository đã cấu hình.
+
+Nếu có thay đổi schema/database:
+
+```bash id="c12u1w"
+php bin/console doctrine:schema:validate
+```
+
+và migration verification theo workflow hiện tại.
+
+Không bỏ qua test chỉ vì đây là UI refactor.
+
+---
+
+# 33. Final implementation report
+
+Sau khi hoàn thành, báo cáo ngắn:
+
+```text id="072b93"
+PHASE 2.18.1 COMPLETE
+
+Changed:
+- ...
+- ...
+- ...
+
+Dashboard sections:
+- Today
+- Outstanding
+- Quick Actions
+- Attention
+
+Active Guild:
+- Present → shown
+- Absent → hidden completely
+
+Removed:
+- ...
+- ...
+- ...
+
+Tests:
+- PHPUnit: PASS/FAIL
+- Static analysis: PASS/FAIL
+- Twig/Lint: PASS/FAIL
+
+Regression:
+- ...
+```
+
+Nếu test fail:
+
+- không che giấu;
+- ghi rõ test nào fail;
+- ghi rõ nguyên nhân;
+- sửa nếu thuộc scope phase;
+- nếu không thuộc scope, báo cáo chính xác.
+
+## FINAL RULE
+
+**Dashboard phải trả lời được 3 câu hỏi trong vài giây:**
+
+1. **Hôm nay bán được bao nhiêu?**
+2. **Có việc gì cần chú ý không?**
+3. **Tôi cần thao tác gì tiếp theo?**
+
+Mọi thông tin không giúp trả lời 3 câu hỏi trên nên được loại khỏi Home hoặc chuyển sang khu vực chuyên biệt phù hợp.
+:::
+
+Đây là bản mình sẽ dùng làm **Phase 2.18.1 chính thức**. Điểm quan trọng nhất mình đã khóa lại là **không có Active Guild thì không xuất hiện Guild UI dưới bất kỳ dạng placeholder/fallback nào**.

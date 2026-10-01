@@ -1,0 +1,119 @@
+Được. Với UI POS này, mình sẽ **tăng độ nổi bật của thông tin chính**, thay vì chỉ tăng font toàn bộ.
+
+- **Thông tin quan trọng:** 18–20px, `font-weight: 600–700`
+- **Số tiền / tổng tiền:** 22–28px, `font-weight: 700`
+- **Tên sản phẩm / khách hàng / mã đơn:** 16–18px, semibold
+- **Trạng thái:** 14–15px, semibold
+- **Thông tin phụ:** 14–15px, regular
+- **Metadata kỹ thuật:** 12–13px, chỉ hiện khi cần
+- Tăng **line-height** và khoảng cách giữa các nhóm để đọc nhanh trên mobile.
+- Không làm mọi thứ đậm — ưu tiên **hierarchy 3 tầng**: chính → phụ → chi tiết.
+
+Nếu áp dụng vào prompt UI hiện tại, phần Typography nên đổi thành:
+
+:::writing{variant="document" id="58321" title="Typography — Information Emphasis"}
+### TYPOGRAPHY — INFORMATION EMPHASIS
+
+Ưu tiên khả năng đọc thông tin nghiệp vụ trên mobile. Không chỉ tăng kích thước font toàn bộ; phải tạo hierarchy rõ ràng để người dùng nhìn vào màn hình và nhận ra thông tin quan trọng trong 2–3 giây.
+
+#### 1. Primary Information
+Thông tin người dùng cần nhìn thấy ngay:
+
+- Page title: `24–28px`, `font-weight: 700`
+- Order total / payable amount: `24–30px`, `font-weight: 700`
+- Important monetary value: `20–24px`, `font-weight: 700`
+- Product/customer/order name: `17–19px`, `font-weight: 600`
+- Primary KPI value: `24–28px`, `font-weight: 700`
+
+#### 2. Secondary Information
+
+- Section title: `18–20px`, `font-weight: 600`
+- Important label: `15–16px`, `font-weight: 600`
+- Normal business information: `15–16px`, `font-weight: 400–500`
+- Status / badge: `14–15px`, `font-weight: 600`
+
+#### 3. Supporting Information
+
+- Metadata: `13–14px`, `font-weight: 400`
+- Timestamp / technical reference: `12–13px`
+- Helper text: `13–14px`
+
+Không dùng font quá nhỏ cho thông tin nghiệp vụ quan trọng.
+
+#### 4. Money-first hierarchy
+
+Đối với POS, Order, Payment, Debt và Dashboard:
+
+```text id="t250ig"
+[TOTAL / AMOUNT]
+24–30px / bold
+
+[Order / Customer / Product]
+17–19px / semibold
+
+[Status]
+14–15px / semibold
+
+[Date / reference / metadata]
+12–14px / regular
+```
+
+Số tiền phải là một trong những thành phần nổi bật nhất trên màn hình.
+
+#### 5. Do not over-bold
+
+Không làm toàn bộ card hoặc toàn bộ row thành bold.
+
+Chỉ nhấn mạnh:
+
+- giá tiền
+- tổng tiền
+- tên đối tượng chính
+- trạng thái
+- hành động chính
+
+Thông tin phụ phải nhẹ hơn để tạo contrast thị giác.
+
+#### 6. Mobile readability
+
+Tại viewport `360px`, `390px`, `414px`:
+
+- body text tối thiểu khoảng `15–16px`
+- input text tối thiểu `16px`
+- button text `16–18px`
+- line-height khoảng `1.4–1.6`
+- không để text nghiệp vụ quan trọng bị ép thành font nhỏ để vừa một dòng
+- cho phép wrap tự nhiên thay vì cắt text
+- ưu tiên hiển thị giá trị hơn metadata
+
+#### 7. Information hierarchy rule
+
+Mỗi màn hình phải có tối đa 3 tầng thị giác:
+
+**Primary → Secondary → Details**
+
+Ví dụ Order:
+
+```text id="bjy785"
+1. 125.000 ₫                  ← Primary
+2. #ORD-2026-00125            ← Secondary
+3. Nguyễn Văn A · Đã thanh toán
+4. 26/09/2026 14:32            ← Details
+```
+
+Không hiển thị tất cả thông tin với cùng kích thước, cùng font-weight hoặc cùng độ tương phản.
+
+#### 8. Visual goal
+
+Người dùng phải có thể:
+
+**OPEN → SEE IMPORTANT INFO → ACT**
+
+mà không cần đọc toàn bộ màn hình.
+
+Nguyên tắc:
+
+> Make important information visually loud.
+> Make secondary information quiet.
+> Hide technical information until requested.
+:::

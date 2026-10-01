@@ -256,17 +256,29 @@ export default class extends Controller {
 
     formatCompactVnd(value) {
         const number = Number(value) || 0;
+        const absolute = Math.abs(number);
+        const format = (scaled) => {
+            const rounded = Math.round(scaled * 10) / 10;
+            return new Intl.NumberFormat('vi-VN', {
+                minimumFractionDigits: Number.isInteger(rounded) ? 0 : 1,
+                maximumFractionDigits: 1,
+            }).format(rounded);
+        };
 
-        if (Math.abs(number) >= 1_000_000_000) {
-            return `${(number / 1_000_000_000).toFixed(1)} tỷ`;
+        if (absolute >= 1_000_000_000_000) {
+            return `${format(number / 1_000_000_000_000)} nghìn tỷ`;
         }
 
-        if (Math.abs(number) >= 1_000_000) {
-            return `${(number / 1_000_000).toFixed(1)} tr`;
+        if (absolute >= 1_000_000_000) {
+            return `${format(number / 1_000_000_000)} tỷ`;
         }
 
-        if (Math.abs(number) >= 1_000) {
-            return `${Math.round(number / 1_000)}k`;
+        if (absolute >= 1_000_000) {
+            return `${format(number / 1_000_000)} triệu`;
+        }
+
+        if (absolute >= 1_000) {
+            return `${format(number / 1_000)} nghìn`;
         }
 
         return new Intl.NumberFormat('vi-VN', {

@@ -1,0 +1,66 @@
+{% if active_kpi_goals %}
+    <section class="home-section dashboard-goals" aria-labelledby="dashboard-kpi-goals-title">
+        <div class="home-section-heading">
+            <div>
+                <p class="eyebrow">{{ 'stat.kpi'|trans }}</p>
+                <h2 id="dashboard-kpi-goals-title">{{ 'stat.kpi_goals'|trans }}</h2>
+                <p class="muted">{{ 'stat.kpi_help'|trans }}</p>
+            </div>
+            <a class="home-section-link" href="{{ path('statistics_index') }}">{{ 'app.view_statistics'|trans }}</a>
+        </div>
+
+        <div class="dashboard-goals-grid">
+            {% for goal in active_kpi_goals|slice(0, 3) %}
+                {% set goalIsMoney = goal.metric in ['revenue', 'outstanding_debt'] %}
+                <article class="dashboard-goal-card{% if goal.reached %} dashboard-goal-card--success{% endif %}">
+                    <div class="dashboard-goal-head">
+                        <div>
+                            <span class="dashboard-goal-label">{{ ('stat.kpi_' ~ goal.metric)|trans }}</span>
+                            <small>
+                                {% if goal.salesPointId is not null %}
+                                    {{ goal.salesPointName }}
+                                {% else %}
+                                    Toàn bộ sales point
+                                {% endif %}
+                                · {{ goal.startDate|date('d/m/Y') }} → {{ goal.endDate|date('d/m/Y') }}
+                            </small>
+                        </div>
+                        {% if goal.reached %}
+                            <span class="dashboard-goal-status dashboard-goal-status--success">{{ 'stat.kpi_reached'|trans }}</span>
+                        {% elseif goal.expired %}
+                            <span class="dashboard-goal-status dashboard-goal-status--expired">{{ 'stat.kpi_expired'|trans }}</span>
+                        {% else %}
+                            <span class="dashboard-goal-status">{{ goal.progressPercent|number_format(0, ',', '.') }}%</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="dashboard-goal-values">
+                        {% if goalIsMoney %}
+                            <strong>{{ goal.actualValue|money_vnd }}</strong>
+                            <span>/ {{ goal.targetValue|money_vnd }}</span>
+                        {% else %}
+                            <strong>{{ goal.actualValue|number_format(0, ',', '.') }}</strong>
+                            <span>/ {{ goal.targetValue|number_format(0, ',', '.') }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="dashboard-goal-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ goal.progressPercent }}" aria-label="{{ ('stat.kpi_' ~ goal.metric)|trans }}">
+                        <span style="width: {{ goal.progressPercent > 100 ? 100 : goal.progressPercent }}%"></span>
+                    </div>
+
+                    <div class="dashboard-goal-footer">
+                        {% if goal.estimatedDate and not goal.reached %}
+                            <small class="dashboard-goal-estimate">{{ 'stat.kpi_estimate'|trans({'%days%': goal.estimatedDaysRemaining, '%date%': goal.estimatedDate|date('d/m/Y')}) }}</small>
+                        {% elseif goal.reached %}
+                            <small class="dashboard-goal-estimate">{{ 'stat.kpi_reached'|trans }}</small>
+                        {% elseif goal.expired %}
+                            <small class="dashboard-goal-estimate">{{ 'stat.kpi_expired'|trans }}</small>
+                        {% else %}
+                            <small class="dashboard-goal-estimate">{{ goal.endDate|date('d/m/Y') }}</small>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}

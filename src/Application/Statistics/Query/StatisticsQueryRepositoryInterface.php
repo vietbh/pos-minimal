@@ -18,4 +18,7 @@ interface StatisticsQueryRepositoryInterface
     public function getTopCustomers(StatisticsQueryInput $input): array;
     public function getStockSnapshot(): StockSnapshot;
     public function getWeeklySales(StatisticsQueryInput $input): WeeklySalesSummary;
+    public function getUnitsSold(StatisticsQueryInput $input): int;
+    public function getUniqueCustomers(StatisticsQueryInput $input): int;
+    public function getCurrentOutstandingDebt(?int $salesPointId = null): string;
 }
