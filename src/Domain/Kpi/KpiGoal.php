@@ -14,7 +14,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_kpi_goal_metric', columns: ['metric'])]
 #[ORM\Index(name: 'idx_kpi_goal_created_by', columns: ['created_by'])]
 #[ORM\Index(name: 'idx_kpi_goal_sales_point', columns: ['sales_point_id'])]
-final class KpiGoal
+class KpiGoal
 {
     public const METRIC_REVENUE = 'revenue';
     public const METRIC_UNITS_SOLD = 'units_sold';
