@@ -28,6 +28,7 @@ use App\Domain\User\Repository\UserRepositoryInterface;
 use App\Domain\User\Repository\UserSessionRepositoryInterface;
 use App\Domain\User\User;
 use App\Domain\User\UserSession;
+use App\Infrastructure\Statistics\StatisticsOutboxRecorder;
 
 final readonly class RefundOrderHandler
 {
@@ -46,6 +47,7 @@ final readonly class RefundOrderHandler
         private AuditLogRepositoryInterface $auditLogRepository,
         private UserRepositoryInterface $userRepository,
         private UserSessionRepositoryInterface $userSessionRepository,
+        private ?StatisticsOutboxRecorder $statisticsOutbox = null,
     ) {
     }
 
@@ -142,6 +144,7 @@ final readonly class RefundOrderHandler
 
                     $oldStatus = $order->getStatus()->value;
                     $order->refund();
+                    $this->statisticsOutbox?->record('ORDER_REFUNDED', $order->getId() ?? throw new \LogicException('Order has no ID.'));
 
                     $this->auditLogRepository->save(new AuditLog(
                         action: 'ORDER_REFUND',

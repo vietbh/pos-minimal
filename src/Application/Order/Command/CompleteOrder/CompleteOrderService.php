@@ -16,6 +16,7 @@ use App\Domain\Stock\Enum\StockMovementType;
 use App\Domain\Stock\Repository\StockMovementRepositoryInterface;
 use App\Domain\Stock\StockMovement;
 use App\Domain\User\User;
+use App\Infrastructure\Statistics\StatisticsOutboxRecorder;
 
 final readonly class CompleteOrderService
 {
@@ -25,6 +26,7 @@ final readonly class CompleteOrderService
         private StockMovementRepositoryInterface $stockMovements,
         private AuditLogRepositoryInterface $auditLogs,
         private ?PaymentReferenceRepositoryInterface $paymentReferences = null,
+        private ?StatisticsOutboxRecorder $statisticsOutbox = null,
     ) {
     }
 
@@ -94,6 +96,7 @@ final readonly class CompleteOrderService
 
         $oldStatus = $order->getStatus()->value;
         $order->complete();
+        $this->statisticsOutbox?->record('ORDER_COMPLETED', $order->getId() ?? throw new \LogicException('Completed order has no ID.'));
 
         $this->auditLogs->save(new AuditLog(
             action: 'ORDER_COMPLETED',

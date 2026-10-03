@@ -9,3 +9,6 @@ import './styles/app.css';
 
 console.log('This log comes from assets/app.js - welcome to AssetMapper! 🎉');
 
+
+import './styles/statistics-dark-charts.css';
+import './styles/statistics-compact-charts.css';

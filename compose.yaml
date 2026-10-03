@@ -1,4 +1,18 @@
 services:
+  mercure:
+    image: dunglas/mercure:v0.18
+    container_name: mobile_pos_mercure
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: ':80'
+      MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_JWT_SECRET:-dev-only-change-this-secret}
+      MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_JWT_SECRET:-dev-only-change-this-secret}
+      MERCURE_EXTRA_DIRECTIVES: |
+        cors_origins http://localhost:8000 http://127.0.0.1:8000
+        publish_origins http://localhost:8000 http://127.0.0.1:8000
+    ports:
+      - "3000:80"
+
   database:
     image: mysql:8.0
     container_name: mobile_pos_mysql

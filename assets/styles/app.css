@@ -6863,3 +6863,18 @@ html[data-appearance="system"] .home-card-primary {
         order: 6;
     }
 }
+
+
+/* Statistics date-range pill: follow the active dark appearance. */
+html[data-appearance="dark"] .statistics-hero .statistics-range {
+    background: #16221f !important;
+    color: #9AAEA9 !important;
+    border: 1px solid #2B403A !important;
+    box-shadow: none !important;
+}
+
+html[data-appearance="light"] .statistics-hero .statistics-range {
+    background: #FFFFFF;
+    color: #78908A;
+    border: 1px solid #E0E8E5;
+}

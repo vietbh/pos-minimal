@@ -10,7 +10,7 @@ use Doctrine\DBAL\Connection;
 
 final readonly class StatisticsQueryRepository implements StatisticsQueryRepositoryInterface
 {
-    public function __construct(private Connection $connection) {}
+    public function __construct(private Connection $connection, private bool $useStatisticsProjections = false) {}
 
     public function getSalesSummary(StatisticsQueryInput $input): SalesSummary
     {
@@ -121,6 +121,18 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
 
     public function getTopProducts(StatisticsQueryInput $input): array
     {
+        if ($this->useStatisticsProjections) {
+            $scopeSql = ' AND s.sales_point_id = :scopeId';
+            $params = ['fromDate' => $input->from->format('Y-m-d'), 'toDate' => $input->toExclusive->format('Y-m-d'), 'scopeId' => $input->salesPointId ?? 0];
+            $rows = $this->connection->fetchAllAssociative(
+                "SELECT s.product_id, MAX(s.product_name_snapshot) AS name, SUM(s.quantity_sold) AS quantity, COALESCE(SUM(s.gross_sales),0) AS sales_amount
+                 FROM daily_product_sales_statistics s
+                 WHERE s.business_date >= :fromDate AND s.business_date < :toDate {$scopeSql}
+                 GROUP BY s.product_id ORDER BY quantity DESC, s.product_id ASC LIMIT ".$input->limit,
+                $params,
+            );
+            return array_map(fn(array $r) => new TopProduct((int)$r['product_id'], (string)$r['name'], (int)$r['quantity'], (string)$r['sales_amount']), $rows);
+        }
         $filter = $this->salesPointFilter($input, 'o');
         $rows = $this->connection->fetchAllAssociative(
             "SELECT oi.product_id,
@@ -191,6 +203,18 @@ final readonly class StatisticsQueryRepository implements StatisticsQueryReposit
 
     public function getTopCustomers(StatisticsQueryInput $input): array
     {
+        if ($this->useStatisticsProjections) {
+            $scopeSql = ' AND s.sales_point_id = :scopeId';
+            $params = ['fromDate' => $input->from->format('Y-m-d'), 'toDate' => $input->toExclusive->format('Y-m-d'), 'scopeId' => $input->salesPointId ?? 0];
+            $rows = $this->connection->fetchAllAssociative(
+                "SELECT s.customer_id, c.name, SUM(s.order_count) AS order_count, COALESCE(SUM(s.net_spend),0) AS total_spent
+                 FROM daily_customer_sales_statistics s INNER JOIN customers c ON c.id=s.customer_id
+                 WHERE s.business_date >= :fromDate AND s.business_date < :toDate {$scopeSql}
+                 GROUP BY s.customer_id, c.name ORDER BY total_spent DESC, s.customer_id ASC LIMIT ".$input->limit,
+                $params,
+            );
+            return array_map(fn(array $r) => new TopCustomer((int)$r['customer_id'], (string)$r['name'], (int)$r['order_count'], (string)$r['total_spent']), $rows);
+        }
         $filter = $this->salesPointFilter($input, 'o');
         $rows = $this->connection->fetchAllAssociative(
             "SELECT o.customer_id,

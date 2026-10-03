@@ -3,7 +3,7 @@
 {% block title %}{{ 'stat.title'|trans }}{% endblock %}
 
 {% block authenticated_body %}
-<div class="statistics statistics-ux admin-workspace" data-guide="statistics-workspace" data-controller="statistics-filter">
+<div class="statistics statistics-ux admin-workspace" data-guide="statistics-workspace" data-controller="statistics-filter statistics-tabs mercure-refresh" data-statistics-data-url="{{ path('statistics_index') }}/data/__TAB__" data-mercure-refresh-enabled-value="{{ mercure_enabled ? 'true' : 'false' }}" data-mercure-refresh-hub-url-value="{{ mercure_public_url }}" data-mercure-refresh-topic-value="{{ mercure_topic }}">
     <header class="statistics-hero admin-toolbar">
         <div>
             <p class="eyebrow">{{ 'stat.insights'|trans }}</p>
@@ -16,6 +16,7 @@
     </header>
 
     <form method="get" class="statistics-filter admin-filter" data-guide="statistics-filter" data-action="submit->statistics-filter#loading" aria-describedby="statistics-filter-help">
+        <input type="hidden" name="tab" value="{{ active_tab|default(app.request.query.get('tab', 'overview')) }}" data-statistics-tabs-target="activeInput">
         <p id="statistics-filter-help" class="admin-help">{{ 'stat.filter_help'|trans }}</p>
         <div class="statistics-filter-grid">
             <div>
@@ -41,7 +42,7 @@
             <div>
                 <label for="salesPointId">Sales point</label>
                 <select id="salesPointId" name="salesPointId">
-                    <option value="">All sales points</option>
+                    <option value="all"{% if sales_point_id is null %} selected{% endif %}>All sales points</option>
                     {% for point in sales_points %}<option value="{{ point.id }}"{% if sales_point_id == point.id %} selected{% endif %}>{{ point.name }} ({{ point.code }})</option>{% endfor %}
                 </select>
             </div>
@@ -56,7 +57,18 @@
         </div>
     </form>
 
-    <section class="statistics-overview" aria-labelledby="statistics-overview-title">
+    <nav class="statistics-tabs" aria-label="Statistics categories" role="tablist">
+        <button type="button" class="statistics-tab{% if active_tab|default('overview') == 'overview' %} is-active{% endif %}" role="tab" aria-selected="{{ active_tab|default('overview') == 'overview' ? 'true' : 'false' }}" data-statistics-tabs-target="tab" data-tab="overview" data-action="click->statistics-tabs#select">Tổng quan</button>
+        <button type="button" class="statistics-tab{% if active_tab|default('overview') == 'sales' %} is-active{% endif %}" role="tab" aria-selected="{{ active_tab|default('overview') == 'sales' ? 'true' : 'false' }}" data-statistics-tabs-target="tab" data-tab="sales" data-action="click->statistics-tabs#select">Doanh số</button>
+        <button type="button" class="statistics-tab{% if active_tab|default('overview') == 'products' %} is-active{% endif %}" role="tab" aria-selected="{{ active_tab|default('overview') == 'products' ? 'true' : 'false' }}" data-statistics-tabs-target="tab" data-tab="products" data-action="click->statistics-tabs#select">Sản phẩm</button>
+        <button type="button" class="statistics-tab{% if active_tab|default('overview') == 'payments' %} is-active{% endif %}" role="tab" aria-selected="{{ active_tab|default('overview') == 'payments' ? 'true' : 'false' }}" data-statistics-tabs-target="tab" data-tab="payments" data-action="click->statistics-tabs#select">Thanh toán</button>
+        <button type="button" class="statistics-tab{% if active_tab|default('overview') == 'customers' %} is-active{% endif %}" role="tab" aria-selected="{{ active_tab|default('overview') == 'customers' ? 'true' : 'false' }}" data-statistics-tabs-target="tab" data-tab="customers" data-action="click->statistics-tabs#select">Khách hàng</button>
+        <button type="button" class="statistics-tab{% if active_tab|default('overview') == 'debts' %} is-active{% endif %}" role="tab" aria-selected="{{ active_tab|default('overview') == 'debts' ? 'true' : 'false' }}" data-statistics-tabs-target="tab" data-tab="debts" data-action="click->statistics-tabs#select">Công nợ</button>
+    </nav>
+
+    <section class="statistics-lazy-panel statistics-card" data-statistics-tabs-target="panel" role="tabpanel" aria-live="polite" hidden></section>
+
+    <section class="statistics-overview" data-statistics-category="sales" aria-labelledby="statistics-overview-title">
         <div class="statistics-section-heading">
             <div>
                 <p class="eyebrow">{{ 'stat.insights'|trans }}</p>
@@ -102,7 +114,7 @@
     {% set paymentChartData = [] %}
     {% for p in dashboard.payments %}
         {% set paymentChartData = paymentChartData|merge([{
-            label: ('pos.payment.' ~ (p.paymentMethod|lower))|trans,
+            label: (p.paymentMethod|trim|upper) in ['BANK_TRANSFER', 'BANKTRANSFER'] ? 'Chuyển khoản ngân hàng' : ((p.paymentMethod|trim|upper) in ['CASH', 'CASH_PAYMENT'] ? 'Tiền mặt' : (('pos.payment.' ~ (p.paymentMethod|lower))|trans)),
             amount: p.amount + 0
         }]) %}
     {% endfor %}
@@ -110,7 +122,7 @@
     <section class="statistics-chart-grid" aria-labelledby="statistics-charts-title">
         <h2 id="statistics-charts-title" class="sr-only">{{ 'stat.overview_charts'|trans }}</h2>
 
-        <article class="statistics-card statistics-chart-card statistics-chart-card--wide">
+        <article class="statistics-card statistics-chart-card statistics-chart-card--wide" data-statistics-category="sales">
             <div class="statistics-card-heading">
                 <div>
                     <h2>{{ 'stat.financial_overview'|trans }}</h2>
@@ -142,7 +154,7 @@
             ></div>
         </article>
 
-        <article class="statistics-card statistics-chart-card">
+        <article class="statistics-card statistics-chart-card" data-statistics-category="products">
             <div class="statistics-card-heading">
                 <div>
                     <h2>{{ 'stat.stock_summary'|trans }}</h2>
@@ -165,7 +177,7 @@
             ></div>
         </article>
 
-        <article class="statistics-card statistics-chart-card statistics-chart-card--full">
+        <article class="statistics-card statistics-chart-card statistics-chart-card--full" data-statistics-category="payments">
             <div class="statistics-card-heading">
                 <div>
                     <h2>{{ 'stat.payment_mix'|trans }}</h2>
@@ -192,13 +204,14 @@
     <section class="statistics-detail-grid" aria-labelledby="statistics-details-title">
         <h2 id="statistics-details-title" class="sr-only">{{ 'stat.details'|trans }}</h2>
 
-        <article class="statistics-card">
+        <article class="statistics-card" data-statistics-category="debts">
             <div class="statistics-card-heading">
                 <div>
                     <h2>{{ 'common.debt'|trans }}</h2>
                     <p>{{ 'stat.debt_summary'|trans }}</p>
                 </div>
             </div>
+            <div class="statistics-chart statistics-tab-inline-chart" data-statistics-tabs-target="chart" data-chart="{{ {labels: ['stat.original'|trans, 'stat.collected'|trans, 'stat.outstanding'|trans], values: [dashboard.debt.originalAmount + 0, dashboard.debt.collectedAmount + 0, dashboard.debt.outstandingAmount + 0], format: 'currency'}|json_encode|e('html_attr') }}" role="img" aria-label="Công nợ: gốc, đã thu, còn lại"></div>
             <div class="statistics-summary-list">
                 <div><span>{{ 'stat.debts'|trans }}</span><strong>{{ dashboard.debt.debtCount }}</strong></div>
                 <div><span>{{ 'stat.original'|trans }}</span><strong>{{ dashboard.debt.originalAmount|money_vnd }}</strong></div>
@@ -207,7 +220,7 @@
             </div>
         </article>
 
-        <article class="statistics-card">
+        <article class="statistics-card" data-statistics-category="products">
             <div class="statistics-card-heading">
                 <div>
                     <h2>{{ 'stat.stock_snapshot'|trans }}</h2>
@@ -227,7 +240,7 @@
     <section class="statistics-lists-grid" aria-labelledby="statistics-lists-title">
         <h2 id="statistics-lists-title" class="sr-only">{{ 'stat.details'|trans }}</h2>
 
-        <article class="statistics-card">
+        <article class="statistics-card" data-statistics-category="products">
             <div class="statistics-card-heading">
                 <div>
                     <h2>{{ 'stat.top_products'|trans }}</h2>
@@ -235,6 +248,7 @@
                 </div>
             </div>
             {% if dashboard.topProducts %}
+                <div class="statistics-chart statistics-tab-inline-chart" data-statistics-tabs-target="chart" data-chart="{{ {labels: dashboard.topProducts|map(p => p.name)|slice(0, 10), values: dashboard.topProducts|map(p => p.quantity)|slice(0, 10), format: 'number'}|json_encode|e('html_attr') }}" role="img" aria-label="Top sản phẩm theo số lượng bán"></div>
                 <div class="statistics-table-wrap">
                     <table class="statistics-table">
                         <caption class="sr-only">{{ 'stat.top_products'|trans }}</caption>
@@ -251,7 +265,7 @@
             {% endif %}
         </article>
 
-        <article class="statistics-card">
+        <article class="statistics-card" data-statistics-category="customers">
             <div class="statistics-card-heading">
                 <div>
                     <h2>{{ 'stat.top_customers'|trans }}</h2>
@@ -259,6 +273,7 @@
                 </div>
             </div>
             {% if dashboard.topCustomers %}
+                <div class="statistics-chart statistics-tab-inline-chart" data-statistics-tabs-target="chart" data-chart="{{ {labels: dashboard.topCustomers|map(c => c.name)|slice(0, 10), values: dashboard.topCustomers|map(c => c.totalSpent + 0)|slice(0, 10), format: 'currency'}|json_encode|e('html_attr') }}" role="img" aria-label="Top khách hàng theo doanh số"></div>
                 <div class="statistics-table-wrap">
                     <table class="statistics-table">
                         <caption class="sr-only">{{ 'stat.top_customers'|trans }}</caption>
@@ -276,7 +291,7 @@
         </article>
     </section>
 
-    <section class="statistics-goals" aria-labelledby="statistics-goals-title">
+    <section class="statistics-goals" data-statistics-category="overview" aria-labelledby="statistics-goals-title">
         <div class="statistics-section-heading">
             <div>
                 <p class="eyebrow">{{ 'stat.kpi'|trans }}</p>
@@ -385,7 +400,7 @@
         {% endif %}
     </section>
 
-    <div class="statistics-accessible-data">
+    <div class="statistics-accessible-data" data-statistics-category="payments">
         <details>
             <summary>{{ 'stat.accessible_data'|trans }}</summary>
             <p>{{ 'stat.accessible_data_help'|trans }}</p>
@@ -395,7 +410,7 @@
                     <thead><tr><th>{{ 'stat.method'|trans }}</th><th>{{ 'common.amount'|trans }}</th><th>{{ 'stat.transactions_suffix'|trans }}</th></tr></thead>
                     <tbody>
                     {% for p in dashboard.payments %}
-                        <tr><td>{{ ('pos.payment.' ~ (p.paymentMethod|lower))|trans }}</td><td>{{ p.amount|money_vnd }}</td><td>{{ p.paymentCount }}</td></tr>
+                        <tr><td>{{ (p.paymentMethod|trim|upper) in ['BANK_TRANSFER', 'BANKTRANSFER'] ? 'Chuyển khoản ngân hàng' : ((p.paymentMethod|trim|upper) in ['CASH', 'CASH_PAYMENT'] ? 'Tiền mặt' : (('pos.payment.' ~ (p.paymentMethod|lower))|trans)) }}</td><td>{{ p.amount|money_vnd }}</td><td>{{ p.paymentCount }}</td></tr>
                     {% else %}
                         <tr><td colspan="3">{{ 'stat.no_payments'|trans }}</td></tr>
                     {% endfor %}

@@ -25,6 +25,7 @@ framework:
             Symfony\Component\Notifier\Message\SmsMessage: async
             App\Application\Product\Message\ProcessProductImage: async
             App\Application\Import\Message\ProcessImport: async
+            App\Application\Statistics\Message\RebuildStatisticsForOrder: async
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async

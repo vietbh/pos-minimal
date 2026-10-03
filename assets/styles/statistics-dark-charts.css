@@ -1,0 +1,34 @@
+/* High-contrast labels for dynamically rendered statistics charts in dark mode. */
+.statistics-lazy-panel { color: #E5EFED; }
+.statistics-lazy-chart-card { margin-block: 1rem; padding: 1.25rem; color: #E5EFED; }
+.statistics-lazy-chart-title { margin: 0 0 .75rem; color: #F4F8F7; font-size: 1rem; font-weight: 650; }
+.statistics-lazy-chart { min-height: 280px; width: 100%; color: #E5EFED; }
+.statistics-lazy-chart-card .apexcharts-text,
+.statistics-lazy-chart-card .apexcharts-legend-text,
+.statistics-lazy-chart-card .apexcharts-title-text,
+.statistics-lazy-chart-card .apexcharts-subtitle-text { fill: #E5EFED !important; color: #E5EFED !important; }
+.statistics-lazy-chart-card .apexcharts-xaxis-label,
+.statistics-lazy-chart-card .apexcharts-yaxis-label { fill: #D5E2DF !important; }
+.statistics-lazy-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin-top: .9rem; }
+.statistics-lazy-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 0; padding: .85rem .95rem; border: 1px solid var(--border-color, #2b403d); border-radius: .7rem; background: rgba(255,255,255,.025); }
+.statistics-lazy-row span { min-width: 0; overflow-wrap: anywhere; color: #C1D2D0; }
+.statistics-lazy-row strong { color: #F4F8F7; text-align: right; font-variant-numeric: tabular-nums; }
+.statistics-lazy-status { color: #C1D2D0; }
+.statistics-lazy-error { color: #FFE1DD; background: #382421; border: 1px solid #75423b; border-radius: .7rem; padding: 1rem; }
+@media (max-width: 700px) { .statistics-lazy-chart-card { padding: .875rem; } .statistics-lazy-results { grid-template-columns: minmax(0, 1fr); } }
+
+
+/* High-contrast chart typography in dark appearance. */
+html[data-appearance="dark"] .statistics-lazy-panel,
+html[data-appearance="dark"] .statistics-lazy-panel h2,
+html[data-appearance="dark"] .statistics-lazy-panel h3,
+html[data-appearance="dark"] .statistics-lazy-panel .statistics-lazy-row strong { color: #F4F8F7; }
+html[data-appearance="dark"] .statistics-lazy-panel .statistics-lazy-row span,
+html[data-appearance="dark"] .statistics-lazy-panel .statistics-lazy-status { color: #C1D2D0; }
+.statistics-lazy-chart .apexcharts-xaxis-label,
+.statistics-lazy-chart .apexcharts-yaxis-label,
+.statistics-lazy-chart .apexcharts-legend-text,
+.statistics-lazy-chart .apexcharts-datalabel,
+.statistics-lazy-chart .apexcharts-text { fill: #E5EFED !important; color: #E5EFED !important; }
+.statistics-lazy-chart .apexcharts-gridline { stroke: rgba(203,220,216,.25) !important; }
+.statistics-lazy-chart .apexcharts-tooltip { color: #17211F !important; }

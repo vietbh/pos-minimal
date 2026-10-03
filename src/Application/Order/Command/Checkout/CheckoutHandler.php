@@ -42,6 +42,7 @@ use App\Domain\User\Repository\UserRepositoryInterface;
 use App\Domain\User\Repository\UserSessionRepositoryInterface;
 use App\Domain\User\User;
 use App\Domain\User\UserSession;
+use App\Infrastructure\Statistics\StatisticsOutboxRecorder;
 
 final readonly class CheckoutHandler
 {
@@ -67,6 +68,7 @@ final readonly class CheckoutHandler
         private DebtRepositoryInterface $debtRepository,
         private StockMovementRepositoryInterface $stockMovementRepository,
         private AuditLogRepositoryInterface $auditLogRepository,
+        private ?StatisticsOutboxRecorder $statisticsOutbox = null,
     ) {
     }
 
@@ -385,6 +387,7 @@ final readonly class CheckoutHandler
         if ($orderId === null) {
             throw new \LogicException('Order ID was not generated after transaction flush.');
         }
+        $this->statisticsOutbox?->record('ORDER_COMPLETED', $orderId);
 
         /*
          * Stock mutation occurs only after every product has been

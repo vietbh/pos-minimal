@@ -118,6 +118,8 @@ export default class extends Controller {
                 toolbar: { show: false },
                 animations: { enabled: !reducedMotion },
                 fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                foreColor: '#DCE7E5',
+                background: 'transparent',
             },
             series: [{
                 name: data.seriesLabel,
@@ -126,13 +128,13 @@ export default class extends Controller {
             xaxis: {
                 categories: data.categories,
                 labels: {
-                    style: { fontSize: '13px' },
+                    style: { fontSize: '13px', colors: '#C8D8D5' },
                     formatter: (value) => this.formatCompactVnd(value),
                 },
             },
             yaxis: {
                 labels: {
-                    style: { fontSize: '13px', fontWeight: 600 },
+                    style: { fontSize: '13px', fontWeight: 600, colors: '#E2ECEA' },
                     maxWidth: 150,
                 },
             },
@@ -152,7 +154,7 @@ export default class extends Controller {
                 },
             },
             grid: {
-                borderColor: '#E2E8F0',
+                borderColor: 'rgba(203, 220, 216, 0.22)',
                 strokeDashArray: 3,
             },
             legend: { show: false },
@@ -174,20 +176,22 @@ export default class extends Controller {
                 toolbar: { show: false },
                 animations: { enabled: !reducedMotion },
                 fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                foreColor: '#DCE7E5',
+                background: 'transparent',
             },
             series: items.map((item) => Number(item.amount)),
             labels: items.map((item) => item.label),
             legend: {
                 position: 'bottom',
                 fontSize: '14px',
-                labels: { useSeriesColors: false },
+                labels: { useSeriesColors: false, colors: '#DCE7E5' },
             },
             dataLabels: {
                 enabled: false,
             },
             stroke: {
                 width: 2,
-                colors: ['#FFFFFF'],
+                colors: ['#14211F'],
             },
             tooltip: {
                 y: {
@@ -232,6 +236,8 @@ export default class extends Controller {
                 toolbar: { show: false },
                 animations: { enabled: !reducedMotion },
                 fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                foreColor: '#DCE7E5',
+                background: 'transparent',
             },
             series: [{
                 name: data.seriesLabel || 'Products',
@@ -242,7 +248,7 @@ export default class extends Controller {
             plotOptions: { bar: { borderRadius: 5, columnWidth: '52%' } },
             dataLabels: { enabled: true, formatter: (value) => String(Number(value) || 0) },
             tooltip: { y: { formatter: (value) => `${Number(value) || 0} products` } },
-            grid: { borderColor: '#E2E8F0', strokeDashArray: 3 },
+            grid: { borderColor: 'rgba(203, 220, 216, 0.22)', strokeDashArray: 3 },
             legend: { show: false },
             colors: ['#2563EB'],
         };
