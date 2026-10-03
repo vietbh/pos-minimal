@@ -32,3 +32,75 @@ html[data-appearance="dark"] .statistics-lazy-panel .statistics-lazy-status { co
 .statistics-lazy-chart .apexcharts-text { fill: #E5EFED !important; color: #E5EFED !important; }
 .statistics-lazy-chart .apexcharts-gridline { stroke: rgba(203,220,216,.25) !important; }
 .statistics-lazy-chart .apexcharts-tooltip { color: #17211F !important; }
+
+/* Light appearance: override the dark-only chart palette with readable ink. */
+html[data-appearance="light"] .statistics-card .apexcharts-text,
+html[data-appearance="light"] .statistics-card .apexcharts-legend-text,
+html[data-appearance="light"] .statistics-card .apexcharts-title-text,
+html[data-appearance="light"] .statistics-card .apexcharts-subtitle-text,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-text,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-legend-text,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-title-text,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-subtitle-text {
+    fill: #334155 !important;
+    color: #334155 !important;
+}
+html[data-appearance="light"] .statistics-card .apexcharts-xaxis-label,
+html[data-appearance="light"] .statistics-card .apexcharts-yaxis-label,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-xaxis-label,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-yaxis-label {
+    fill: #475569 !important;
+}
+html[data-appearance="light"] .statistics-card .apexcharts-gridline,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-gridline {
+    stroke: rgba(71, 85, 105, .22) !important;
+}
+html[data-appearance="light"] .statistics-card .apexcharts-tooltip,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-tooltip {
+    color: #0f172a !important;
+}
+html[data-appearance="light"] .statistics-card .apexcharts-tooltip-title,
+html[data-appearance="light"] .statistics-card .apexcharts-tooltip-text,
+html[data-appearance="light"] .statistics-card .apexcharts-tooltip-y-group,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-tooltip-title,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-tooltip-text,
+html[data-appearance="light"] .statistics-lazy-chart-card .apexcharts-tooltip-y-group {
+    color: #0f172a !important;
+}
+html[data-appearance="light"] .statistics-tab-chart,
+html[data-appearance="light"] .statistics-lazy-panel,
+html[data-appearance="light"] .statistics-lazy-chart-card {
+    color: #1e293b;
+}
+html[data-appearance="light"] .statistics-tab-chart .statistics-tab-chart-label,
+html[data-appearance="light"] .statistics-lazy-row span,
+html[data-appearance="light"] .statistics-lazy-status {
+    color: #475569 !important;
+}
+html[data-appearance="light"] .statistics-tab-chart .statistics-tab-chart-value,
+html[data-appearance="light"] .statistics-lazy-row strong,
+html[data-appearance="light"] .statistics-lazy-panel h2,
+html[data-appearance="light"] .statistics-lazy-panel h3 {
+    color: #0f172a !important;
+}
+html[data-appearance="light"] .statistics-tab-chart-track {
+    background: #e2e8f0;
+}
+
+/* OS/system light mode when no explicit user preference is stored. */
+@media (prefers-color-scheme: light) {
+    html[data-appearance="system"] .statistics-card .apexcharts-text,
+    html[data-appearance="system"] .statistics-card .apexcharts-legend-text,
+    html[data-appearance="system"] .statistics-card .apexcharts-title-text,
+    html[data-appearance="system"] .statistics-card .apexcharts-subtitle-text {
+        fill: #334155 !important;
+        color: #334155 !important;
+    }
+    html[data-appearance="system"] .statistics-card .apexcharts-xaxis-label,
+    html[data-appearance="system"] .statistics-card .apexcharts-yaxis-label {
+        fill: #475569 !important;
+    }
+    html[data-appearance="system"] .statistics-card .apexcharts-gridline {
+        stroke: rgba(71, 85, 105, .22) !important;
+    }
+}
